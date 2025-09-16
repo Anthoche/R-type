@@ -65,9 +65,14 @@ r-type/
 - [Clément-Alexis Fournier](https://github.com/Clement-Alexis)
 - [Bastien Leroux](https://github.com/bast0u)
 - [Anthony El-Achkar](https://github.com/Anthoche)
-- [Aurélien Delas](https://github.com/BoBoZcloque)
 - [Mariia Semenchenko](https://github.com/mariiasemenchenko)
 - [Corto Morrow](https://github.com/NuggetReckt)
 
 
 *Last update: September 2025*
+
+---
+
+<div align="center">
+    <sub>{Epitech.} - 2025</sub>
+</div>
