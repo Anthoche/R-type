@@ -9,8 +9,8 @@
 #include <type_traits>
 #include <queue>
 
-#include "ecs/sparse_array.hpp"
-#include "ecs/entity.hpp"
+#include "sparse_array.hpp"
+#include "entity.hpp"
 
 namespace ecs {
 

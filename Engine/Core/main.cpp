@@ -47,12 +47,12 @@ int main() {
 	ecs::entity_t e2 = r.spawn_entity();
 
 	// Ajout de composants (insert)
-	r.add_component<component::position>(e0, component::position{10, 20});
-	r.add_component<component::velocity>(e0, component::velocity{1, 2});
-	r.add_component<component::position>(e1, component::position{30, 40}); // pas de velocity
+	r.add_component<component::position>(e0, component::position{10.0f, 20.0f});
+	r.add_component<component::velocity>(e0, component::velocity{1.0f, 2.0f});
+	r.add_component<component::position>(e1, component::position{30.0f, 40.0f}); // pas de velocity
 	// Construction en place (emplace)
-	r.emplace_component<component::position>(e2, 50, 60);
-	r.emplace_component<component::velocity>(e2, -3, 4);
+	r.emplace_component<component::position>(e2, 50.0f, 60.0f);
+	r.emplace_component<component::velocity>(e2, -3.0f, 4.0f);
 
 	std::cout << "--- Run #1 ---\n";
 	r.run_systems();
