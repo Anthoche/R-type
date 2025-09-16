@@ -1,0 +1,15 @@
+r-type_server
+r-type_client
+*.log
+*.o
+*.pyc
+*.pdf
+*.pyc
+.vscode
+.idea
+.clang-format
+build
+coding-style.sh
+*__pycache__
+*.gcda
+*.gcno
