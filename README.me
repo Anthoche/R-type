@@ -1,0 +1,73 @@
+<div align="center">
+    <h1>R-Type</h1>
+    <h3>The remake by Epitech</h3>
+</div>
+
+---
+
+## 📋 Project Description
+
+Re create the famous game R-type
+
+## 🛠️ Technologies Used
+
+### Frontend
+
+* **C++** - Development language
+* **Raylib** - Graphical librairie
+
+
+## 📁 Project Structure
+
+```
+r-type/
+├── engine/               # Generic engine (independent from R-Type)
+│   ├── core/             # Core (ECS, Event Bus, Time Management)
+│   ├── rendering/        # Rendering (Raylib wrapper)
+│   ├── physics/          # Collisions, hitboxes
+│   └── utils/            # Math, logging, serialization
+│
+├── game/                 # R-Type game (built on top of the engine)
+│   ├── entities/         # Prefabs (Player, Enemy, Bullet...)
+│   ├── systems/          # Game logic (MovementSystem, CombatSystem...)
+│   ├── scenes/           # Levels, menus
+│   └── assets/           # Sprites, sounds
+│
+├── server/               # Authoritative server
+│   ├── game_logic/       # Game rules (spawn, score...)
+│   └── network_handler/  # Client management
+│
+├── client/               # Graphical client
+│   ├── input/            # Input handling
+│   └── network_client/   # Communication with the server
+│
+├── shared/               # Shared code (protocol, common structures)
+│
+└── tests/                # Unit tests (catch2, doctest)
+
+```
+
+## 📚 Documentation
+
+- 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**  
+  Visual representations of system architecture.
+
+## 🔧 Development
+
+### Available Scripts
+
+```bash
+# IN DEVELLOPEMENT
+```
+
+## 👥 Team
+
+- [Clément-Alexis Fournier](https://github.com/Clement-Alexis)
+- [Bastien Leroux](https://github.com/bast0u)
+- [Anthony El-Achkar](https://github.com/Anthoche)
+- [Aurélien Delas](https://github.com/BoBoZcloque)
+- [Mariia Semenchenko](https://github.com/mariiasemenchenko)
+- [Corto Morrow](https://github.com/NuggetReckt)
+
+
+*Last update: September 2025*
