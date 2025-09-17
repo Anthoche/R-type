@@ -6,6 +6,7 @@
 */
 
 #include "Include/client.hpp"
+#include <functional>
 
 
 GameClient::GameClient(const std::string& serverIp, uint16_t serverPort, const std::string& name)
@@ -43,7 +44,13 @@ void GameClient::run() {
             continue;
         }
         MessageType* type = reinterpret_cast<MessageType*>(buffer.data());
-        if (*type == MessageType::GameStart) {
+        if (*type == MessageType::ServerAssignId) {
+            if (bytesReceived >= sizeof(ServerAssignIdMessage)) {
+                const ServerAssignIdMessage* msg = reinterpret_cast<const ServerAssignIdMessage*>(buffer.data());
+                clientId = ntohl(msg->clientId);
+                std::cout << "[INFO] ID serveur reçu: " << clientId << std::endl;
+            }
+        } else if (*type == MessageType::GameStart) {
             if (bytesReceived >= sizeof(GameStartMessage)) {
                 const GameStartMessage* msg = reinterpret_cast<const GameStartMessage*>(buffer.data());
                 uint32_t count = ntohl(msg->clientCount);
@@ -74,9 +81,15 @@ void GameClient::sendHello() {
 void GameClient::runGameLoop(uint32_t clientCount) {
     (void)clientCount;
     game::scene::GameScene scene(800, 600);
+    uint32_t colorIdx;
 
-    // En l'absence d'ID serveur, on attribue une couleur par index modulo 4.
-    applyPlayerColorByIndex(scene, clientId % 4);
+    if (clientId > 0) {
+        colorIdx = (clientId - 1) % 4;
+    } else {
+        std::size_t nameHash = std::hash<std::string>{}(clientName);
+        colorIdx = static_cast<uint32_t>(nameHash % 4);
+    }
+    applyPlayerColorByIndex(scene, colorIdx);
 
     auto last = std::chrono::high_resolution_clock::now();
     while (scene.window_is_open()) {
@@ -92,6 +105,7 @@ void GameClient::runGameLoop(uint32_t clientCount) {
 }
 
 void GameClient::applyPlayerColorByIndex(game::scene::GameScene &scene, uint32_t idx) {
+    std::cout << idx << std::endl;
     const float colors[4][3] = {
         {0.f, 1.f, 1.f}, // cyan
         {1.f, 0.f, 0.f}, // rouge

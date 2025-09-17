@@ -13,6 +13,7 @@
 
 enum class MessageType : uint8_t {
     ClientHello,
+    ServerAssignId,
     GameStart
 };
 
@@ -25,4 +26,9 @@ struct ClientHelloMessage {
 struct GameStartMessage {
     MessageType type;
     uint32_t clientCount;
+};
+
+struct ServerAssignIdMessage {
+    MessageType type;
+    uint32_t clientId; // network byte order
 };

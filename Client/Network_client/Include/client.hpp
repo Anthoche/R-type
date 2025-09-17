@@ -21,7 +21,7 @@
 class GameClient {
     int socketFd;
     sockaddr_in serverAddr;
-    uint32_t clientId;
+    uint32_t clientId = 0;
     std::string clientName;
 
     public:

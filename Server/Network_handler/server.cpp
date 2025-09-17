@@ -36,6 +36,10 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data, const socka
     const ClientHelloMessage* msg = reinterpret_cast<const ClientHelloMessage*>(data.data());
     uint32_t clientId = nextClientId++;
     socket.addClient(clientAddr, clientId);
+    ServerAssignIdMessage assignMsg;
+    assignMsg.type = MessageType::ServerAssignId;
+    assignMsg.clientId = htonl(clientId);
+    socket.sendTo(&assignMsg, sizeof(assignMsg), clientAddr);
     std::cout << "Client connecté : " << msg->clientName
               << " (ID: " << clientId << ")"
               << " [" << socket.getClientCount() << "/4]" << std::endl;
