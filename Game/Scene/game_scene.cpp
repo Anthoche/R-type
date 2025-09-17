@@ -103,6 +103,16 @@ void GameScene::poll_events() {
 	}
 }
 
+void GameScene::set_local_player_color(float r, float g, float b, float a) {
+	auto &drawables = _registry.get_components<component::drawable>();
+	if (_player.value() < drawables.size() && drawables[_player.value()]) {
+		drawables[_player.value()]->r = r;
+		drawables[_player.value()]->g = g;
+		drawables[_player.value()]->b = b;
+		drawables[_player.value()]->a = a;
+	}
+}
+
 void GameScene::cleanup() {
 	// Nettoyage automatique via le destructeur du registry
 }

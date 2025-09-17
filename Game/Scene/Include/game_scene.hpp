@@ -28,6 +28,9 @@ public:
 	void poll_events();
 	bool window_is_open() const { return _window.isOpen(); }
 	
+	// Permet de définir la couleur du joueur local
+	void set_local_player_color(float r, float g, float b, float a = 1.f);
+	
 	// Nettoyage
 	void cleanup();
 

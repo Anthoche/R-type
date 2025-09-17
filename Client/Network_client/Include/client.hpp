@@ -16,7 +16,7 @@
 #include <iostream>
 #include <thread>
 #include <vector>
-
+#include "game_scene.hpp"
 
 class GameClient {
     int socketFd;
@@ -32,4 +32,6 @@ class GameClient {
 
     private:
         void sendHello();
+        void runGameLoop(uint32_t clientCount);
+        void applyPlayerColorByIndex(game::scene::GameScene &scene, uint32_t idx);
 };

@@ -46,8 +46,9 @@ void GameClient::run() {
         if (*type == MessageType::GameStart) {
             if (bytesReceived >= sizeof(GameStartMessage)) {
                 const GameStartMessage* msg = reinterpret_cast<const GameStartMessage*>(buffer.data());
-                std::cout << "Le jeu commence ! Nombre de joueurs : "
-                          << ntohl(msg->clientCount) << std::endl;
+                uint32_t count = ntohl(msg->clientCount);
+                std::cout << "Le jeu commence ! Nombre de joueurs : " << count << std::endl;
+                runGameLoop(count);
                 break;
             }
         }
@@ -68,5 +69,36 @@ void GameClient::sendHello() {
     if (sentBytes < 0) {
         std::cerr << "[ERREUR] Échec de l'envoi de ClientHello" << std::endl;
     }
+}
+
+void GameClient::runGameLoop(uint32_t clientCount) {
+    (void)clientCount;
+    game::scene::GameScene scene(800, 600);
+
+    // En l'absence d'ID serveur, on attribue une couleur par index modulo 4.
+    applyPlayerColorByIndex(scene, clientId % 4);
+
+    auto last = std::chrono::high_resolution_clock::now();
+    while (scene.window_is_open()) {
+        auto now = std::chrono::high_resolution_clock::now();
+        float dt = std::chrono::duration<float>(now - last).count();
+        last = now;
+        scene.poll_events();
+        // TODO: intégrer de vrais inputs / messages réseau
+        scene.handle_input(0.f, 0.f);
+        scene.update(dt);
+        scene.render();
+    }
+}
+
+void GameClient::applyPlayerColorByIndex(game::scene::GameScene &scene, uint32_t idx) {
+    const float colors[4][3] = {
+        {0.f, 1.f, 1.f}, // cyan
+        {1.f, 0.f, 0.f}, // rouge
+        {0.f, 1.f, 0.f}, // vert
+        {1.f, 1.f, 0.f}  // jaune
+    };
+    idx %= 4;
+    scene.set_local_player_color(colors[idx][0], colors[idx][1], colors[idx][2], 1.f);
 }
 
