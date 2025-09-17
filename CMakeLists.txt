@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
+set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    CACHE STRING "Vcpkg toolchain file")
+
 project(rtype LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -9,6 +12,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
+
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE
+        "${CMAKE_SOURCE_DIR}/external/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+endif()
+
+
+# Dependencies
+find_package(raylib CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 
 # Directories
 set(CLIENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Client)
@@ -44,6 +58,9 @@ target_include_directories(r-type_server PRIVATE
     ${SERVER_DIR}/Game_logic
     ${SHARED_DIR}
 )
+
+# Linking
+target_link_libraries(r-type_client PRIVATE raylib glfw)
 
 # Tests (later)
 enable_testing()
