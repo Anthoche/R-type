@@ -1,3 +1,10 @@
+/*
+** EPITECH PROJECT, 2025
+** G-CPP-500-PAR-5-1-rtype-1
+** File description:
+** zipper
+*/
+
 #pragma once
 
 #include <tuple>
@@ -95,69 +102,69 @@ private:
 // Conteneur adaptateur produisant zipper_iterator
 template <class... Containers>
 class zipper {
-public:
-	using iterator = zipper_iterator<Containers...>;
-	using iterator_tuple = typename iterator::iterator_tuple;
+	public:
+		using iterator = zipper_iterator<Containers...>;
+		using iterator_tuple = typename iterator::iterator_tuple;
 
-	zipper(Containers &...cs)
-		: _begin(std::make_tuple(cs.begin()...)),
-		  _end(_compute_end(cs...)),
-		  _size(_compute_size(cs...)) {
-	}
+		zipper(Containers &...cs)
+			: _begin(std::make_tuple(cs.begin()...)),
+			_end(_compute_end(cs...)),
+			_size(_compute_size(cs...)) {
+		}
 
-	iterator begin() { iterator it(_begin, _size); return it; }
-	iterator end() { return iterator(_end, _size); }
+		iterator begin() { iterator it(_begin, _size); return it; }
+		iterator end() { return iterator(_end, _size); }
 
-private:
-	static size_t _compute_size(Containers &...containers) { return std::min({static_cast<size_t>(containers.size())...}); }
-	static iterator_tuple _compute_end(Containers &...containers) { return std::make_tuple(containers.end()...); }
+	private:
+		static size_t _compute_size(Containers &...containers) { return std::min({static_cast<size_t>(containers.size())...}); }
+		static iterator_tuple _compute_end(Containers &...containers) { return std::make_tuple(containers.end()...); }
 
-private:
-	iterator_tuple _begin;
-	iterator_tuple _end;
-	size_t _size;
+	private:
+		iterator_tuple _begin;
+		iterator_tuple _end;
+		size_t _size;
 };
 
 // Variante indexée: renvoie (index, ...tuple de valeurs...)
 template <class... Containers>
 class indexed_zipper_iterator {
 	using base_iter = zipper_iterator<Containers...>;
-public:
-	using value_type = std::tuple<size_t, typename std::remove_reference_t<decltype((*std::declval<decltype(std::declval<Containers &>().begin())&>()))>...>;
-	using reference = value_type;
-	using pointer = void;
-	using difference_type = std::ptrdiff_t;
-	using iterator_category = std::input_iterator_tag;
+	public:
+		using value_type = std::tuple<size_t, typename std::remove_reference_t<decltype((*std::declval<decltype(std::declval<Containers &>().begin())&>()))>...>;
+		using reference = value_type;
+		using pointer = void;
+		using difference_type = std::ptrdiff_t;
+		using iterator_category = std::input_iterator_tag;
 
-	indexed_zipper_iterator(base_iter it, base_iter end)
-		: _it(it), _end(end), _index(0) {}
+		indexed_zipper_iterator(base_iter it, base_iter end)
+			: _it(it), _end(end), _index(0) {}
 
-	indexed_zipper_iterator &operator++() { ++_it; ++_index; return *this; }
-	indexed_zipper_iterator &operator++(int) { ++_it; ++_index; return *this; }
+		indexed_zipper_iterator &operator++() { ++_it; ++_index; return *this; }
+		indexed_zipper_iterator &operator++(int) { ++_it; ++_index; return *this; }
 
-	value_type operator*() { return std::tuple_cat(std::make_tuple(_index), *_it); }
+		value_type operator*() { return std::tuple_cat(std::make_tuple(_index), *_it); }
 
-	friend bool operator==(indexed_zipper_iterator const &l, indexed_zipper_iterator const &r) { return l._it == r._it; }
-	friend bool operator!=(indexed_zipper_iterator const &l, indexed_zipper_iterator const &r) { return !(l == r); }
+		friend bool operator==(indexed_zipper_iterator const &l, indexed_zipper_iterator const &r) { return l._it == r._it; }
+		friend bool operator!=(indexed_zipper_iterator const &l, indexed_zipper_iterator const &r) { return !(l == r); }
 
-private:
-	base_iter _it;
-	base_iter _end;
-	size_t _index;
+	private:
+		base_iter _it;
+		base_iter _end;
+		size_t _index;
 };
 
 template <class... Containers>
 class indexed_zipper {
-public:
-	using iterator = indexed_zipper_iterator<Containers...>;
-	using base = zipper<Containers...>;
+	public:
+		using iterator = indexed_zipper_iterator<Containers...>;
+		using base = zipper<Containers...>;
 
-	indexed_zipper(Containers &...cs) : _base(cs...) {}
-	iterator begin() { return iterator(_base.begin(), _base.end()); }
-	iterator end() { return iterator(_base.end(), _base.end()); }
+		indexed_zipper(Containers &...cs) : _base(cs...) {}
+		iterator begin() { return iterator(_base.begin(), _base.end()); }
+		iterator end() { return iterator(_base.end(), _base.end()); }
 
-private:
-	base _base;
-};
+	private:
+		base _base;
+	};
 
 }

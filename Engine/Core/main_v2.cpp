@@ -1,11 +1,18 @@
+/*
+** EPITECH PROJECT, 2025
+** G-CPP-500-PAR-5-1-rtype-1
+** File description:
+** main
+*/
+
 #include <iostream>
 #include <algorithm>
 #include "Include/registry.hpp"
 #include "Include/zipper.hpp"
 #include "../../Game/Entities/Include/components.hpp"
 
-int main() {
-	ecs::registry r; // coeur ECS
+int main_v2() {
+	ecs::registry r;
 
 	// Enregistre les types de composants dans le registry (crée leurs sparse_arrays)
 	auto &positions = r.register_component<component::position>();
