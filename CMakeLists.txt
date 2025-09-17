@@ -7,46 +7,43 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
-# Configuration des répertoires
-set(ENGINE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core/Include)
-set(ENGINE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine)
-set(GAME_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Game)
+# Directories
+set(CLIENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Client)
+set(SERVER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Server)
+set(SHARED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shared)
 
-# Bibliothèque ECS (Engine Core)
-add_library(ecs STATIC
-	${ENGINE_SRC_DIR}/Core/entity.cpp
-	${ENGINE_SRC_DIR}/Core/registry.cpp
+# r-type_client
+add_executable(r-type_client
+    ${CLIENT_DIR}/main.cpp
+    ${CLIENT_DIR}/Network_client/client.cpp
 )
 
-target_include_directories(ecs PUBLIC ${ENGINE_INCLUDE_DIR} ${GAME_INCLUDE_DIR})
-
-# Exécutable principal de démonstration
-add_executable(rtype_demo ${ENGINE_SRC_DIR}/Core/main.cpp)
-target_link_libraries(rtype_demo PRIVATE ecs)
-target_include_directories(rtype_demo PRIVATE ${ENGINE_INCLUDE_DIR})
-
-# Jeu principal R-Type (avec SFML)
-find_package(SFML 2.5 REQUIRED COMPONENTS system window graphics)
-
-add_executable(rtype_game 
-	${GAME_INCLUDE_DIR}/main.cpp 
-	${ENGINE_SRC_DIR}/Core/entity.cpp 
-	${ENGINE_SRC_DIR}/Core/registry.cpp
-	${GAME_INCLUDE_DIR}/Entities/player.cpp
-	${GAME_INCLUDE_DIR}/Scene/game_scene.cpp
+target_include_directories(r-type_client PRIVATE
+    ${CLIENT_DIR}/Network_client/Include
+    ${CLIENT_DIR}/Input
+    ${SHARED_DIR}
 )
-target_link_libraries(rtype_game PRIVATE ecs sfml-system sfml-window sfml-graphics)
-target_include_directories(rtype_game PRIVATE ${ENGINE_INCLUDE_DIR} ${GAME_INCLUDE_DIR})
 
-# Tests unitaires
+# r-type_server
+add_executable(r-type_server
+    ${SERVER_DIR}/main.cpp
+    ${SERVER_DIR}/Network_handler/server.cpp
+    ${SERVER_DIR}/Network_handler/UDP_socket.cpp
+)
+
+target_include_directories(r-type_server PRIVATE
+    ${SERVER_DIR}/Network_handler/Include
+    ${SERVER_DIR}/Game_logic
+    ${SHARED_DIR}
+)
+
+# Tests (later)
 enable_testing()
 
 # Installation
-install(TARGETS ecs rtype_demo rtype_game
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	RUNTIME DESTINATION bin
+install(TARGETS r-type_client r-type_server
+    RUNTIME DESTINATION bin
 )
