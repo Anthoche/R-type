@@ -30,6 +30,8 @@ public:
 	
 	// Permet de définir la couleur du joueur local
 	void set_local_player_color(float r, float g, float b, float a = 1.f);
+	// Permet de positionner le joueur local (utilisé avec l'état serveur)
+	void set_local_player_position(float x, float y);
 	
 	// Nettoyage
 	void cleanup();

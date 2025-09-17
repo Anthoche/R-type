@@ -28,8 +28,11 @@ class UDP_socket {
         ~UDP_socket();
 
         std::pair<std::vector<uint8_t>, sockaddr_in> receive();
+        // Non-blocking receive; returns false if no data available
+        bool try_receive(std::vector<uint8_t>& outData, sockaddr_in& outAddr);
         void sendTo(const void* data, size_t size, const sockaddr_in& clientAddr);
         void broadcast(const void* data, size_t size);
         void addClient(const sockaddr_in& clientAddr, uint32_t clientId);
         size_t getClientCount() const;
+        const std::unordered_map<std::string, uint32_t>& getClients() const { return clients; }
 };

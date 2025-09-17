@@ -113,6 +113,14 @@ void GameScene::set_local_player_color(float r, float g, float b, float a) {
 	}
 }
 
+void GameScene::set_local_player_position(float x, float y) {
+    auto &positions = _registry.get_components<component::position>();
+    if (_player.value() < positions.size() && positions[_player.value()]) {
+        positions[_player.value()]->x = x;
+        positions[_player.value()]->y = y;
+    }
+}
+
 void GameScene::cleanup() {
 	// Nettoyage automatique via le destructeur du registry
 }

@@ -7,6 +7,8 @@
 
 
 #include "Include/UDP_socket.hpp"
+#include <fcntl.h>
+#include <errno.h>
 
 
 UDP_socket::UDP_socket(uint16_t port) {
@@ -21,6 +23,11 @@ UDP_socket::UDP_socket(uint16_t port) {
     serverAddr.sin_port = htons(port);
     if (bind(socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
         throw std::runtime_error("Failed to bind socket");
+    }
+    // Set non-blocking mode
+    int flags = fcntl(socketFd, F_GETFL, 0);
+    if (flags != -1) {
+        fcntl(socketFd, F_SETFL, flags | O_NONBLOCK);
     }
 }
 
@@ -43,6 +50,23 @@ std::pair<std::vector<uint8_t>, sockaddr_in> UDP_socket::receive() {
     buffer.resize(bytesReceived);
 
     return {buffer, clientAddr};
+}
+
+bool UDP_socket::try_receive(std::vector<uint8_t>& outData, sockaddr_in& outAddr) {
+    outData.resize(1024);
+    socklen_t addrLen = sizeof(outAddr);
+    ssize_t bytesReceived = recvfrom(
+        socketFd, outData.data(), outData.size(), 0,
+        (struct sockaddr*)&outAddr, &addrLen
+    );
+    if (bytesReceived < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return false;
+        }
+        return false;
+    }
+    outData.resize(bytesReceived);
+    return true;
 }
 
 void UDP_socket::sendTo(const void* data, size_t size, const sockaddr_in& clientAddr) {
@@ -68,8 +92,6 @@ void UDP_socket::broadcast(const void* data, size_t size) {
         );
         if (sentBytes < 0) {
             std::cerr << "[ERREUR] Échec de l'envoi à " << addrStr << std::endl;
-        } else {
-            std::cout << "[DEBUG] Message envoyé à " << addrStr << std::endl;
         }
     }
 }

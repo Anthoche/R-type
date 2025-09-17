@@ -11,12 +11,15 @@
 #include "../../../Shared/protocol.hpp"
 #include <thread>
 #include <atomic>
+#include <unordered_map>
 
 
 class GameServer {
     UDP_socket socket;
     std::atomic<bool> gameStarted{false};
     uint32_t nextClientId = 1;
+    // simple player state: position
+    std::unordered_map<uint32_t, std::pair<float,float>> playerPositions;
 
     public:
         GameServer(uint16_t port);
@@ -27,4 +30,10 @@ class GameServer {
     private:
         void handleClientHello(const std::vector<uint8_t>& data, const sockaddr_in& clientAddr);
         void broadcastGameStart();
+        void game_loop();
+        void handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from);
+        void initialize_player_positions();
+        void process_pending_messages();
+        void broadcast_states_to_clients();
+        void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
 };
