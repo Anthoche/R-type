@@ -1,3 +1,10 @@
+/*
+** EPITECH PROJECT, 2025
+** G-CPP-500-PAR-5-1-rtype-1
+** File description:
+** registry
+*/
+
 #include "Include/registry.hpp"
 
 namespace ecs {
