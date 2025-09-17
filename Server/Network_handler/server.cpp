@@ -47,6 +47,8 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data, const socka
 
 void GameServer::broadcastGameStart() {
     GameStartMessage msg;
-    msg.clientCount = 4;
+    msg.type = MessageType::GameStart;
+    msg.clientCount = htonl(4);
     socket.broadcast(&msg, sizeof(msg));
+    std::cout << "[DEBUG] Message GameStart envoyé à tous les clients." << std::endl;
 }

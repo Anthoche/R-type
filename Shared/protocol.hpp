@@ -17,10 +17,12 @@ enum class MessageType : uint8_t {
 };
 
 struct ClientHelloMessage {
+    MessageType type;
     uint32_t clientId;
     char clientName[32];
 };
 
 struct GameStartMessage {
+    MessageType type;
     uint32_t clientCount;
 };

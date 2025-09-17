@@ -55,12 +55,22 @@ void UDP_socket::sendTo(const void* data, size_t size, const sockaddr_in& client
 void UDP_socket::broadcast(const void* data, size_t size) {
     for (const auto& [addrStr, clientId] : clients) {
         sockaddr_in addr = {};
-        sscanf(addrStr.c_str(), "%hu.%hu.%hu.%hu:%hu",
-            &addr.sin_addr.s_addr, &addr.sin_addr.s_addr + 1,
-            &addr.sin_addr.s_addr + 2, &addr.sin_addr.s_addr + 3,
-            &addr.sin_port);
         addr.sin_family = AF_INET;
-        sendTo(data, size, addr);
+        size_t colonPos = addrStr.find(':');
+        std::string ipStr = addrStr.substr(0, colonPos);
+        uint16_t port = static_cast<uint16_t>(std::stoi(addrStr.substr(colonPos + 1)));
+
+        inet_pton(AF_INET, ipStr.c_str(), &addr.sin_addr);
+        addr.sin_port = htons(port);
+        ssize_t sentBytes = sendto(
+            socketFd, data, size, 0,
+            (struct sockaddr*)&addr, sizeof(addr)
+        );
+        if (sentBytes < 0) {
+            std::cerr << "[ERREUR] Échec de l'envoi à " << addrStr << std::endl;
+        } else {
+            std::cout << "[DEBUG] Message envoyé à " << addrStr << std::endl;
+        }
     }
 }
 

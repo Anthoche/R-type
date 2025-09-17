@@ -30,7 +30,6 @@ GameClient::~GameClient() {
 
 void GameClient::run() {
     std::cout << "Client démarré. En attente du début du jeu..." << std::endl;
-
     while (true) {
         std::vector<uint8_t> buffer(1024);
         sockaddr_in fromAddr = {};
@@ -43,11 +42,12 @@ void GameClient::run() {
         if (bytesReceived < sizeof(MessageType)) {
             continue;
         }
-        MessageType type = *reinterpret_cast<MessageType*>(buffer.data());
-        if (type == MessageType::GameStart) {
+        MessageType* type = reinterpret_cast<MessageType*>(buffer.data());
+        if (*type == MessageType::GameStart) {
             if (bytesReceived >= sizeof(GameStartMessage)) {
                 const GameStartMessage* msg = reinterpret_cast<const GameStartMessage*>(buffer.data());
-                std::cout << "Le jeu commence ! Nombre de joueurs : " << msg->clientCount << std::endl;
+                std::cout << "Le jeu commence ! Nombre de joueurs : "
+                          << ntohl(msg->clientCount) << std::endl;
                 break;
             }
         }
@@ -56,11 +56,17 @@ void GameClient::run() {
 
 void GameClient::sendHello() {
     ClientHelloMessage msg;
-    msg.clientId = 0;
+    msg.type = MessageType::ClientHello;
+    msg.clientId = htonl(0);
     strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
     msg.clientName[sizeof(msg.clientName) - 1] = '\0';
-    sendto(
+    ssize_t sentBytes = sendto(
         socketFd, &msg, sizeof(msg), 0,
         (struct sockaddr*)&serverAddr, sizeof(serverAddr)
     );
+
+    if (sentBytes < 0) {
+        std::cerr << "[ERREUR] Échec de l'envoi de ClientHello" << std::endl;
+    }
 }
+
