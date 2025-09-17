@@ -3,6 +3,7 @@
 #include "registry.hpp"
 #include "entity.hpp"
 #include "../../Entities/Include/components.hpp"
+#include <SFML/Graphics.hpp>
 
 namespace game::scene {
 
@@ -22,6 +23,10 @@ public:
 	
 	// Gestion des événements
 	void handle_input(float input_x, float input_y);
+	
+	// Gestion des événements fenêtre (fermeture, etc.)
+	void poll_events();
+	bool window_is_open() const { return _window.isOpen(); }
 	
 	// Nettoyage
 	void cleanup();
@@ -45,6 +50,9 @@ private:
 	ecs::registry _registry;
 	int _window_width;
 	int _window_height;
+	
+	// Fenêtre SFML
+	sf::RenderWindow _window;
 	
 	// Entités principales
 	ecs::entity_t _player;

@@ -13,3 +13,4 @@ coding-style.sh
 *__pycache__
 *.gcda
 *.gcno
+build/

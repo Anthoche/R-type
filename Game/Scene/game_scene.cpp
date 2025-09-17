@@ -8,6 +8,9 @@ namespace game::scene {
 
 GameScene::GameScene(int width, int height) 
 	: _window_width(width), _window_height(height), _player(ecs::entity_t{0}) {
+	// Création de la fenêtre SFML
+	_window.create(sf::VideoMode(static_cast<unsigned int>(_window_width), static_cast<unsigned int>(_window_height)), "R-Type");
+	_window.setFramerateLimit(60);
 	initialize();
 }
 
@@ -55,13 +58,27 @@ void GameScene::update(float delta_time) {
 }
 
 void GameScene::render() {
-	// TODO: Implémenter le rendu avec le nouveau système graphique
-	// Pour l'instant, on affiche juste les informations de debug
-	std::cout << "Rendu de la scène - Joueur à la position: ";
+	if (!_window.isOpen()) return;
+	_window.clear(sf::Color(20, 20, 30));
+	
 	auto &positions = _registry.get_components<component::position>();
-	if (positions[_player.value()] && _player.value() < positions.size()) {
-		std::cout << "(" << positions[_player.value()]->x << ", " << positions[_player.value()]->y << ")" << std::endl;
+	auto &drawables = _registry.get_components<component::drawable>();
+	
+	const std::size_t n = std::min(positions.size(), drawables.size());
+	for (std::size_t i = 0; i < n; ++i) {
+		if (positions[i] && drawables[i]) {
+			sf::RectangleShape shape({drawables[i]->width, drawables[i]->height});
+			shape.setPosition(positions[i]->x, positions[i]->y);
+			shape.setFillColor(sf::Color(
+				static_cast<sf::Uint8>(std::clamp(drawables[i]->r, 0.f, 1.f) * 255.f),
+				static_cast<sf::Uint8>(std::clamp(drawables[i]->g, 0.f, 1.f) * 255.f),
+				static_cast<sf::Uint8>(std::clamp(drawables[i]->b, 0.f, 1.f) * 255.f),
+				static_cast<sf::Uint8>(std::clamp(drawables[i]->a, 0.f, 1.f) * 255.f)));
+			_window.draw(shape);
+		}
 	}
+	
+	_window.display();
 }
 
 void GameScene::handle_input(float input_x, float input_y) {
@@ -69,9 +86,20 @@ void GameScene::handle_input(float input_x, float input_y) {
 	auto &velocities = _registry.get_components<component::velocity>();
 	auto &controllables = _registry.get_components<component::controllable>();
 	
-	if (velocities[_player.value()] && controllables[_player.value()] && _player.value() < velocities.size()) {
+	if (_player.value() < velocities.size() && velocities[_player.value()] &&
+		_player.value() < controllables.size() && controllables[_player.value()]) {
 		velocities[_player.value()]->vx = input_x * controllables[_player.value()]->speed;
 		velocities[_player.value()]->vy = input_y * controllables[_player.value()]->speed;
+	}
+}
+
+void GameScene::poll_events() {
+	sf::Event event;
+	while (_window.pollEvent(event)) {
+		if (event.type == sf::Event::Closed) {
+			_game_running = false;
+			_window.close();
+		}
 	}
 }
 
@@ -101,8 +129,7 @@ void GameScene::setup_render_system() {
 		[this](ecs::registry &reg,
 		   ecs::sparse_array<component::position> &pos,
 		   ecs::sparse_array<component::drawable> &drw) {
-			// TODO: Implémenter le rendu avec le nouveau système graphique
-			// Pour l'instant, on ne fait rien dans le système de rendu
+			// Le rendu effectif est géré dans GameScene::render()
 		});
 }
 
@@ -129,6 +156,7 @@ void GameScene::create_player() {
 	_player = game::entities::create_player(_registry, 100.f, 300.f);
 }
 
+/* ----- METTRE CA DANS UN ENEMY.CPP???? (COMME PLAYER) -------- */
 void GameScene::create_enemies() {
 	static std::random_device rd;
 	static std::mt19937 gen(rd());
@@ -163,6 +191,8 @@ void GameScene::create_enemies() {
 	
 	_enemies.push_back(enemy);
 }
+
+/* ----- METTRE CA DANS UN OBSTACLES.CPP???? (COMME PLAYER) -------- */
 
 void GameScene::create_obstacles() {
 	for (int i = 0; i < 3; ++i) {

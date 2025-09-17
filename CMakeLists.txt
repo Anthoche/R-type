@@ -28,7 +28,9 @@ add_executable(rtype_demo ${ENGINE_SRC_DIR}/Core/main.cpp)
 target_link_libraries(rtype_demo PRIVATE ecs)
 target_include_directories(rtype_demo PRIVATE ${ENGINE_INCLUDE_DIR})
 
-# Jeu principal R-Type
+# Jeu principal R-Type (avec SFML)
+find_package(SFML 2.5 REQUIRED COMPONENTS system window graphics)
+
 add_executable(rtype_game 
 	${GAME_INCLUDE_DIR}/main.cpp 
 	${ENGINE_SRC_DIR}/Core/entity.cpp 
@@ -36,10 +38,10 @@ add_executable(rtype_game
 	${GAME_INCLUDE_DIR}/Entities/player.cpp
 	${GAME_INCLUDE_DIR}/Scene/game_scene.cpp
 )
-target_link_libraries(rtype_game PRIVATE ecs)
+target_link_libraries(rtype_game PRIVATE ecs sfml-system sfml-window sfml-graphics)
 target_include_directories(rtype_game PRIVATE ${ENGINE_INCLUDE_DIR} ${GAME_INCLUDE_DIR})
 
-# Configuration pour les tests unitaires
+# Tests unitaires
 enable_testing()
 
 # Installation
