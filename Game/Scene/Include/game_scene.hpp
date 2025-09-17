@@ -4,6 +4,7 @@
 #include "entity.hpp"
 #include "../../Entities/Include/components.hpp"
 #include <SFML/Graphics.hpp>
+#include <unordered_map>
 
 namespace game::scene {
 
@@ -32,6 +33,16 @@ public:
 	void set_local_player_color(float r, float g, float b, float a = 1.f);
 	// Permet de positionner le joueur local (utilisé avec l'état serveur)
 	void set_local_player_position(float x, float y);
+
+	// Gestion des joueurs distants
+	void ensure_remote_player(uint32_t clientId);
+	void set_remote_player_position(uint32_t clientId, float x, float y);
+	void set_remote_player_color(uint32_t clientId, float r, float g, float b, float a = 1.f);
+
+	// Gestion des ennemis synchronisés
+	void ensure_enemy(uint32_t enemyId, float x, float y);
+	void set_enemy_position(uint32_t enemyId, float x, float y);
+	void despawn_enemy(uint32_t enemyId);
 	
 	// Nettoyage
 	void cleanup();
@@ -63,6 +74,8 @@ private:
 	ecs::entity_t _player;
 	std::vector<ecs::entity_t> _enemies;
 	std::vector<ecs::entity_t> _obstacles;
+	std::unordered_map<uint32_t, ecs::entity_t> _remote_players;
+	std::unordered_map<uint32_t, ecs::entity_t> _enemy_entities;
 	
 	// État du jeu
 	bool _game_running{true};

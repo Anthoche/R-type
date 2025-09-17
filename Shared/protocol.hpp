@@ -16,7 +16,10 @@ enum class MessageType : uint8_t {
     ServerAssignId,
     GameStart,
     ClientInput,
-    StateUpdate
+    StateUpdate,
+    EnemySpawn,
+    EnemyUpdate,
+    EnemyDespawn
 };
 
 struct ClientHelloMessage {
@@ -49,4 +52,26 @@ struct StateUpdateMessage {
     uint32_t clientId;        // network byte order (the recipient id)
     uint32_t posXBits;        // network byte order (reinterpret cast of float)
     uint32_t posYBits;        // network byte order (reinterpret cast of float)
+};
+
+// Server -> Client: spawn a new enemy with id and initial position
+struct EnemySpawnMessage {
+    MessageType type;     // MessageType::EnemySpawn
+    uint32_t enemyId;     // network byte order
+    uint32_t posXBits;    // network byte order
+    uint32_t posYBits;    // network byte order
+};
+
+// Server -> Client: update enemy position
+struct EnemyUpdateMessage {
+    MessageType type;     // MessageType::EnemyUpdate
+    uint32_t enemyId;     // network byte order
+    uint32_t posXBits;    // network byte order
+    uint32_t posYBits;    // network byte order
+};
+
+// Server -> Client: remove enemy
+struct EnemyDespawnMessage {
+    MessageType type;     // MessageType::EnemyDespawn
+    uint32_t enemyId;     // network byte order
 };

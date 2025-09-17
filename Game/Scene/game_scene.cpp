@@ -44,11 +44,6 @@ void GameScene::update(float delta_time) {
 	if (!_game_running) return;
 	
 	// Mise à jour du timer d'apparition des ennemis
-	_enemy_spawn_timer += delta_time;
-	if (_enemy_spawn_timer >= _enemy_spawn_interval) {
-		create_enemies();
-		_enemy_spawn_timer = 0.f;
-	}
 	
 	// Exécution des systèmes
 	_registry.run_systems();
@@ -121,6 +116,46 @@ void GameScene::set_local_player_position(float x, float y) {
     }
 }
 
+void GameScene::ensure_remote_player(uint32_t clientId) {
+    if (_remote_players.find(clientId) != _remote_players.end()) return;
+    auto e = _registry.spawn_entity();
+    _registry.emplace_component<component::position>(e, 100.f, 300.f);
+    // Pas de velocity/controllable: piloté par le serveur
+    _registry.emplace_component<component::health>(e, 100, 100);
+    _registry.emplace_component<component::type>(e, component::entity_type::PLAYER);
+    _registry.emplace_component<component::collision_box>(e, 50.f, 30.f);
+    component::drawable drawable;
+    drawable.width = 50.f;
+    drawable.height = 30.f;
+    drawable.r = 1.f; drawable.g = 1.f; drawable.b = 1.f; drawable.a = 1.f;
+    _registry.add_component<component::drawable>(e, std::move(drawable));
+    _remote_players.insert({clientId, e});
+}
+
+void GameScene::set_remote_player_position(uint32_t clientId, float x, float y) {
+    auto it = _remote_players.find(clientId);
+    if (it == _remote_players.end()) return;
+    auto &positions = _registry.get_components<component::position>();
+    std::size_t idx = it->second.value();
+    if (idx < positions.size() && positions[idx]) {
+        positions[idx]->x = x;
+        positions[idx]->y = y;
+    }
+}
+
+void GameScene::set_remote_player_color(uint32_t clientId, float r, float g, float b, float a) {
+    auto it = _remote_players.find(clientId);
+    if (it == _remote_players.end()) return;
+    auto &drawables = _registry.get_components<component::drawable>();
+    std::size_t idx = it->second.value();
+    if (idx < drawables.size() && drawables[idx]) {
+        drawables[idx]->r = r;
+        drawables[idx]->g = g;
+        drawables[idx]->b = b;
+        drawables[idx]->a = a;
+    }
+}
+
 void GameScene::cleanup() {
 	// Nettoyage automatique via le destructeur du registry
 }
@@ -176,8 +211,7 @@ void GameScene::create_player() {
 
 /* ----- METTRE CA DANS UN ENEMY.CPP???? (COMME PLAYER) -------- */
 void GameScene::create_enemies() {
-	static std::random_device rd;
-	static std::mt19937 gen(rd());
+    static std::mt19937 gen(1337u);
 	static std::uniform_real_distribution<float> y_dist(50.f, 550.f);
 	
 	auto enemy = _registry.spawn_entity();
@@ -208,6 +242,41 @@ void GameScene::create_enemies() {
 	_registry.add_component<component::drawable>(enemy, std::move(drawable));
 	
 	_enemies.push_back(enemy);
+}
+
+void GameScene::ensure_enemy(uint32_t enemyId, float x, float y) {
+    if (_enemy_entities.find(enemyId) != _enemy_entities.end()) return;
+    auto enemy = _registry.spawn_entity();
+    _registry.emplace_component<component::position>(enemy, x, y);
+    // Pas de velocity: piloté par le serveur
+    _registry.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
+    _registry.emplace_component<component::health>(enemy, 50, 50);
+    _registry.emplace_component<component::damage>(enemy, 20);
+    _registry.emplace_component<component::collision_box>(enemy, 40.f, 40.f);
+    component::drawable drawable;
+    drawable.width = 40.f;
+    drawable.height = 40.f;
+    drawable.r = 1.f; drawable.g = 0.f; drawable.b = 0.f; drawable.a = 1.f;
+    _registry.add_component<component::drawable>(enemy, std::move(drawable));
+    _enemy_entities.insert({enemyId, enemy});
+}
+
+void GameScene::set_enemy_position(uint32_t enemyId, float x, float y) {
+    auto it = _enemy_entities.find(enemyId);
+    if (it == _enemy_entities.end()) return;
+    auto &positions = _registry.get_components<component::position>();
+    std::size_t idx = it->second.value();
+    if (idx < positions.size() && positions[idx]) {
+        positions[idx]->x = x;
+        positions[idx]->y = y;
+    }
+}
+
+void GameScene::despawn_enemy(uint32_t enemyId) {
+    auto it = _enemy_entities.find(enemyId);
+    if (it == _enemy_entities.end()) return;
+    _registry.kill_entity(it->second);
+    _enemy_entities.erase(it);
 }
 
 /* ----- METTRE CA DANS UN OBSTACLES.CPP???? (COMME PLAYER) -------- */

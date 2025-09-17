@@ -20,6 +20,10 @@ class GameServer {
     uint32_t nextClientId = 1;
     // simple player state: position
     std::unordered_map<uint32_t, std::pair<float,float>> playerPositions;
+    // enemies
+    uint32_t nextEnemyId = 1;
+    std::unordered_map<uint32_t, std::pair<float,float>> enemies; // id -> (x,y)
+    float enemySpawnTimerSec = 0.f;
 
     public:
         GameServer(uint16_t port);
@@ -36,4 +40,9 @@ class GameServer {
         void process_pending_messages();
         void broadcast_states_to_clients();
         void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
+        void update_enemies(float dt);
+        void spawn_enemy();
+        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y);
+        void broadcast_enemy_update(uint32_t enemyId, float x, float y);
+        void broadcast_enemy_despawn(uint32_t enemyId);
 };

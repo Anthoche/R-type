@@ -140,14 +140,48 @@ void GameClient::readStateUpdates(game::scene::GameScene &scene) const {
         if (*t == MessageType::StateUpdate && static_cast<size_t>(bytes) >= sizeof(StateUpdateMessage)) {
             const StateUpdateMessage* smsg = reinterpret_cast<const StateUpdateMessage*>(buffer.data());
             uint32_t id = ntohl(smsg->clientId);
+            uint32_t xbitsN = ntohl(smsg->posXBits);
+            uint32_t ybitsN = ntohl(smsg->posYBits);
+            float px, py;
+            std::memcpy(&px, &xbitsN, sizeof(float));
+            std::memcpy(&py, &ybitsN, sizeof(float));
             if (id == clientId) {
-                uint32_t xbitsN = ntohl(smsg->posXBits);
-                uint32_t ybitsN = ntohl(smsg->posYBits);
-                float px, py;
-                std::memcpy(&px, &xbitsN, sizeof(float));
-                std::memcpy(&py, &ybitsN, sizeof(float));
                 scene.set_local_player_position(px, py);
+            } else {
+                scene.ensure_remote_player(id);
+                // couleur déterministe par id
+                const float colors[4][3] = {
+                    {0.f, 1.f, 1.f},
+                    {1.f, 0.f, 0.f},
+                    {0.f, 1.f, 0.f},
+                    {1.f, 1.f, 0.f}
+                };
+                uint32_t idx = (id - 1) % 4;
+                scene.set_remote_player_color(id, colors[idx][0], colors[idx][1], colors[idx][2], 1.f);
+                scene.set_remote_player_position(id, px, py);
             }
+        } else if (*t == MessageType::EnemySpawn && static_cast<size_t>(bytes) >= sizeof(EnemySpawnMessage)) {
+            const EnemySpawnMessage* em = reinterpret_cast<const EnemySpawnMessage*>(buffer.data());
+            uint32_t enemyId = ntohl(em->enemyId);
+            uint32_t xbitsN = ntohl(em->posXBits);
+            uint32_t ybitsN = ntohl(em->posYBits);
+            float ex, ey;
+            std::memcpy(&ex, &xbitsN, sizeof(float));
+            std::memcpy(&ey, &ybitsN, sizeof(float));
+            scene.ensure_enemy(enemyId, ex, ey);
+        } else if (*t == MessageType::EnemyUpdate && static_cast<size_t>(bytes) >= sizeof(EnemyUpdateMessage)) {
+            const EnemyUpdateMessage* em = reinterpret_cast<const EnemyUpdateMessage*>(buffer.data());
+            uint32_t enemyId = ntohl(em->enemyId);
+            uint32_t xbitsN = ntohl(em->posXBits);
+            uint32_t ybitsN = ntohl(em->posYBits);
+            float ex, ey;
+            std::memcpy(&ex, &xbitsN, sizeof(float));
+            std::memcpy(&ey, &ybitsN, sizeof(float));
+            scene.set_enemy_position(enemyId, ex, ey);
+        } else if (*t == MessageType::EnemyDespawn && static_cast<size_t>(bytes) >= sizeof(EnemyDespawnMessage)) {
+            const EnemyDespawnMessage* em = reinterpret_cast<const EnemyDespawnMessage*>(buffer.data());
+            uint32_t enemyId = ntohl(em->enemyId);
+            scene.despawn_enemy(enemyId);
         }
     }
 }
