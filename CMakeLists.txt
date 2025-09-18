@@ -52,13 +52,16 @@ target_link_libraries(r-type_client PRIVATE ecs sfml-system sfml-window sfml-gra
 # r-type_server (no SFML)
 add_executable(r-type_server
     ${SERVER_DIR}/main.cpp
-    ${SERVER_DIR}/Network_handler/server.cpp
+    ${SERVER_DIR}/server.cpp
+    ${SERVER_DIR}/Network_handler/connexion.cpp
     ${SERVER_DIR}/Network_handler/UDP_socket.cpp
+    ${SERVER_DIR}/Game_logic/game_core.cpp
+    ${SERVER_DIR}/Game_logic/game_setup.cpp
 )
 
 target_include_directories(r-type_server PRIVATE
     ${SERVER_DIR}/Network_handler/Include
-    ${SERVER_DIR}/Game_logic
+    ${SERVER_DIR}/Game_logic/Include
     ${SHARED_DIR}
 )
 

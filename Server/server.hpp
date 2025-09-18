@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "UDP_socket.hpp"
-#include "../../../Shared/protocol.hpp"
+#include "Network_handler/Include/UDP_socket.hpp"
+#include "../Shared/protocol.hpp"
 #include <thread>
 #include <atomic>
 #include <unordered_map>

@@ -5,11 +5,12 @@
 ** server
 */
 
-#include "Include/server.hpp"
+#include "server.hpp"
 #include <iostream>
 #include <chrono>
 #include <thread>
 #include <cstring>
+#include <algorithm>
 
 GameServer::GameServer(uint16_t port) : socket(port) {}
 
@@ -85,6 +86,12 @@ void GameServer::handle_client_message(const std::vector<uint8_t>& data, const s
             float speed = 200.f / 60.f; // units per tick at 60Hz
             pos.first += inputX * speed;
             pos.second += inputY * speed;
+            // clamp to window bounds (800x600), player size 30 => half-size 15
+            const float halfSize = 15.f;
+            const float maxX = 800.f - halfSize;
+            const float maxY = 600.f - halfSize;
+            pos.first = std::clamp(pos.first, halfSize, maxX);
+            pos.second = std::clamp(pos.second, halfSize, maxY);
         }
     }
 }
