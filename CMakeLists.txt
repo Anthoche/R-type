@@ -26,15 +26,29 @@ find_package(glfw3 CONFIG REQUIRED)
 
 # Directories
 set(CLIENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Client)
-set(ENGINE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine)
-set(GAME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Game)
 set(SERVER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Server)
 set(SHARED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shared)
+set(ENGINE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine)
+set(ENGINE_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core)
+set(GAME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Game)
 
-# r-type_client
+# ECS library (Engine/Core)
+add_library(ecs STATIC
+    ${ENGINE_CORE_DIR}/entity.cpp
+    ${ENGINE_CORE_DIR}/registry.cpp
+)
+
+target_include_directories(ecs PUBLIC
+    ${ENGINE_CORE_DIR}/Include
+    ${SHARED_DIR}
+)
+
+# r-type_client (with SFML window)
+find_package(SFML 2.5 REQUIRED COMPONENTS system window graphics)
+
 add_executable(r-type_client
-    ${ENGINE_DIR}/Core/entity.cpp
-    ${ENGINE_DIR}/Core/registry.cpp
+    ${ENGINE_CORE_DIR}/entity.cpp
+    ${ENGINE_CORE_DIR}/registry.cpp
     ${ENGINE_DIR}/Rendering/Raylib.cpp
     ${ENGINE_DIR}/Rendering/scene/AScene.cpp
     ${ENGINE_DIR}/Rendering/scene/SceneHandler.cpp
@@ -43,15 +57,19 @@ add_executable(r-type_client
     ${CLIENT_DIR}/Network_client/client.cpp
     ${GAME_DIR}/Entities/player.cpp
     ${GAME_DIR}/Scene/GameScene.cpp
-        Game/Scene/MenuScene.cpp
-        Game/Scene/MenuScene.hpp
+    ${GAME_DIR}/Scene/MenuScene.cpp
 )
 
 target_include_directories(r-type_client PRIVATE
     ${CLIENT_DIR}/Network_client/Include
     ${CLIENT_DIR}/Input
+    ${GAME_DIR}
+    ${GAME_DIR}/Entities/Include
+    ${GAME_DIR}/Scene
     ${SHARED_DIR}
 )
+
+target_link_libraries(r-type_client PRIVATE ecs sfml-system sfml-window sfml-graphics)
 
 # r-type_server (no SFML)
 add_executable(r-type_server
@@ -71,11 +89,14 @@ target_include_directories(r-type_server PRIVATE
 
 # Linking
 target_link_libraries(r-type_client PRIVATE raylib glfw)
+target_link_libraries(r-type_server PRIVATE ecs)
 
 # Tests (later)
 enable_testing()
 
 # Installation
-install(TARGETS r-type_client r-type_server
+install(TARGETS r-type_client r-type_server ecs
     RUNTIME DESTINATION bin
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
 )
