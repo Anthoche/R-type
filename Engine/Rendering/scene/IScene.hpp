@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** R-Type
 ** File description:
-** IWindow
+** IScene
 */
 
 #ifndef IWINDOW_HPP
@@ -11,18 +11,18 @@
     #include <string>
 
 /**
- * @class IWindow
- * @brief Interface for window objects.
+ * @class IScene
+ * @brief Interface for scene objects.
  *
- * Defines the essential methods every window class should implement,
+ * Defines the essential methods every scene class should implement,
  * including initialization, rendering, event handling, and lifecycle management.
  */
-class IWindow {
+class IScene {
     public:
         /**
          * @brief Virtual destructor.
          */
-        virtual ~IWindow() = default;
+        virtual ~IScene() = default;
 
         /**
          * @brief Initializes the window.
@@ -54,21 +54,21 @@ class IWindow {
          * 
          * @return The width in pixels.
          */
-        virtual int getWidth() const = 0;
+        virtual int getWindowWidth() const = 0;
 
         /**
          * @brief Returns the window's height.
          * 
          * @return The height in pixels.
          */
-        virtual int getHeight() const = 0;
+        virtual int getWindowHeight() const = 0;
 
         /**
          * @brief Returns the window's title.
          * 
          * @return The window title as a const reference to a string.
          */
-        virtual std::string const &getTitle() const = 0;
+        virtual std::string const &getWindowTitle() const = 0;
 
         /**
          * @brief Checks if the window is currently open.

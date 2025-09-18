@@ -2,16 +2,16 @@
 ** EPITECH PROJECT, 2025
 ** R-Type
 ** File description:
-** AWindow
+** AScene
 */
 
 #ifndef AWINDOW_HPP
     #define AWINDOW_HPP
 
-    #include "IWindow.hpp"
+    #include "IScene.hpp"
 
 /**
- * @class AWindow
+ * @class AScene
  * @brief Abstract base class implementing common window functionality.
  *
  * This class partially implements the IWindow interface,
@@ -19,7 +19,7 @@
  * while leaving init, render, and handleEvents as pure virtual methods
  * for derived classes to implement.
  */
-class AWindow : public IWindow {
+class AScene : public IScene {
     protected:
         /**
          * @brief The width of the window.
@@ -49,12 +49,12 @@ class AWindow : public IWindow {
          * @param height The window height in pixels.
          * @param title The window title string.
          */
-        AWindow(int const &width, int const &height, std::string const &title);
+        AScene(int const &width, int const &height, std::string const &title);
 
         /**
          * @brief Default destructor.
          */
-        ~AWindow() override = default;
+        ~AScene() override = default;
 
         /**
          * @brief Initializes the window.
@@ -84,21 +84,21 @@ class AWindow : public IWindow {
          * 
          * @return The width in pixels.
          */
-        int getWidth() const override;
+        int getWindowWidth() const override;
 
         /**
          * @brief Gets the window height.
          * 
          * @return The height in pixels.
          */
-        int getHeight() const override;
+        int getWindowHeight() const override;
 
         /**
          * @brief Gets the window title.
          * 
          * @return The title string.
          */
-        std::string const &getTitle() const override;
+        std::string const &getWindowTitle() const override;
 
         /**
          * @brief Checks if the window is open.
