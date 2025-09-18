@@ -1,7 +1,7 @@
 #pragma once
 
-#include "registry.hpp"
-#include "entity.hpp"
+#include "../../Engine/Core/Include/registry.hpp"
+#include "../../Engine/Core/Include/entity.hpp"
 #include "components.hpp"
 
 namespace game::entities {

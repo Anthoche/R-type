@@ -151,6 +151,12 @@ class Raylib {
         bool isWindowFullscreen();
 
 		/**
+		 * @brief Check if application should close (KEY_ESCAPE pressed or windows close icon clicked)
+		 * @return True if window should close.
+		 */
+		bool windowShouldClose();
+
+		/**
 		 * Checks if window is focused or not
 		 * @return True if window is focused, false otherwise
 		 */

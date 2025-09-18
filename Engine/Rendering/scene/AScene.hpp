@@ -5,10 +5,12 @@
 ** AScene
 */
 
-#ifndef AWINDOW_HPP
-    #define AWINDOW_HPP
+#ifndef ASCENE_HPP
+    #define ASCENE_HPP
 
     #include "IScene.hpp"
+    #include "../../Core/Include/registry.hpp"
+    #include "../Raylib.hpp"
 
 /**
  * @class AScene
@@ -40,6 +42,16 @@ class AScene : public IScene {
          * @brief Flag indicating if the window is open.
          */
         bool _isOpen;
+
+        /**
+         * @brief Core ECS registry managing entities, components, and systems.
+         */
+        ecs::registry _registry;
+
+        /**
+         * @brief Core Raylib instance managing rendering and game engine functionality.
+         */
+        Raylib _raylib;
 
     public:
         /**
@@ -80,6 +92,11 @@ class AScene : public IScene {
         void close() override;
 
         /**
+         * @brief Called after the window has closed for cleanup or additional logic.
+         */
+        virtual void onClose() = 0;
+
+        /**
          * @brief Gets the window width.
          * 
          * @return The width in pixels.
@@ -108,4 +125,4 @@ class AScene : public IScene {
         bool isOpen() const override;
 };
 
-#endif //AWINDOW_HPP
+#endif //ASCENE_HPP

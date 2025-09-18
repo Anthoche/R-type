@@ -6,19 +6,25 @@
 */
 
 #include "SceneHandler.hpp"
+
 #include <iostream>
+#include <ostream>
+
+#include "../../../Game/Scene/MenuScene.hpp"
+#include "../../../Game/Scene/GameScene.hpp"
 
 SceneHandler::SceneHandler() {
 	_raylib = Raylib();
 	setupScenes();
 }
 
-void SceneHandler::addScene(const std::string &name, const std::shared_ptr<IScene> &window) {
-	_scenes.insert_or_assign(name, std::make_pair(window, false));
+void SceneHandler::addScene(const std::string &name, const std::shared_ptr<IScene> &scene) {
+	_scenes.insert_or_assign(name, std::make_pair(scene, false));
 }
 
 void SceneHandler::setupScenes() {
-	// Setup windows here
+	addScene("menu", std::make_shared<scene::MenuScene>(*this));
+	addScene("game", std::make_shared<game::scene::GameScene>(*this));
 }
 
 void SceneHandler::openMenu() {
@@ -34,30 +40,28 @@ void SceneHandler::open(const std::string &name) {
 
 	closeOpened();
 
-	std::shared_ptr<IScene> window = _scenes[name].first;
+	std::shared_ptr<IScene> scene = _scenes[name].first;
 
 	int currentMonitor = _raylib.getCurrentMonitor();
-	int posX = (_raylib.getMonitorWidth(currentMonitor) - window->getWindowWidth()) / 2;
-	int posY = (_raylib.getMonitorHeight(currentMonitor) - window->getWindowHeight()) / 2;
+	int posX = (_raylib.getMonitorWidth(currentMonitor) - scene->getWindowWidth()) / 2;
+	int posY = (_raylib.getMonitorHeight(currentMonitor) - scene->getWindowHeight()) / 2;
 
-	_raylib.setWindowSize(window->getWindowWidth(), window->getWindowHeight());
-	_raylib.setWindowTitle(window->getWindowTitle());
+	_raylib.setWindowSize(scene->getWindowWidth(), scene->getWindowHeight());
+	_raylib.setWindowTitle(scene->getWindowTitle());
 	_raylib.setWindowPosition(posX, posY);
 
-	if (IsWindowFullscreen())
+	if (_raylib.isWindowFullscreen())
 		_raylib.toggleFullscreen();
 
-	window->init();
+	scene->init();
 	_scenes[name].second = true;
 
-	while (window->isOpen() && !WindowShouldClose()) {
-		window->handleEvents();
-		window->render();
-
-		//Handle user inputs here
+	while (scene->isOpen() && !_raylib.windowShouldClose()) {
+		scene->handleEvents();
+		scene->render();
 	}
 
-	window->onClose();
+	scene->onClose();
 	_scenes[name].second = false;
 }
 

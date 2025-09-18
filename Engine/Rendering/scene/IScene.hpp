@@ -5,8 +5,8 @@
 ** IScene
 */
 
-#ifndef IWINDOW_HPP
-    #define IWINDOW_HPP
+#ifndef ISCENE_HPP
+    #define ISCENE_HPP
 
     #include <string>
 
@@ -78,4 +78,4 @@ class IScene {
         virtual bool isOpen() const = 0;
 };
 
-#endif //IWINDOW_HPP
+#endif //ISCENE_HPP

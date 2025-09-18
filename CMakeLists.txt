@@ -33,11 +33,18 @@ set(SHARED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shared)
 
 # r-type_client
 add_executable(r-type_client
-    ${CLIENT_DIR}/main.cpp
-    ${CLIENT_DIR}/Network_client/client.cpp
+    ${ENGINE_DIR}/Core/entity.cpp
+    ${ENGINE_DIR}/Core/registry.cpp
     ${ENGINE_DIR}/Rendering/Raylib.cpp
-    ${ENGINE_DIR}/Rendering/window/AWindow.cpp
-    ${ENGINE_DIR}/Rendering/window/WindowHandler.cpp
+    ${ENGINE_DIR}/Rendering/scene/AScene.cpp
+    ${ENGINE_DIR}/Rendering/scene/SceneHandler.cpp
+    #${CLIENT_DIR}/main.cpp
+    ${GAME_DIR}/main.cpp
+    ${CLIENT_DIR}/Network_client/client.cpp
+    ${GAME_DIR}/Entities/player.cpp
+    ${GAME_DIR}/Scene/GameScene.cpp
+        Game/Scene/MenuScene.cpp
+        Game/Scene/MenuScene.hpp
 )
 
 target_include_directories(r-type_client PRIVATE

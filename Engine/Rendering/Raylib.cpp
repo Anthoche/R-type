@@ -122,6 +122,10 @@ bool Raylib::isWindowFullscreen() {
 	return IsWindowFullscreen();
 }
 
+bool Raylib::windowShouldClose() {
+	return WindowShouldClose();
+}
+
 void Raylib::beginMode3D(Camera3D camera) {
 	BeginMode3D(camera);
 }
