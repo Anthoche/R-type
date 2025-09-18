@@ -188,10 +188,15 @@ void GameClient::readStateUpdates(game::scene::GameScene &scene) const {
 
 void GameClient::gameFrame(game::scene::GameScene &scene, float dt) {
     scene.poll_events();
-    float inputX, inputY;
-    gatherInput(inputX, inputY);
-    scene.handle_input(inputX, inputY);
-    sendInputToServer(inputX, inputY);
+    float inputX = 0.f, inputY = 0.f;
+    if (scene.window_has_focus()) {
+        gatherInput(inputX, inputY);
+        scene.handle_input(inputX, inputY);
+        sendInputToServer(inputX, inputY);
+    } else { 
+        // Pas de focus: ne pas envoyer d'input, et forcer vitesse nulle côté local
+        scene.handle_input(0.f, 0.f);
+    }
     readStateUpdates(scene);
     scene.update(dt);
     scene.render();
