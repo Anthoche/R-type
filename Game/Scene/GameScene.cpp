@@ -96,10 +96,10 @@ namespace game::scene {
 		float input_x = 0.f;
 		float input_y = 0.f;
 
-		if (IsKeyDown(KEY_W)) input_y = -1.f;
-		if (IsKeyDown(KEY_S)) input_y = 1.f;
-		if (IsKeyDown(KEY_A)) input_x = -1.f;
-		if (IsKeyDown(KEY_D)) input_x = 1.f;
+		if (_raylib.isKeyDown(KEY_W)) input_y = -1.f;
+		if (_raylib.isKeyDown(KEY_S)) input_y = 1.f;
+		if (_raylib.isKeyDown(KEY_A)) input_x = -1.f;
+		if (_raylib.isKeyDown(KEY_D)) input_x = 1.f;
 
 		handle_input(input_x, input_y);
 	}
