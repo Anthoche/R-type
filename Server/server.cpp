@@ -99,30 +99,6 @@ void GameServer::handle_client_message(const std::vector<uint8_t>& data, const s
     }
 }
 
-void GameServer::game_loop() {}
-
-void GameServer::initialize_player_positions() {}
-
-void GameServer::process_pending_messages() {}
-
-void GameServer::broadcast_states_to_clients() {}
-
-void GameServer::update_enemies(float dt) {}
-
-void GameServer::spawn_enemy() {}
-
-void GameServer::broadcast_enemy_spawn(uint32_t enemyId, float x, float y) {}
-
-void GameServer::broadcast_enemy_update(uint32_t enemyId, float x, float y) {}
-
-void GameServer::broadcast_enemy_despawn(uint32_t enemyId) {}
-
-void GameServer::initialize_obstacles() {}
-
-void GameServer::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h) {}
-
-void GameServer::broadcast_obstacle_despawn(uint32_t obstacleId) {}
-
 void GameServer::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {
     auto tick_end = std::chrono::high_resolution_clock::now();
     auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(tick_end - start).count();
