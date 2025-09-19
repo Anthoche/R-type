@@ -52,8 +52,8 @@ add_executable(r-type_client
     ${ENGINE_DIR}/Rendering/Raylib.cpp
     ${ENGINE_DIR}/Rendering/scene/AScene.cpp
     ${ENGINE_DIR}/Rendering/scene/SceneHandler.cpp
-    #${CLIENT_DIR}/main.cpp
-    ${GAME_DIR}/main.cpp
+    ${CLIENT_DIR}/main.cpp
+    #${GAME_DIR}/main.cpp
     ${CLIENT_DIR}/Network_client/client.cpp
     ${GAME_DIR}/Entities/player.cpp
     ${GAME_DIR}/Scene/GameScene.cpp

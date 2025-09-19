@@ -16,12 +16,12 @@
 #include <iostream>
 #include <thread>
 #include <vector>
-#include "game_scene.hpp"
+
 
 class GameClient {
     int socketFd;
     sockaddr_in serverAddr;
-    uint32_t clientId = 0;
+    uint32_t clientId;
     std::string clientName;
 
     public:
@@ -32,12 +32,4 @@ class GameClient {
 
     private:
         void sendHello();
-        void runGameLoop(uint32_t clientCount);
-        void applyPlayerColorByIndex(game::scene::GameScene &scene, uint32_t idx);
-        // Helpers (≤25 lignes chacune)
-        uint32_t waitForGameStart();
-        void gameFrame(game::scene::GameScene &scene, float dt);
-        void gatherInput(float &inputX, float &inputY) const;
-        void sendInputToServer(float inputX, float inputY) const;
-        void readStateUpdates(game::scene::GameScene &scene) const;
 };
