@@ -4,7 +4,6 @@
 ** File description:
 ** client
 */
-
 #pragma once
 
 #include "../../../Shared/protocol.hpp"
@@ -20,7 +19,6 @@
 #include <unordered_map>
 #include <atomic>
 #include <utility>
-
 #include "../../../Engine/Rendering/Raylib.hpp"
 
 
@@ -41,7 +39,6 @@ class GameClient {
     public:
         GameClient(const std::string& serverIp, uint16_t serverPort, const std::string& name);
         ~GameClient();
-
         void run();
         void runRenderLoop();
 
@@ -49,4 +46,21 @@ class GameClient {
         void sendHello();
         void recvLoop();
         void sendInput(float inputX, float inputY);
+
+        // Message handling
+        void handleMessage(MessageType type, const std::vector<uint8_t>& buffer);
+
+        // Player-related
+        void handleServerAssignId(const std::vector<uint8_t>& buffer);
+        void handleGameStart(const std::vector<uint8_t>& buffer);
+        void handlePlayerUpdate(const std::vector<uint8_t>& buffer);
+
+        // Enemy-related
+        void handleEnemySpawn(const std::vector<uint8_t>& buffer);
+        void handleEnemyUpdate(const std::vector<uint8_t>& buffer);
+        void handleEnemyDespawn(const std::vector<uint8_t>& buffer);
+
+        // Obstacle-related
+        void handleObstacleSpawn(const std::vector<uint8_t>& buffer);
+        void handleObstacleDespawn(const std::vector<uint8_t>& buffer);
 };
