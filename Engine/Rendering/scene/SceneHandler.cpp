@@ -13,7 +13,7 @@
 #include "../../../Game/Scene/MenuScene.hpp"
 #include "../../../Game/Scene/GameScene.hpp"
 
-SceneHandler::SceneHandler() {
+SceneHandler::SceneHandler(Game &game) : _game(game) {
 	_raylib = Raylib();
 	setupScenes();
 }
