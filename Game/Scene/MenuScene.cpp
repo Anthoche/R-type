@@ -27,7 +27,7 @@ namespace scene {
 	void MenuScene::handleEvents() {
 		switch (_raylib.getKeyPressed()) {
 			case KEY_E:
-				_sceneHandler.open("game");
+				/* _sceneHandler.open("game"); */
 				break;
 			default:
 				break;
