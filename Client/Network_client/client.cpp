@@ -60,7 +60,6 @@ void GameClient::sendHello() {
     }
 }
 
-// GameClient.cpp (ou GameClient.hpp selon ton organisation)
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t>& buffer) {
     switch (type) {
