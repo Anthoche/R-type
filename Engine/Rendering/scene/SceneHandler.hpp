@@ -10,7 +10,6 @@
 
     #include <map>
     #include <memory>
-
     #include "IScene.hpp"
     #include "../Raylib.hpp"
 
