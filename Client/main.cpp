@@ -6,7 +6,6 @@
 */
 
 #include "client.hpp"
-#include "../Engine/Rendering/scene/SceneHandler.hpp"
 #include <thread>
 
 
@@ -21,18 +20,8 @@ int main(int argc, char* argv[]) {
     // Créer le client réseau
     GameClient client(serverIp, 4141, clientName);
     
-    // Lancer le client réseau dans un thread séparé
-    std::thread networkThread([&client]() {
-        client.run();
-    });
-    
-    // Attendre que le thread réseau se termine (quand GameStart est reçu)
-    networkThread.join();
-    
-    // Maintenant que le jeu peut commencer, ouvrir la fenêtre
-    std::cout << "Ouverture de la fenêtre de jeu..." << std::endl;
-    SceneHandler handler;
-    handler.openMenu();
+    // Démarre la logique réseau + rendu côté client
+    client.run();
     
     return 0;
 }

@@ -6,6 +6,7 @@
 */
 
 #include "server.hpp"
+#include "../Game/ServerGame.hpp"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -34,7 +35,9 @@ void GameServer::run() {
         }
     }
     std::cout << "Tous les clients sont connectés. Le jeu commence !" << std::endl;
-    game_loop();
+    // Delegate to Game module
+    ServerGame game(socket);
+    game.run();
 }
 
 void GameServer::handleClientHello(const std::vector<uint8_t>& data, const sockaddr_in& clientAddr) {
@@ -96,112 +99,29 @@ void GameServer::handle_client_message(const std::vector<uint8_t>& data, const s
     }
 }
 
-void GameServer::game_loop() {
-    initialize_player_positions();
-    const int tick_ms = 16; // ~60Hz
-    while (true) {
-        auto tick_start = std::chrono::high_resolution_clock::now();
-        process_pending_messages();
-        update_enemies(1.f / 60.f);
-        broadcast_states_to_clients();
-        sleep_to_maintain_tick(tick_start, tick_ms);
-    }
-}
+void GameServer::game_loop() {}
 
-void GameServer::initialize_player_positions() {
-    for (const auto& kv : socket.getClients()) {
-        playerPositions[kv.second] = {100.f + (kv.second - 1) * 50.f, 300.f};
-    }
-}
+void GameServer::initialize_player_positions() {}
 
-void GameServer::process_pending_messages() {
-    while (true) {
-        std::vector<uint8_t> data;
-        sockaddr_in from = {};
-        if (!socket.try_receive(data, from)) break;
-        handle_client_message(data, from);
-    }
-}
+void GameServer::process_pending_messages() {}
 
-void GameServer::broadcast_states_to_clients() {
-    for (const auto& kv : socket.getClients()) {
-        uint32_t id = kv.second;
-        auto it = playerPositions.find(id);
-        if (it == playerPositions.end()) continue;
-        StateUpdateMessage m;
-        m.type = MessageType::StateUpdate;
-        m.clientId = htonl(id);
-        uint32_t xbits, ybits;
-        std::memcpy(&xbits, &it->second.first, sizeof(float));
-        std::memcpy(&ybits, &it->second.second, sizeof(float));
-        m.posXBits = htonl(xbits);
-        m.posYBits = htonl(ybits);
-        socket.broadcast(&m, sizeof(m));
-    }
-}
+void GameServer::broadcast_states_to_clients() {}
 
-void GameServer::update_enemies(float dt) {
-    // spawn every 2 seconds
-    enemySpawnTimerSec += dt;
-    if (enemySpawnTimerSec >= 2.f) {
-        enemySpawnTimerSec = 0.f;
-        spawn_enemy();
-    }
-    // move enemies left, despawn if off-screen
-    std::vector<uint32_t> toDespawn;
-    for (auto &kv : enemies) {
-        kv.second.first -= 100.f * dt; // x -= 100 px/s
-        if (kv.second.first < -50.f) {
-            toDespawn.push_back(kv.first);
-        } else {
-            broadcast_enemy_update(kv.first, kv.second.first, kv.second.second);
-        }
-    }
-    for (uint32_t id : toDespawn) {
-        broadcast_enemy_despawn(id);
-        enemies.erase(id);
-    }
-}
+void GameServer::update_enemies(float dt) {}
 
-void GameServer::spawn_enemy() {
-    uint32_t id = nextEnemyId++;
-    float x = 800.f - 50.f;
-    // simple deterministic lane pattern
-    float y = 100.f + 100.f * ((id - 1) % 4);
-    enemies[id] = {x, y};
-    broadcast_enemy_spawn(id, x, y);
-}
+void GameServer::spawn_enemy() {}
 
-void GameServer::broadcast_enemy_spawn(uint32_t enemyId, float x, float y) {
-    EnemySpawnMessage m;
-    m.type = MessageType::EnemySpawn;
-    m.enemyId = htonl(enemyId);
-    uint32_t xbits, ybits;
-    std::memcpy(&xbits, &x, sizeof(float));
-    std::memcpy(&ybits, &y, sizeof(float));
-    m.posXBits = htonl(xbits);
-    m.posYBits = htonl(ybits);
-    socket.broadcast(&m, sizeof(m));
-}
+void GameServer::broadcast_enemy_spawn(uint32_t enemyId, float x, float y) {}
 
-void GameServer::broadcast_enemy_update(uint32_t enemyId, float x, float y) {
-    EnemyUpdateMessage m;
-    m.type = MessageType::EnemyUpdate;
-    m.enemyId = htonl(enemyId);
-    uint32_t xbits, ybits;
-    std::memcpy(&xbits, &x, sizeof(float));
-    std::memcpy(&ybits, &y, sizeof(float));
-    m.posXBits = htonl(xbits);
-    m.posYBits = htonl(ybits);
-    socket.broadcast(&m, sizeof(m));
-}
+void GameServer::broadcast_enemy_update(uint32_t enemyId, float x, float y) {}
 
-void GameServer::broadcast_enemy_despawn(uint32_t enemyId) {
-    EnemyDespawnMessage m;
-    m.type = MessageType::EnemyDespawn;
-    m.enemyId = htonl(enemyId);
-    socket.broadcast(&m, sizeof(m));
-}
+void GameServer::broadcast_enemy_despawn(uint32_t enemyId) {}
+
+void GameServer::initialize_obstacles() {}
+
+void GameServer::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h) {}
+
+void GameServer::broadcast_obstacle_despawn(uint32_t obstacleId) {}
 
 void GameServer::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {
     auto tick_end = std::chrono::high_resolution_clock::now();

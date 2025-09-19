@@ -6,6 +6,7 @@
 */
 
 #include "Include/client.hpp"
+#include <tuple>
 
 
 GameClient::GameClient(const std::string& serverIp, uint16_t serverPort, const std::string& name)
@@ -25,33 +26,22 @@ GameClient::GameClient(const std::string& serverIp, uint16_t serverPort, const s
 }
 
 GameClient::~GameClient() {
+    running = false;
+    if (rxThread.joinable()) rxThread.join();
     close(socketFd);
 }
 
 void GameClient::run() {
     std::cout << "Client démarré. En attente du début du jeu..." << std::endl;
-    while (true) {
-        std::vector<uint8_t> buffer(1024);
-        sockaddr_in fromAddr = {};
-        socklen_t fromAddrLen = sizeof(fromAddr);
-        ssize_t bytesReceived = recvfrom(
-            socketFd, buffer.data(), buffer.size(), 0,
-            (struct sockaddr*)&fromAddr, &fromAddrLen
-        );
+    running = true;
+    rxThread = std::thread(&GameClient::recvLoop, this);
 
-        if (bytesReceived < sizeof(MessageType)) {
-            continue;
-        }
-        MessageType* type = reinterpret_cast<MessageType*>(buffer.data());
-        if (*type == MessageType::GameStart) {
-            if (bytesReceived >= sizeof(GameStartMessage)) {
-                const GameStartMessage* msg = reinterpret_cast<const GameStartMessage*>(buffer.data());
-                std::cout << "Le jeu commence ! Nombre de joueurs : "
-                          << ntohl(msg->clientCount) << std::endl;
-                break;
-            }
-        }
+    while (!gameStarted) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+
+    std::cout << "Le jeu commence, ouverture de la fenêtre client..." << std::endl;
+    runRenderLoop();
 }
 
 void GameClient::sendHello() {
@@ -68,5 +58,137 @@ void GameClient::sendHello() {
     if (sentBytes < 0) {
         std::cerr << "[ERREUR] Échec de l'envoi de ClientHello" << std::endl;
     }
+}
+
+void GameClient::recvLoop() {
+    while (running) {
+        std::vector<uint8_t> buffer(1024);
+        sockaddr_in fromAddr = {};
+        socklen_t fromAddrLen = sizeof(fromAddr);
+        ssize_t bytesReceived = recvfrom(
+            socketFd, buffer.data(), buffer.size(), MSG_DONTWAIT,
+            (struct sockaddr*)&fromAddr, &fromAddrLen
+        );
+        if (bytesReceived <= 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            continue;
+        }
+        if (bytesReceived < (ssize_t)sizeof(MessageType)) {
+            continue;
+        }
+        MessageType type = *reinterpret_cast<MessageType*>(buffer.data());
+        if (type == MessageType::ServerAssignId && bytesReceived >= (ssize_t)sizeof(ServerAssignIdMessage)) {
+            const ServerAssignIdMessage* msg = reinterpret_cast<const ServerAssignIdMessage*>(buffer.data());
+            clientId = ntohl(msg->clientId);
+            std::cout << "[Client] Reçu clientId=" << clientId << std::endl;
+        } else if (type == MessageType::GameStart && bytesReceived >= (ssize_t)sizeof(GameStartMessage)) {
+            const GameStartMessage* msg = reinterpret_cast<const GameStartMessage*>(buffer.data());
+            std::cout << "Le jeu commence ! Nombre de joueurs : " << ntohl(msg->clientCount) << std::endl;
+            gameStarted = true;
+        } else if (type == MessageType::StateUpdate && bytesReceived >= (ssize_t)sizeof(StateUpdateMessage)) {
+            const StateUpdateMessage* msg = reinterpret_cast<const StateUpdateMessage*>(buffer.data());
+            uint32_t id = ntohl(msg->clientId);
+            uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
+            float x, y; std::memcpy(&x, &xb, sizeof(float)); std::memcpy(&y, &yb, sizeof(float));
+            std::lock_guard<std::mutex> g(stateMutex);
+            players[id] = {x, y};
+        } else if (type == MessageType::EnemySpawn && bytesReceived >= (ssize_t)sizeof(EnemySpawnMessage)) {
+            const EnemySpawnMessage* msg = reinterpret_cast<const EnemySpawnMessage*>(buffer.data());
+            uint32_t id = ntohl(msg->enemyId);
+            uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
+            float x, y; std::memcpy(&x, &xb, sizeof(float)); std::memcpy(&y, &yb, sizeof(float));
+            std::lock_guard<std::mutex> g(stateMutex);
+            enemies[id] = {x, y};
+        } else if (type == MessageType::EnemyUpdate && bytesReceived >= (ssize_t)sizeof(EnemyUpdateMessage)) {
+            const EnemyUpdateMessage* msg = reinterpret_cast<const EnemyUpdateMessage*>(buffer.data());
+            uint32_t id = ntohl(msg->enemyId);
+            uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
+            float x, y; std::memcpy(&x, &xb, sizeof(float)); std::memcpy(&y, &yb, sizeof(float));
+            std::lock_guard<std::mutex> g(stateMutex);
+            enemies[id] = {x, y};
+        } else if (type == MessageType::EnemyDespawn && bytesReceived >= (ssize_t)sizeof(EnemyDespawnMessage)) {
+            const EnemyDespawnMessage* msg = reinterpret_cast<const EnemyDespawnMessage*>(buffer.data());
+            uint32_t id = ntohl(msg->enemyId);
+            std::lock_guard<std::mutex> g(stateMutex);
+            enemies.erase(id);
+        } else if (type == MessageType::ObstacleSpawn && bytesReceived >= (ssize_t)sizeof(ObstacleSpawnMessage)) {
+            const ObstacleSpawnMessage* msg = reinterpret_cast<const ObstacleSpawnMessage*>(buffer.data());
+            uint32_t id = ntohl(msg->obstacleId);
+            uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
+            uint32_t wb = ntohl(msg->widthBits), hb = ntohl(msg->heightBits);
+            float x,y,w,h; std::memcpy(&x,&xb,4); std::memcpy(&y,&yb,4); std::memcpy(&w,&wb,4); std::memcpy(&h,&hb,4);
+            std::lock_guard<std::mutex> g(stateMutex);
+            obstacles[id] = std::make_tuple(x,y,w,h);
+        } else if (type == MessageType::ObstacleDespawn && bytesReceived >= (ssize_t)sizeof(ObstacleDespawnMessage)) {
+            const ObstacleDespawnMessage* msg = reinterpret_cast<const ObstacleDespawnMessage*>(buffer.data());
+            uint32_t id = ntohl(msg->obstacleId);
+            std::lock_guard<std::mutex> g(stateMutex);
+            obstacles.erase(id);
+        }
+    }
+}
+
+void GameClient::sendInput(float inputX, float inputY) {
+    ClientInputMessage m{};
+    m.type = MessageType::ClientInput;
+    m.clientId = htonl(clientId);
+    uint32_t xbits, ybits;
+    std::memcpy(&xbits, &inputX, sizeof(float));
+    std::memcpy(&ybits, &inputY, sizeof(float));
+    m.inputXBits = htonl(xbits);
+    m.inputYBits = htonl(ybits);
+    sendto(
+        socketFd, &m, sizeof(m), 0,
+        (struct sockaddr*)&serverAddr, sizeof(serverAddr)
+    );
+}
+
+void GameClient::runRenderLoop() {
+    raylib.setResizableFlag(FLAG_WINDOW_RESIZABLE);
+    raylib.initWindow(800, 600, "R-Type Client");
+    raylib.enableCursor();
+    raylib.setTargetFPS(60);
+    while (!raylib.windowShouldClose()) {
+        float ix = 0.f, iy = 0.f;
+        if (raylib.isKeyDown(KEY_A) || raylib.isKeyDown(KEY_LEFT)) ix -= 1.f;
+        if (raylib.isKeyDown(KEY_D) || raylib.isKeyDown(KEY_RIGHT)) ix += 1.f;
+        if (raylib.isKeyDown(KEY_W) || raylib.isKeyDown(KEY_UP)) iy -= 1.f;
+        if (raylib.isKeyDown(KEY_S) || raylib.isKeyDown(KEY_DOWN)) iy += 1.f;
+        sendInput(ix, iy);
+
+        std::unordered_map<uint32_t, std::pair<float,float>> pls;
+        std::unordered_map<uint32_t, std::pair<float,float>> ens;
+        std::unordered_map<uint32_t, std::tuple<float,float,float,float>> obs;
+        {
+            std::lock_guard<std::mutex> g(stateMutex);
+            pls = players;
+            ens = enemies;
+            obs = obstacles;
+        }
+        raylib.beginDrawing();
+        raylib.clearBackground(BLACK);
+        // Obstacles from server
+        for (auto const &kv : obs) {
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
+            float w = std::get<2>(kv.second);
+            float h = std::get<3>(kv.second);
+            raylib.drawRectangle((int)(x - w/2), (int)(y - h/2), (int)w, (int)h, GRAY);
+        }
+        // Players with per-id color
+        auto colorForId = [](uint32_t id) -> Color {
+            static Color palette[] = { RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE };
+            return palette[id % (sizeof(palette)/sizeof(palette[0]))];
+        };
+        for (auto const &kv : pls) {
+            raylib.drawRectangle((int)(kv.second.first - 15), (int)(kv.second.second - 15), 30, 30, colorForId(kv.first));
+        }
+        for (auto const &kv : ens) {
+            raylib.drawRectangle((int)(kv.second.first - 20), (int)(kv.second.second - 20), 40, 40, RED);
+        }
+        raylib.endDrawing();
+    }
+    raylib.closeWindow();
+    running = false;
 }
 

@@ -79,11 +79,13 @@ add_executable(r-type_server
     ${SERVER_DIR}/Network_handler/UDP_socket.cpp
     ${SERVER_DIR}/Game_logic/game_core.cpp
     ${SERVER_DIR}/Game_logic/game_setup.cpp
+    ${GAME_DIR}/ServerGame.cpp
 )
 
 target_include_directories(r-type_server PRIVATE
     ${SERVER_DIR}/Network_handler/Include
     ${SERVER_DIR}/Game_logic/Include
+    ${GAME_DIR}
     ${SHARED_DIR}
 )
 
