@@ -16,7 +16,7 @@ namespace game::scene {
 	void GameScene::init() {
 		_isOpen = true;
 		_startTime = _raylib.getTime();
-		_raylib.disableCursor();
+		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
 		// Enregistrement des composants

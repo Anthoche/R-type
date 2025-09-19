@@ -30,7 +30,7 @@ void SceneHandler::setupScenes() {
 void SceneHandler::openMenu() {
 	_raylib.setResizableFlag(FLAG_WINDOW_RESIZABLE);
 	_raylib.initWindow(100, 100, "R-Type");
-	open("menu");
+    open("game");
 	_raylib.closeWindow();
 }
 
