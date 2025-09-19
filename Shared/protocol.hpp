@@ -19,7 +19,9 @@ enum class MessageType : uint8_t {
     StateUpdate,
     EnemySpawn,
     EnemyUpdate,
-    EnemyDespawn
+    EnemyDespawn,
+    ObstacleSpawn,
+    ObstacleDespawn
 };
 
 struct ClientHelloMessage {
@@ -74,4 +76,20 @@ struct EnemyUpdateMessage {
 struct EnemyDespawnMessage {
     MessageType type;     // MessageType::EnemyDespawn
     uint32_t enemyId;     // network byte order
+};
+
+// Server -> Client: spawn a static obstacle
+struct ObstacleSpawnMessage {
+    MessageType type;     // MessageType::ObstacleSpawn
+    uint32_t obstacleId;  // network byte order
+    uint32_t posXBits;    // network byte order
+    uint32_t posYBits;    // network byte order
+    uint32_t widthBits;   // network byte order
+    uint32_t heightBits;  // network byte order
+};
+
+// Server -> Client: remove obstacle
+struct ObstacleDespawnMessage {
+    MessageType type;     // MessageType::ObstacleDespawn
+    uint32_t obstacleId;  // network byte order
 };

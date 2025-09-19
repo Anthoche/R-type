@@ -24,6 +24,8 @@ class GameServer {
     uint32_t nextEnemyId = 1;
     std::unordered_map<uint32_t, std::pair<float,float>> enemies; // id -> (x,y)
     float enemySpawnTimerSec = 0.f;
+    // obstacles (static)
+    std::unordered_map<uint32_t, std::tuple<float,float,float,float>> obstacles; // id -> (x,y,w,h)
 
     public:
         GameServer(uint16_t port);
@@ -45,4 +47,8 @@ class GameServer {
         void broadcast_enemy_spawn(uint32_t enemyId, float x, float y);
         void broadcast_enemy_update(uint32_t enemyId, float x, float y);
         void broadcast_enemy_despawn(uint32_t enemyId);
+        // obstacles
+        void initialize_obstacles();
+        void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h);
+        void broadcast_obstacle_despawn(uint32_t obstacleId);
 };
