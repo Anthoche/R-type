@@ -11,7 +11,9 @@
     #include <map>
     #include <memory>
     #include "IScene.hpp"
-#include "../Raylib.hpp"
+    #include "../Raylib.hpp"
+
+class Game;
 
 /**
  * @class SceneHandler
@@ -26,6 +28,11 @@ class SceneHandler {
          * @brief Raylib wrapper instance
          */
         Raylib _raylib; // Temporaire
+
+        /**
+         * @brief Game instance
+         */
+        Game &_game;
 
         /**
          * @brief Map associating scene names to pairs of scene objects and their open state.
@@ -64,7 +71,7 @@ class SceneHandler {
         /**
          * @brief Constructs a new WindowHandler object.
          */
-        SceneHandler();
+        SceneHandler(Game &game);
 
         /**
          * @brief Default destructor.

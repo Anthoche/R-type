@@ -5,23 +5,14 @@
 ** main
 */
 
-#include "client.hpp"
-#include <thread>
+#include "../Game/Game.hpp"
 
-
-int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <server_ip> <client_name>" << std::endl;
-        return 1;
-    }
-    std::string serverIp = argv[1];
-    std::string clientName = argv[2];
-    
-    // Créer le client réseau
-    GameClient client(serverIp, 4141, clientName);
-    
-    // Démarre la logique réseau + rendu côté client
-    client.run();
-    
-    return 0;
+int main(int argc, char *argv[]) {
+	if (argc < 3) {
+		std::cerr << "Usage: " << argv[0] << " <server_ip> <client_name>" << std::endl;
+		return 1;
+	}
+	Game game(argv[1], argv[2]);
+	game.run();
+	return 0;
 }

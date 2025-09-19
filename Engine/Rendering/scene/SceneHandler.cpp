@@ -6,14 +6,10 @@
 */
 
 #include "SceneHandler.hpp"
-
-#include <iostream>
-#include <ostream>
-
 #include "../../../Game/Scene/MenuScene.hpp"
 #include "../../../Game/Scene/GameScene.hpp"
 
-SceneHandler::SceneHandler() {
+SceneHandler::SceneHandler(Game &game) : _game(game) {
 	_raylib = Raylib();
 	setupScenes();
 }
@@ -30,7 +26,7 @@ void SceneHandler::setupScenes() {
 void SceneHandler::openMenu() {
 	_raylib.setResizableFlag(FLAG_WINDOW_RESIZABLE);
 	_raylib.initWindow(100, 100, "R-Type");
-    open("game");
+	open("game");
 	_raylib.closeWindow();
 }
 
