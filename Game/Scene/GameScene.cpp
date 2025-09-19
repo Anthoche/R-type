@@ -19,7 +19,6 @@ namespace game::scene {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
-		// Enregistrement des composants
 		_registry.register_component<component::position>();
 		_registry.register_component<component::velocity>();
 		_registry.register_component<component::drawable>();
@@ -29,17 +28,14 @@ namespace game::scene {
 		_registry.register_component<component::type>();
 		_registry.register_component<component::collision_box>();
 
-		// Configuration des systèmes
 		setup_movement_system();
 		setup_render_system();
 		setup_collision_system();
 		setup_health_system();
 
-		// Configuration du joueur
 		game::entities::setup_player_control_system(_registry);
 		game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
 
-		// Création des entités
 		create_player();
 		create_obstacles();
 	}
@@ -47,7 +43,6 @@ namespace game::scene {
 	void GameScene::update() {
 		if (!_game_running) return;
 
-		// Mise à jour du timer d'apparition des ennemis
 		double delta_time = _startTime - _raylib.getTime();
 		_enemy_spawn_timer += delta_time;
 		if (_enemy_spawn_timer >= _enemy_spawn_interval) {
@@ -55,10 +50,8 @@ namespace game::scene {
 			_enemy_spawn_timer = 0.f;
 		}
 
-		// Exécution des systèmes
 		_registry.run_systems();
 
-		// Vérification des collisions
 		check_collisions();
 	}
 
@@ -110,7 +103,6 @@ namespace game::scene {
 	}
 
 	void GameScene::handle_input(float input_x, float input_y) {
-		// Mise à jour de la vitesse du joueur basée sur l'input
 		auto &velocities = _registry.get_components<component::velocity>();
 		auto &controllables = _registry.get_components<component::controllable>();
 
@@ -126,8 +118,7 @@ namespace game::scene {
 			[](ecs::registry &reg,
 				ecs::sparse_array<component::position> &pos,
 				ecs::sparse_array<component::velocity> &vel) {
-				// TODO: Implémenter un système de delta time générique
-				float dt = 0.016f; // Approximation de 60 FPS
+				float dt = 0.016f;
 
 				for (std::size_t i = 0; i < pos.size() && i < vel.size(); ++i) {
 					if (pos[i] && vel[i]) {
@@ -143,12 +134,10 @@ namespace game::scene {
 			[this](ecs::registry &reg,
 					ecs::sparse_array<component::position> &pos,
 					ecs::sparse_array<component::drawable> &drw) {
-				// Le rendu effectif est géré dans GameScene::render()
 			});
 	}
 
 	void GameScene::setup_collision_system() {
-		// Système de collision basique - à implémenter selon les besoins
 	}
 
 	void GameScene::setup_health_system() {
@@ -158,7 +147,6 @@ namespace game::scene {
 				ecs::sparse_array<component::type> &type) {
 				for (std::size_t i = 0; i < health.size() && i < type.size(); ++i) {
 					if (health[i] && type[i] && health[i]->current <= 0) {
-						// Entité morte, la supprimer
 						ecs::entity_t entity = reg.entity_from_index(i);
 						reg.kill_entity(entity);
 					}
@@ -178,32 +166,25 @@ namespace game::scene {
 
 		auto enemy = _registry.spawn_entity();
 
-		// Position aléatoire à droite de l'écran
 		_registry.emplace_component<component::position>(enemy, static_cast<float>(_width - 50), y_dist(gen));
 
-		// Mouvement vers la gauche
 		_registry.emplace_component<component::velocity>(enemy, -100.f, 0.f);
 
-		// Type ennemi
 		_registry.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
 
-		// Santé
 		_registry.emplace_component<component::health>(enemy, 50, 50);
 
-		// Dégâts
 		_registry.emplace_component<component::damage>(enemy, 20);
 
-		// Collision box
 		_registry.emplace_component<component::collision_box>(enemy, 40.f, 40.f);
 
-		// Apparence
 		component::drawable drawable;
 		drawable.width = 40.f;
 		drawable.height = 40.f;
 		drawable.r = 1.f;
 		drawable.g = 0.f;
 		drawable.b = 0.f;
-		drawable.a = 1.f; // Rouge
+		drawable.a = 1.f;
 		_registry.add_component<component::drawable>(enemy, std::move(drawable));
 
 		_enemies.push_back(enemy);
@@ -215,23 +196,19 @@ namespace game::scene {
 		for (int i = 0; i < 3; ++i) {
 			auto obstacle = _registry.spawn_entity();
 
-			// Position fixe
 			_registry.emplace_component<component::position>(obstacle, 200.f + i * 200.f, 400.f);
 
-			// Type obstacle
 			_registry.emplace_component<component::type>(obstacle, component::entity_type::OBSTACLE);
 
-			// Collision box
 			_registry.emplace_component<component::collision_box>(obstacle, 60.f, 60.f);
 
-			// Apparence
 			component::drawable drawable;
 			drawable.width = 60.f;
 			drawable.height = 60.f;
 			drawable.r = 0.4f;
 			drawable.g = 0.4f;
 			drawable.b = 0.4f;
-			drawable.a = 1.f; // Gris
+			drawable.a = 1.f;
 			_registry.add_component<component::drawable>(obstacle, std::move(drawable));
 
 			_obstacles.push_back(obstacle);
@@ -240,6 +217,5 @@ namespace game::scene {
 
 	void GameScene::check_collisions() {
 		// Implémentation basique des collisions
-		// À améliorer selon les besoins du jeu
 	}
 } // namespace game::scene

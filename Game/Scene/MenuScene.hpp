@@ -6,28 +6,62 @@
 */
 
 #ifndef MENUSCENE_HPP
-	#define MENUSCENE_HPP
+    #define MENUSCENE_HPP
 
-	#include "../../Engine/Rendering/scene/AScene.hpp"
-	#include "../../Engine/Rendering/scene/SceneHandler.hpp"
+    #include "../../Engine/Rendering/scene/AScene.hpp"
+    #include "../../Engine/Rendering/scene/SceneHandler.hpp"
 
 namespace scene {
-	class MenuScene: public AScene {
-		public:
-			MenuScene(SceneHandler &sceneHandler);
-			~MenuScene() override = default;
 
-			// Overriding methods
-			void init() override;
-			void render() override;
-			void handleEvents() override;
-			void onClose() override;
+/**
+ * @class MenuScene
+ * @brief Represents the main menu scene of the game.
+ *
+ * The menu scene handles:
+ * - Initialization of menu UI and resources.
+ * - Rendering menu elements.
+ * - Handling user input/events (e.g., navigating the menu).
+ * - Cleaning up when the scene is closed.
+ */
+class MenuScene: public AScene {
+    public:
+        /**
+         * @brief Construct a MenuScene with a reference to the SceneHandler.
+         * @param sceneHandler Reference to the global scene manager.
+         */
+        MenuScene(SceneHandler &sceneHandler);
 
-		private:
-			SceneHandler &_sceneHandler;
+        /**
+         * @brief Default destructor.
+         */
+        ~MenuScene() override = default;
 
-	};
-}
+        // --- Overridden lifecycle methods ---
 
+        /**
+         * @brief Initialize the menu scene (UI, buttons, resources).
+         */
+        void init() override;
+
+        /**
+         * @brief Render the menu scene (draw UI elements).
+         */
+        void render() override;
+
+        /**
+         * @brief Handle input and events in the menu.
+         */
+        void handleEvents() override;
+
+        /**
+         * @brief Called when the menu scene is closed (cleanup).
+         */
+        void onClose() override;
+
+    private:
+        SceneHandler &_sceneHandler; ///< Reference to the global scene handler.
+};
+
+} // namespace scene
 
 #endif //MENUSCENE_HPP

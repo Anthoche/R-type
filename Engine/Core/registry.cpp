@@ -35,4 +35,4 @@ void registry::kill_entity(entity_t const &e) {
 	_free_ids.push(static_cast<std::size_t>(e));
 }
 
-} // namespace ecs
+}

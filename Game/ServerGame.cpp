@@ -13,7 +13,7 @@ ServerGame::ServerGame(UDP_socket &sock) : socket(sock) {}
 void ServerGame::run() {
     initialize_player_positions();
     initialize_obstacles();
-    const int tick_ms = 16; // ~60Hz
+    const int tick_ms = 16;
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
         process_pending_messages();
@@ -88,7 +88,7 @@ void ServerGame::update_enemies(float dt) {
     }
     std::vector<uint32_t> toDespawn;
     for (auto &kv : enemies) {
-        kv.second.first -= 100.f * dt; // x -= 100 px/s
+        kv.second.first -= 100.f * dt;
         if (kv.second.first < -50.f) {
             toDespawn.push_back(kv.first);
         } else {

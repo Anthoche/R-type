@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** G-CPP-500-PAR-5-1-rtype-1
 ** File description:
-** sparse_array
+** Sparse array container
 */
 
 #pragma once
@@ -15,94 +15,157 @@
 
 namespace ecs {
 
-// Conteneur clairsemé pour stocker des composants de type Component.
-// Chaque index correspond à une entité; absence de composant => std::nullopt.
+/**
+ * @class sparse_array
+ * @brief Sparse container for storing components by entity index.
+ *
+ * Each index corresponds to an entity identifier.
+ * If the entity has no component of the given type, the value at that index is std::nullopt.
+ *
+ * This allows direct O(1) access to components while keeping memory proportional
+ * to the number of active entities.
+ *
+ * @tparam Component Type of the component stored in the array.
+ */
 template <typename Component>
 class sparse_array {
 public:
-	using value_type = std::optional<Component>; // valeur optionnelle par entité
-	using reference_type = value_type &;
-	using const_reference_type = value_type const &;
-	using container_t = std::vector<value_type>;
-	using size_type = typename container_t::size_type;
+    using value_type = std::optional<Component>;              ///< Optional component per entity.
+    using reference_type = value_type &;                      ///< Mutable reference to a component slot.
+    using const_reference_type = value_type const &;          ///< Const reference to a component slot.
+    using container_t = std::vector<value_type>;              ///< Underlying storage type.
+    using size_type = typename container_t::size_type;        ///< Size/index type.
 
-	using iterator = typename container_t::iterator;
-	using const_iterator = typename container_t::const_iterator;
+    using iterator = typename container_t::iterator;          ///< Mutable iterator.
+    using const_iterator = typename container_t::const_iterator; ///< Const iterator.
 
 public:
-	// Construction/gestion par défaut.
-	sparse_array() = default;
-	sparse_array(sparse_array const &) = default;
-	sparse_array(sparse_array &&) noexcept = default;
-	~sparse_array() = default;
+    // === Construction / assignment ===
 
-	sparse_array &operator=(sparse_array const &) = default;
-	sparse_array &operator=(sparse_array &&) noexcept = default;
+    sparse_array() = default;
+    sparse_array(sparse_array const &) = default;
+    sparse_array(sparse_array &&) noexcept = default;
+    ~sparse_array() = default;
 
-	// Accès (agrandit automatiquement si on accède en écriture via operator[] non-const).
-	reference_type operator[](size_t idx) { ensure_size(idx + 1); return _data[idx]; }
-	const_reference_type operator[](size_t idx) const { return idx < _data.size() ? _data[idx] : _nullopt; }
+    sparse_array &operator=(sparse_array const &) = default;
+    sparse_array &operator=(sparse_array &&) noexcept = default;
 
-	// Itération sur le stockage sous-jacent.
-	iterator begin() { return _data.begin(); }
-	const_iterator begin() const { return _data.begin(); }
-	const_iterator cbegin() const { return _data.cbegin(); }
+    // === Access ===
 
-	iterator end() { return _data.end(); }
-	const_iterator end() const { return _data.end(); }
-	const_iterator cend() const { return _data.cend(); }
+    /**
+     * @brief Access component slot at given index (auto-resizes if necessary).
+     * @param idx Entity index.
+     * @return Mutable reference to the optional component.
+     */
+    reference_type operator[](size_t idx) { ensure_size(idx + 1); return _data[idx]; }
 
-	// Nombre de cases allouées (peut être > au nombre de composants présents).
-	size_type size() const { return _data.size(); }
+    /**
+     * @brief Access component slot at given index (const).
+     * @param idx Entity index.
+     * @return Const reference to the optional component.
+     *         If out of bounds, returns a static empty optional.
+     */
+    const_reference_type operator[](size_t idx) const { return idx < _data.size() ? _data[idx] : _nullopt; }
 
-	// Insère/remplace un composant à l'index donné (redimensionne si nécessaire).
-	reference_type insert_at(size_type pos, Component const &c) {
-		ensure_size(pos + 1);
-		_data[pos] = c;
-		return _data[pos];
-	}
+    // === Iteration ===
 
-	reference_type insert_at(size_type pos, Component &&c) {
-		ensure_size(pos + 1);
-		_data[pos] = std::move(c);
-		return _data[pos];
-	}
+    iterator begin() { return _data.begin(); }
+    const_iterator begin() const { return _data.begin(); }
+    const_iterator cbegin() const { return _data.cbegin(); }
 
-	// Construit en place un composant (supporte les agrégats via list-initialization).
-	template <class... Params>
-	reference_type emplace_at(size_type pos, Params &&...params) {
-		ensure_size(pos + 1);
-		_data[pos].reset();
-		_data[pos].emplace(Component{std::forward<Params>(params)...});
-		return _data[pos];
-	}
+    iterator end() { return _data.end(); }
+    const_iterator end() const { return _data.end(); }
+    const_iterator cend() const { return _data.cend(); }
 
-	// Supprime le composant à l'index (la case reste allouée mais devient vide).
-	void erase(size_type pos) {
-		if (pos < _data.size()) {
-			_data[pos].reset();
-		}
-	}
+    // === Capacity ===
 
-	// Récupère l'index d'une référence optionnelle appartenant à ce conteneur.
-	size_type get_index(value_type const &ref) const {
-		auto ptr = std::addressof(ref);
-		auto base = _data.data();
-		if (ptr >= base && ptr < base + _data.size()) {
-			return static_cast<size_type>(ptr - base);
-		}
-		return static_cast<size_type>(-1);
-	}
+    /**
+     * @brief Get the number of slots allocated (may exceed number of active components).
+     * @return Current allocated size.
+     */
+    size_type size() const { return _data.size(); }
+
+    // === Modifiers ===
+
+    /**
+     * @brief Insert or replace a component at the given index.
+     * @param pos Entity index.
+     * @param c Component instance to insert.
+     * @return Reference to the inserted component slot.
+     */
+    reference_type insert_at(size_type pos, Component const &c) {
+        ensure_size(pos + 1);
+        _data[pos] = c;
+        return _data[pos];
+    }
+
+    /**
+     * @brief Insert or replace a component at the given index (move version).
+     * @param pos Entity index.
+     * @param c Component instance to insert (moved).
+     * @return Reference to the inserted component slot.
+     */
+    reference_type insert_at(size_type pos, Component &&c) {
+        ensure_size(pos + 1);
+        _data[pos] = std::move(c);
+        return _data[pos];
+    }
+
+    /**
+     * @brief Construct a component in place at the given index.
+     * @tparam Params Constructor parameter types.
+     * @param pos Entity index.
+     * @param params Parameters to forward to the Component constructor.
+     * @return Reference to the emplaced component slot.
+     */
+    template <class... Params>
+    reference_type emplace_at(size_type pos, Params &&...params) {
+        ensure_size(pos + 1);
+        _data[pos].reset();
+        _data[pos].emplace(Component{std::forward<Params>(params)...});
+        return _data[pos];
+    }
+
+    /**
+     * @brief Remove a component from the given index.
+     * @param pos Entity index.
+     *
+     * The slot remains allocated but becomes empty (std::nullopt).
+     */
+    void erase(size_type pos) {
+        if (pos < _data.size()) {
+            _data[pos].reset();
+        }
+    }
+
+    // === Utilities ===
+
+    /**
+     * @brief Get the index of a given reference belonging to this container.
+     * @param ref Reference to an optional component in this container.
+     * @return The index of the referenced slot, or -1 if not found.
+     */
+    size_type get_index(value_type const &ref) const {
+        auto ptr = std::addressof(ref);
+        auto base = _data.data();
+        if (ptr >= base && ptr < base + _data.size()) {
+            return static_cast<size_type>(ptr - base);
+        }
+        return static_cast<size_type>(-1);
+    }
 
 private:
-	// Garantit la capacité nécessaire.
-	void ensure_size(size_type n) {
-		if (_data.size() < n) _data.resize(n);
-	}
+    /**
+     * @brief Ensure the underlying storage has at least `n` slots.
+     * @param n Minimum required size.
+     */
+    void ensure_size(size_type n) {
+        if (_data.size() < n) _data.resize(n);
+    }
 
 private:
-	container_t _data{}; // stockage des optionals
-	static inline const value_type _nullopt{}; // renvoyé pour operator[] const hors borne
+    container_t _data{};                ///< Underlying storage of optional components.
+    static inline const value_type _nullopt{}; ///< Static empty optional for out-of-bounds access.
 };
 
 } // namespace ecs

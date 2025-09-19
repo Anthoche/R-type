@@ -7,60 +7,91 @@
 
 #pragma once
 
+/**
+ * @namespace component
+ * @brief Contains all ECS components used in the R-Type game.
+ */
 namespace component {
-	// Composants de base pour le jeu R-Type
 
-	// Position dans l'espace 2D
-	struct position {
-		float x{0.f};
-		float y{0.f};
-	};
+    /**
+     * @struct position
+     * @brief Represents the position of an entity in 2D space.
+     */
+    struct position {
+        float x{0.f}; ///< X coordinate
+        float y{0.f}; ///< Y coordinate
+    };
 
-	// Vitesse et direction de mouvement
-	struct velocity {
-		float vx{0.f};
-		float vy{0.f};
-	};
+    /**
+     * @struct velocity
+     * @brief Represents the velocity of an entity in 2D space.
+     */
+    struct velocity {
+        float vx{0.f}; ///< Velocity along X
+        float vy{0.f}; ///< Velocity along Y
+    };
 
-	// Élément graphique affichable
-	struct drawable {
-		float width{32.f};
-		float height{32.f};
-		float r{1.f}, g{1.f}, b{1.f}, a{1.f}; // Couleur RGBA
-	};
+    /**
+     * @struct drawable
+     * @brief Represents a renderable entity with size and color.
+     */
+    struct drawable {
+        float width{32.f};  ///< Width of the entity
+        float height{32.f}; ///< Height of the entity
+        float r{1.f}, g{1.f}, b{1.f}, a{1.f}; ///< Color in RGBA
+    };
 
-	// Entité contrôlable par le joueur
-	struct controllable {
-		float speed{200.f};
-	};
+    /**
+     * @struct controllable
+     * @brief Marks an entity as player-controllable.
+     */
+    struct controllable {
+        float speed{200.f}; ///< Movement speed
+    };
 
-	// Santé de l'entité
-	struct health {
-		int current{100};
-		int max{100};
-	};
+    /**
+     * @struct health
+     * @brief Represents health points of an entity.
+     */
+    struct health {
+        int current{100}; ///< Current health
+        int max{100};     ///< Maximum health
+    };
 
-	// Dégâts infligés par l'entité
-	struct damage {
-		int amount{10};
-	};
+    /**
+     * @struct damage
+     * @brief Represents damage dealt by an entity.
+     */
+    struct damage {
+        int amount{10}; ///< Damage amount
+    };
 
-	// Type d'entité pour la logique de jeu
-	enum class entity_type {
-		PLAYER,
-		ENEMY,
-		BULLET,
-		POWERUP,
-		OBSTACLE
-	};
+    /**
+     * @enum entity_type
+     * @brief Defines the type of an entity for game logic.
+     */
+    enum class entity_type {
+        PLAYER,    ///< Player entity
+        ENEMY,     ///< Enemy entity
+        BULLET,    ///< Projectile
+        POWERUP,   ///< Power-up item
+        OBSTACLE   ///< Obstacle in the game
+    };
 
-	struct type {
-		entity_type value{entity_type::PLAYER};
-	};
+    /**
+     * @struct type
+     * @brief Component to store the entity type.
+     */
+    struct type {
+        entity_type value{entity_type::PLAYER}; ///< Type of the entity
+    };
 
-	// Collision box pour la détection de collision
-	struct collision_box {
-		float width{32.f};
-		float height{32.f};
-	};
+    /**
+     * @struct collision_box
+     * @brief Defines the collision bounds of an entity.
+     */
+    struct collision_box {
+        float width{32.f};  ///< Width of the collision box
+        float height{32.f}; ///< Height of the collision box
+    };
 }

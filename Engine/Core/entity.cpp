@@ -19,4 +19,4 @@ bool operator==(const entity_t &lhs, const entity_t &rhs) noexcept { return lhs.
 
 bool operator!=(const entity_t &lhs, const entity_t &rhs) noexcept { return !(lhs == rhs); }
 
-} // namespace ecs
+}
