@@ -7,16 +7,31 @@
 
 #include "Game.hpp"
 
-Game::Game(const std::string &serverIp, const std::string &clientName) : _client(serverIp, 4141, clientName), _sceneHandler(*this) {
+Game::Game(const std::string &serverIp, const std::string &clientName) : _sceneHandler(*this),
+																		_client(*this, serverIp, 4141, clientName) {
+	_status = GameStatus::WAITING;
 }
 
 void Game::run() {
 	_networkThread = std::thread([this]() {
 		_client.run();
 	});
-
-	_networkThread.join();
-
-	std::cout << "Ouverture de la fenêtre de jeu..." << std::endl;
 	_sceneHandler.openMenu();
+	_networkThread.join();
+}
+
+SceneHandler &Game::getSceneHandler() {
+	return _sceneHandler;
+}
+
+GameClient &Game::getGameClient() {
+	return _client;
+}
+
+GameStatus Game::getGameStatus() const {
+	return _status;
+}
+
+void Game::setGameStatus(const GameStatus &status) {
+	_status = status;
 }

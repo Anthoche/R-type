@@ -5,8 +5,8 @@
 #include <iostream>
 
 namespace game::scene {
-	GameScene::GameScene(SceneHandler &sceneHandler) : AScene(800, 600, "R-Type"), _player(ecs::entity_t{0}), _sceneHandler(sceneHandler),
-														_enemy_spawn_interval(2.0f) {
+	GameScene::GameScene(Game &game) : AScene(800, 600, "R-Type"), _player(ecs::entity_t{0}), _game(game),
+										_enemy_spawn_interval(2.0f) {
 		_raylib = Raylib();
 		_game_running = true;
 		_enemy_spawn_timer = 0.f;
