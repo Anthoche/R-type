@@ -6,6 +6,7 @@
 #include "../Entities/Include/background.hpp"
 #include "../Entities/Include/sound.hpp"
 #include "../Entities/Include/text.hpp"
+#include "../Entities/Include/random_element.hpp"
 #include <random>
 #include <algorithm>
 #include <iostream>
@@ -52,6 +53,8 @@ namespace game::scene {
         game::entities::create_background(_registry, 400.f, 300.f, 800.f, 600.f, "assets/background.png", 1.f);
         game::entities::create_sound(_registry, "assets/music.ogg", 0.5f, true, true);
         game::entities::create_text(_registry, 20.f, 30.f, "R-Type", 32, "assets/fonts/PressStart2P.ttf");
+        // Example random element
+        game::entities::create_random_element(_registry, 600.f, 450.f, 64.f, 64.f, "assets/items/star.png", "assets/sfx/pickup.wav", 0.8f, false, false);
 		create_obstacles();
 
 		// Sync hitboxes with owners

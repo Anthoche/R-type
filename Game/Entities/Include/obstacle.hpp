@@ -21,7 +21,7 @@ namespace game::entities {
      * @param y Initial Y position.
      * @return The created obstacle entity.
      */
-    ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y);
+    ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, const std::string &imagePath = "");
 
 } // namespace game::entities
 

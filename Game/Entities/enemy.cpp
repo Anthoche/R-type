@@ -10,7 +10,7 @@
 
 namespace game::entities {
 
-ecs::entity_t create_enemy(ecs::registry &reg, float x, float y) {
+ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::string &imagePath) {
     auto enemy = reg.spawn_entity();
 
     reg.emplace_component<component::position>(enemy, x, y);
@@ -31,6 +31,13 @@ ecs::entity_t create_enemy(ecs::registry &reg, float x, float y) {
 
     // Attach hitbox
     create_hitbox_for(reg, enemy);
+
+    if (!imagePath.empty()) {
+        component::sprite spr;
+        spr.image_path = imagePath;
+        spr.scale = 1.f;
+        reg.add_component<component::sprite>(enemy, std::move(spr));
+    }
 
     return enemy;
 }

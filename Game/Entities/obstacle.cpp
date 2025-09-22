@@ -10,7 +10,7 @@
 
 namespace game::entities {
 
-ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y) {
+ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, const std::string &imagePath) {
     auto obstacle = reg.spawn_entity();
 
     reg.emplace_component<component::position>(obstacle, x, y);
@@ -30,6 +30,13 @@ ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y) {
     reg.add_component<component::drawable>(obstacle, std::move(drawable));
 
     create_hitbox_for(reg, obstacle);
+
+    if (!imagePath.empty()) {
+        component::sprite spr;
+        spr.image_path = imagePath;
+        spr.scale = 1.f;
+        reg.add_component<component::sprite>(obstacle, std::move(spr));
+    }
 
     return obstacle;
 }
