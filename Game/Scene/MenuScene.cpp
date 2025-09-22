@@ -8,27 +8,31 @@
 #include "MenuScene.hpp"
 
 namespace scene {
-	MenuScene::MenuScene(SceneHandler &sceneHandler) : AScene(960, 540, "R-Type - Menu"), _sceneHandler(sceneHandler) {
+	MenuScene::MenuScene(Game &game) : AScene(960, 540, "R-Type - Menu"), _game(game) {
 	}
 
 	void MenuScene::init() {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 		_isOpen = true;
+
+		_game.getGameClient().sendHello();
 	}
 
 	void MenuScene::render() {
 		_raylib.beginDrawing();
 		_raylib.clearBackground(BLACK);
-		_raylib.drawText("Press E to start", 300, 200, 40, RAYWHITE);
+		_raylib.drawText("Waiting for players...", 300, 200, 40, RAYWHITE);
 		_raylib.endDrawing();
 	}
 
 	void MenuScene::handleEvents() {
+		if (_game.getGameStatus() == GameStatus::RUNNING) {
+			_game.getSceneHandler().open("game");
+			return;
+		}
+
 		switch (_raylib.getKeyPressed()) {
-			case KEY_E:
-				/* _sceneHandler.open("game"); */
-				break;
 			default:
 				break;
 		}
