@@ -1,5 +1,8 @@
 #include "GameScene.hpp"
 #include "../Entities/Include/player.hpp"
+#include "../Entities/Include/enemy.hpp"
+#include "../Entities/Include/obstacle.hpp"
+#include "../Entities/Include/hitbox.hpp"
 #include <random>
 #include <algorithm>
 #include <iostream>
@@ -27,6 +30,7 @@ namespace game::scene {
 		_registry.register_component<component::damage>();
 		_registry.register_component<component::type>();
 		_registry.register_component<component::collision_box>();
+		_registry.register_component<component::hitbox_link>();
 
 		setup_movement_system();
 		setup_render_system();
@@ -38,6 +42,9 @@ namespace game::scene {
 
 		create_player();
 		create_obstacles();
+
+		// Sync hitboxes with owners
+		game::entities::setup_hitbox_sync_system(_registry);
 	}
 
 	void GameScene::update() {
@@ -164,29 +171,7 @@ namespace game::scene {
 		static std::mt19937 gen(rd());
 		static std::uniform_real_distribution<float> y_dist(50.f, 550.f);
 
-		auto enemy = _registry.spawn_entity();
-
-		_registry.emplace_component<component::position>(enemy, static_cast<float>(_width - 50), y_dist(gen));
-
-		_registry.emplace_component<component::velocity>(enemy, -100.f, 0.f);
-
-		_registry.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
-
-		_registry.emplace_component<component::health>(enemy, 50, 50);
-
-		_registry.emplace_component<component::damage>(enemy, 20);
-
-		_registry.emplace_component<component::collision_box>(enemy, 40.f, 40.f);
-
-		component::drawable drawable;
-		drawable.width = 40.f;
-		drawable.height = 40.f;
-		drawable.r = 1.f;
-		drawable.g = 0.f;
-		drawable.b = 0.f;
-		drawable.a = 1.f;
-		_registry.add_component<component::drawable>(enemy, std::move(drawable));
-
+		auto enemy = game::entities::create_enemy(_registry, static_cast<float>(_width - 50), y_dist(gen));
 		_enemies.push_back(enemy);
 	}
 
@@ -194,23 +179,7 @@ namespace game::scene {
 
 	void GameScene::create_obstacles() {
 		for (int i = 0; i < 3; ++i) {
-			auto obstacle = _registry.spawn_entity();
-
-			_registry.emplace_component<component::position>(obstacle, 200.f + i * 200.f, 400.f);
-
-			_registry.emplace_component<component::type>(obstacle, component::entity_type::OBSTACLE);
-
-			_registry.emplace_component<component::collision_box>(obstacle, 60.f, 60.f);
-
-			component::drawable drawable;
-			drawable.width = 60.f;
-			drawable.height = 60.f;
-			drawable.r = 0.4f;
-			drawable.g = 0.4f;
-			drawable.b = 0.4f;
-			drawable.a = 1.f;
-			_registry.add_component<component::drawable>(obstacle, std::move(drawable));
-
+			auto obstacle = game::entities::create_obstacle(_registry, 200.f + i * 200.f, 400.f);
 			_obstacles.push_back(obstacle);
 		}
 	}

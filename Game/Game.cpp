@@ -7,8 +7,7 @@
 
 #include "Game.hpp"
 
-Game::Game(const std::string &serverIp, const std::string &clientName) : _client(serverIp, 4141, clientName), _sceneHandler(*this) {
-}
+Game::Game(const std::string &serverIp, const std::string &clientName) : _client(serverIp, 4141, clientName), _sceneHandler(*this) {}
 
 void Game::run() {
 	_networkThread = std::thread([this]() {
