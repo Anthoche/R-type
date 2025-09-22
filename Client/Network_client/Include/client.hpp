@@ -39,13 +39,15 @@ private:
 	std::string clientName; ///< Name of this client.
 	std::thread rxThread; ///< Thread for receiving network messages.
 	std::atomic<bool> running{false}; ///< Flag to control the client lifecycle.
+	Game &_game;
+
+public:
+	// Temporaire ?
 	std::mutex stateMutex; ///< Mutex to protect shared game state.
 	std::unordered_map<uint32_t, std::pair<float, float> > players; ///< Maps client IDs to their (x,y) positions.
 	std::unordered_map<uint32_t, std::pair<float, float> > enemies; ///< Maps enemy IDs to their (x,y) positions.
 	std::unordered_map<uint32_t, std::tuple<float, float, float, float> > obstacles; ///< Maps obstacle IDs to their (x,y,width,height).
-	Game &_game;
 
-public:
 	/**
 	* @brief Constructs a GameClient and connects to the server.
 	* @param game The game instance

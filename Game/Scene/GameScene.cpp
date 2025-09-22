@@ -56,23 +56,34 @@ namespace game::scene {
 	}
 
 	void GameScene::render() {
-		auto &positions = _registry.get_components<component::position>();
-		auto &drawables = _registry.get_components<component::drawable>();
-
+		std::unordered_map<uint32_t, std::pair<float, float> > pls;
+		std::unordered_map<uint32_t, std::pair<float, float> > ens;
+		std::unordered_map<uint32_t, std::tuple<float, float, float, float> > obs; {
+			std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+			pls = _game.getGameClient().players;
+			ens = _game.getGameClient().enemies;
+			obs = _game.getGameClient().obstacles;
+		}
 		_raylib.beginDrawing();
 		_raylib.clearBackground(BLACK);
-		const std::size_t n = std::min(positions.size(), drawables.size());
-		for (std::size_t i = 0; i < n; ++i) {
-			if (positions[i] && drawables[i]) {
-				Rectangle rec = {positions[i]->x, positions[i]->y, drawables[i]->width, drawables[i]->height};
-				Color color = {
-					static_cast<unsigned char>(std::clamp(drawables[i]->r, 0.f, 1.f) * 255.f),
-					static_cast<unsigned char>(std::clamp(drawables[i]->g, 0.f, 1.f) * 255.f),
-					static_cast<unsigned char>(std::clamp(drawables[i]->b, 0.f, 1.f) * 255.f),
-					static_cast<unsigned char>(std::clamp(drawables[i]->a, 0.f, 1.f) * 255.f)
-				};
-				_raylib.drawRectangleRec(rec, color);
-			}
+		// Obstacles from server
+		for (auto const &kv: obs) {
+			float x = std::get<0>(kv.second);
+			float y = std::get<1>(kv.second);
+			float w = std::get<2>(kv.second);
+			float h = std::get<3>(kv.second);
+			_raylib.drawRectangle((int) (x - w / 2), (int) (y - h / 2), (int) w, (int) h, GRAY);
+		}
+		// Players with per-id color
+		auto colorForId = [](uint32_t id) -> Color {
+			static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE};
+			return palette[id % (sizeof(palette) / sizeof(palette[0]))];
+		};
+		for (auto const &kv: pls) {
+			_raylib.drawRectangle((int) (kv.second.first - 15), (int) (kv.second.second - 15), 30, 30, colorForId(kv.first));
+		}
+		for (auto const &kv: ens) {
+			_raylib.drawRectangle((int) (kv.second.first - 20), (int) (kv.second.second - 20), 40, 40, RED);
 		}
 		_raylib.endDrawing();
 	}
@@ -94,7 +105,6 @@ namespace game::scene {
 		if (_raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT)) input_x = -1.f;
 		if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT)) input_x = 1.f;
 
-
 		handle_input(input_x, input_y);
 	}
 
@@ -111,6 +121,7 @@ namespace game::scene {
 			velocities[_player.value()]->vx = input_x * controllables[_player.value()]->speed;
 			velocities[_player.value()]->vy = input_y * controllables[_player.value()]->speed;
 		}
+		_game.getGameClient().sendInput(input_x, input_y);
 	}
 
 	void GameScene::setup_movement_system() {
