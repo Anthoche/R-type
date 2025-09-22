@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "../../Engine/Core/Include/entity.hpp"
+
 /**
  * @namespace component
  * @brief Contains all ECS components used in the R-Type game.
@@ -93,5 +95,15 @@ namespace component {
     struct collision_box {
         float width{32.f};  ///< Width of the collision box
         float height{32.f}; ///< Height of the collision box
+    };
+
+    /**
+     * @struct hitbox_link
+     * @brief Associates a hitbox entity to its owner entity with an optional offset.
+     */
+    struct hitbox_link {
+        ecs::entity_t owner{0}; ///< Owner entity that this hitbox follows
+        float offsetX{0.f};     ///< X offset relative to owner position
+        float offsetY{0.f};     ///< Y offset relative to owner position
     };
 }

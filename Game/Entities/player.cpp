@@ -6,6 +6,7 @@
 */
 
 #include "Include/player.hpp"
+#include "Include/hitbox.hpp"
 
 namespace game::entities {
 
@@ -30,6 +31,8 @@ ecs::entity_t create_player(ecs::registry &reg, float x, float y) {
 	drawable.r = 0.f; drawable.g = 1.f; drawable.b = 1.f; drawable.a = 1.f;
 	reg.add_component<component::drawable>(player, std::move(drawable));
 	
+	create_hitbox_for(reg, player);
+
 	return player;
 }
 
