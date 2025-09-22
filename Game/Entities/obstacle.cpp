@@ -29,12 +29,11 @@ ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y) {
     drawable.r = 0.6f; drawable.g = 0.6f; drawable.b = 0.6f; drawable.a = 1.f;
     reg.add_component<component::drawable>(obstacle, std::move(drawable));
 
-    // Attach hitbox
     create_hitbox_for(reg, obstacle);
 
     return obstacle;
 }
 
-} // namespace game::entities
+}
 
 

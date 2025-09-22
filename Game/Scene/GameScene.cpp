@@ -3,6 +3,9 @@
 #include "../Entities/Include/enemy.hpp"
 #include "../Entities/Include/obstacle.hpp"
 #include "../Entities/Include/hitbox.hpp"
+#include "../Entities/Include/background.hpp"
+#include "../Entities/Include/sound.hpp"
+#include "../Entities/Include/text.hpp"
 #include <random>
 #include <algorithm>
 #include <iostream>
@@ -28,9 +31,13 @@ namespace game::scene {
 		_registry.register_component<component::controllable>();
 		_registry.register_component<component::health>();
 		_registry.register_component<component::damage>();
-		_registry.register_component<component::type>();
+        _registry.register_component<component::type>();
 		_registry.register_component<component::collision_box>();
 		_registry.register_component<component::hitbox_link>();
+        _registry.register_component<component::sprite>();
+        _registry.register_component<component::audio>();
+        _registry.register_component<component::text>();
+        _registry.register_component<component::font>();
 
 		setup_movement_system();
 		setup_render_system();
@@ -40,7 +47,11 @@ namespace game::scene {
 		game::entities::setup_player_control_system(_registry);
 		game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
 
-		create_player();
+        create_player();
+        // Example background and music
+        game::entities::create_background(_registry, 400.f, 300.f, 800.f, 600.f, "assets/background.png", 1.f);
+        game::entities::create_sound(_registry, "assets/music.ogg", 0.5f, true, true);
+        game::entities::create_text(_registry, 20.f, 30.f, "R-Type", 32, "assets/fonts/PressStart2P.ttf");
 		create_obstacles();
 
 		// Sync hitboxes with owners

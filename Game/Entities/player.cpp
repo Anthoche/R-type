@@ -62,4 +62,4 @@ void setup_player_bounds_system(ecs::registry &reg, float screen_width, float sc
 		});
 }
 
-} // namespace game::entities
+}

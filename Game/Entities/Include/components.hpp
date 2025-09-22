@@ -8,6 +8,7 @@
 #pragma once
 
 #include "../../Engine/Core/Include/entity.hpp"
+#include <string>
 
 /**
  * @namespace component
@@ -44,6 +45,46 @@ namespace component {
     };
 
     /**
+     * @struct sprite
+     * @brief Optional sprite to render an image for an entity.
+     */
+    struct sprite {
+        std::string image_path{}; ///< Filepath to the image/texture
+        float scale{1.f};         ///< Uniform scale for rendering
+        float rotation{0.f};      ///< Rotation in degrees
+    };
+
+    /**
+     * @struct audio
+     * @brief Optional audio component to attach a sound/music to an entity.
+     */
+    struct audio {
+        std::string sound_path{}; ///< Filepath to the sound/music
+        float volume{1.f};        ///< Playback volume [0..1]
+        bool loop{false};         ///< Should the audio loop
+        bool autoplay{false};     ///< Start playing on creation
+    };
+
+    /**
+     * @struct text
+     * @brief Text content and styling for on-screen labels.
+     */
+    struct text {
+        std::string content{};    ///< UTF-8 text to display
+        int font_size{24};        ///< Font size in pixels
+        unsigned char r{255}, g{255}, b{255}, a{255}; ///< RGBA color
+        int spacing{1};           ///< Glyph spacing in pixels
+    };
+
+    /**
+     * @struct font
+     * @brief Optional font resource for text rendering.
+     */
+    struct font {
+        std::string font_path{};  ///< Filepath to TTF/OTF font
+    };
+
+    /**
      * @struct controllable
      * @brief Marks an entity as player-controllable.
      */
@@ -77,7 +118,10 @@ namespace component {
         ENEMY,     ///< Enemy entity
         BULLET,    ///< Projectile
         POWERUP,   ///< Power-up item
-        OBSTACLE   ///< Obstacle in the game
+        OBSTACLE,  ///< Obstacle in the game
+        BACKGROUND,///< Background entity
+        SOUND,     ///< Sound-only entity
+        TEXT       ///< Text label entity
     };
 
     /**
