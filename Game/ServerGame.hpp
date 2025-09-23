@@ -26,7 +26,6 @@
  */
 class ServerGame {
     UDP_socket &socket; ///< Reference to the UDP socket used for communication.
-    // --- Game state ---
     std::unordered_map<uint32_t, std::pair<float, float>> playerPositions; ///< Player positions keyed by player ID.
     std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles; ///< Obstacles keyed by ID (x,y,w,h).
 

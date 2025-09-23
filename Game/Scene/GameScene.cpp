@@ -147,6 +147,7 @@ namespace game::scene {
     }
 
     void GameScene::setup_collision_system() {}
+	
     void GameScene::setup_health_system() {
         _registry.add_system<component::health, component::type>(
             [](ecs::registry &reg,
