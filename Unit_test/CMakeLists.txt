@@ -11,6 +11,7 @@ project(${OUTPUT} LANGUAGES CXX)
 # -------------------------
 set(SRC
     ${ENGINE_CORE_DIR}/entity.cpp
+    ${ENGINE_CORE_DIR}/registry.cpp
 )
 
 # -------------------------
@@ -18,6 +19,7 @@ set(SRC
 # -------------------------
 set(HEAD
     ${ENGINE_CORE_DIR}/Include/entity.hpp
+    ${ENGINE_CORE_DIR}/Include/registry.hpp
 )
 
 # -------------------------
@@ -25,6 +27,7 @@ set(HEAD
 # -------------------------
 set(TESTS
     test_entity.cpp
+    test_registry.cpp
 )
 
 # -------------------------
