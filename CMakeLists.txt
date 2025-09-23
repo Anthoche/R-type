@@ -56,6 +56,13 @@ add_executable(r-type_client
     ${CLIENT_DIR}/Network_client/client.cpp
     ${GAME_DIR}/Game.cpp
     ${GAME_DIR}/Entities/player.cpp
+    ${GAME_DIR}/Entities/enemy.cpp
+    ${GAME_DIR}/Entities/hitbox.cpp
+    ${GAME_DIR}/Entities/obstacle.cpp
+    ${GAME_DIR}/Entities/background.cpp
+    ${GAME_DIR}/Entities/sound.cpp
+    ${GAME_DIR}/Entities/text.cpp
+    ${GAME_DIR}/Entities/random_element.cpp
     ${GAME_DIR}/Scene/GameScene.cpp
     ${GAME_DIR}/Scene/MenuScene.cpp
 )
@@ -77,7 +84,6 @@ add_executable(r-type_server
     ${SERVER_DIR}/server.cpp
     ${SERVER_DIR}/Network_handler/connexion.cpp
     ${SERVER_DIR}/Network_handler/UDP_socket.cpp
-    ${SERVER_DIR}/Game_logic/game_core.cpp
     ${SERVER_DIR}/Game_logic/game_setup.cpp
     ${GAME_DIR}/ServerGame.cpp
 )
