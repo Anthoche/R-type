@@ -19,23 +19,19 @@ void SceneHandler::addScene(const std::string &name, const std::shared_ptr<IScen
 }
 
 void SceneHandler::setupScenes() {
-	addScene("menu", std::make_shared<scene::MenuScene>(*this));
-	//addScene("game", std::make_shared<game::scene::GameScene>(*this));
+	addScene("menu", std::make_shared<scene::MenuScene>(_game));
+	addScene("game", std::make_shared<game::scene::GameScene>(_game));
 }
 
 void SceneHandler::openMenu() {
-/* 	_raylib.setResizableFlag(FLAG_WINDOW_RESIZABLE);
+	_raylib.setResizableFlag(FLAG_WINDOW_RESIZABLE);
 	_raylib.initWindow(100, 100, "R-Type");
-	open("game");
-	_raylib.closeWindow(); */
+	open("menu");
+	_raylib.closeWindow();
 }
 
 void SceneHandler::open(const std::string &name) {
-	if (_scenes.empty() || _scenes[name].first == nullptr) {
-		printf("zeg\n");
-		return;
-	}
-
+	if (_scenes.empty() || _scenes[name].first == nullptr) return;
 	closeOpened();
 
 	std::shared_ptr<IScene> scene = _scenes[name].first;

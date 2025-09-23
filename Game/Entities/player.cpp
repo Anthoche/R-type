@@ -6,10 +6,11 @@
 */
 
 #include "Include/player.hpp"
+#include "Include/hitbox.hpp"
 
 namespace game::entities {
 
-ecs::entity_t create_player(ecs::registry &reg, float x, float y) {
+ecs::entity_t create_player(ecs::registry &reg, float x, float y, const std::string &imagePath) {
 	auto player = reg.spawn_entity();
 	
 	reg.emplace_component<component::position>(player, x, y);
@@ -29,7 +30,16 @@ ecs::entity_t create_player(ecs::registry &reg, float x, float y) {
 	drawable.height = 30.f;
 	drawable.r = 0.f; drawable.g = 1.f; drawable.b = 1.f; drawable.a = 1.f;
 	reg.add_component<component::drawable>(player, std::move(drawable));
+
+	if (!imagePath.empty()) {
+		component::sprite spr;
+		spr.image_path = imagePath;
+		spr.scale = 1.f;
+		reg.add_component<component::sprite>(player, std::move(spr));
+	}
 	
+	create_hitbox_for(reg, player);
+
 	return player;
 }
 
@@ -59,4 +69,4 @@ void setup_player_bounds_system(ecs::registry &reg, float screen_width, float sc
 		});
 }
 
-} // namespace game::entities
+}

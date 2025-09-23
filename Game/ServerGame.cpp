@@ -2,7 +2,6 @@
 ** EPITECH PROJECT, 2025
 ** R-Type
 */
-
 #include "ServerGame.hpp"
 #include <algorithm>
 #include <cstring>
@@ -17,7 +16,6 @@ void ServerGame::run() {
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
         process_pending_messages();
-        update_enemies(1.f / 60.f);
         broadcast_states_to_clients();
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
@@ -80,66 +78,6 @@ void ServerGame::broadcast_states_to_clients() {
     }
 }
 
-void ServerGame::update_enemies(float dt) {
-    enemySpawnTimerSec += dt;
-    if (enemySpawnTimerSec >= 2.f) {
-        enemySpawnTimerSec = 0.f;
-        spawn_enemy();
-    }
-    std::vector<uint32_t> toDespawn;
-    for (auto &kv : enemies) {
-        kv.second.first -= 100.f * dt;
-        if (kv.second.first < -50.f) {
-            toDespawn.push_back(kv.first);
-        } else {
-            broadcast_enemy_update(kv.first, kv.second.first, kv.second.second);
-        }
-    }
-    for (uint32_t id : toDespawn) {
-        broadcast_enemy_despawn(id);
-        enemies.erase(id);
-    }
-}
-
-void ServerGame::spawn_enemy() {
-    uint32_t id = nextEnemyId++;
-    float x = 800.f - 50.f;
-    float y = 100.f + 100.f * ((id - 1) % 4);
-    enemies[id] = {x, y};
-    broadcast_enemy_spawn(id, x, y);
-}
-
-void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y) {
-    EnemySpawnMessage m;
-    m.type = MessageType::EnemySpawn;
-    m.enemyId = htonl(enemyId);
-    uint32_t xbits, ybits;
-    std::memcpy(&xbits, &x, sizeof(float));
-    std::memcpy(&ybits, &y, sizeof(float));
-    m.posXBits = htonl(xbits);
-    m.posYBits = htonl(ybits);
-    socket.broadcast(&m, sizeof(m));
-}
-
-void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y) {
-    EnemyUpdateMessage m;
-    m.type = MessageType::EnemyUpdate;
-    m.enemyId = htonl(enemyId);
-    uint32_t xbits, ybits;
-    std::memcpy(&xbits, &x, sizeof(float));
-    std::memcpy(&ybits, &y, sizeof(float));
-    m.posXBits = htonl(xbits);
-    m.posYBits = htonl(ybits);
-    socket.broadcast(&m, sizeof(m));
-}
-
-void ServerGame::broadcast_enemy_despawn(uint32_t enemyId) {
-    EnemyDespawnMessage m;
-    m.type = MessageType::EnemyDespawn;
-    m.enemyId = htonl(enemyId);
-    socket.broadcast(&m, sizeof(m));
-}
-
 void ServerGame::initialize_obstacles() {
     struct O { float x,y,w,h; }; O list[3] = {
         {200.f, 400.f, 60.f, 60.f},
@@ -184,5 +122,3 @@ void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock
         std::this_thread::sleep_for(std::chrono::milliseconds(tick_ms - elapsed_ms));
     }
 }
-
-

@@ -23,7 +23,7 @@ namespace game::entities {
      * @param y Initial Y position (default: 300.f).
      * @return The created player entity.
      */
-    ecs::entity_t create_player(ecs::registry &reg, float x = 100.f, float y = 300.f);
+    ecs::entity_t create_player(ecs::registry &reg, float x = 100.f, float y = 300.f, const std::string &imagePath = "");
 
     /**
      * @brief Sets up the player control system.
