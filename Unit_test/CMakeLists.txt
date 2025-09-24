@@ -28,10 +28,10 @@ set(HEAD
 # Unit test source files
 # -------------------------
 set(TESTS
-    test_entity.cpp
-    test_registry.cpp
-    test_array.cpp
-    test_zipper.cpp
+    Engine/Core/ArrayTests.cpp
+    Engine/Core/EntityTests.cpp
+    Engine/Core/RegistryTests.cpp
+    Engine/Core/ZipperTests.cpp
 )
 
 # -------------------------
