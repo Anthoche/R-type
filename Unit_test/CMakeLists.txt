@@ -20,6 +20,8 @@ set(SRC
 set(HEAD
     ${ENGINE_CORE_DIR}/Include/entity.hpp
     ${ENGINE_CORE_DIR}/Include/registry.hpp
+    ${ENGINE_CORE_DIR}/Include/sparse_array.hpp
+    ${ENGINE_CORE_DIR}/Include/zipper.hpp
 )
 
 # -------------------------
@@ -28,6 +30,8 @@ set(HEAD
 set(TESTS
     test_entity.cpp
     test_registry.cpp
+    test_array.cpp
+    test_zipper.cpp
 )
 
 # -------------------------
