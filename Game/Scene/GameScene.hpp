@@ -121,12 +121,19 @@ namespace game::scene {
          */
         void setup_ecs_collision_system();
 
+        void setup_enemy_ai_system();
+
         /**
          * @brief Setup the health system for entities.
          */
         void setup_health_system();
 
         // --- Entity creation ---
+        /**
+         * @brief Create enemy entities that move horizontally.
+         */
+        void create_enemies();
+
         /**
          * @brief Create the player entity and initialize components.
          */

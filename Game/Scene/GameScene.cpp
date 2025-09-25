@@ -48,7 +48,9 @@ namespace game::scene {
         game::entities::create_text(_registry, 20.f, 30.f, "R-Type", 32, "assets/fonts/PressStart2P.ttf");
         game::entities::create_random_element(_registry, 600.f, 450.f, 64.f, 64.f, "assets/items/star.png", "assets/sfx/pickup.wav", 0.8f, false, false);
         create_obstacles();
+        create_enemies();
         game::entities::setup_hitbox_sync_system(_registry);
+        setup_enemy_ai_system();
     }
 
     void GameScene::update() {
@@ -102,16 +104,32 @@ namespace game::scene {
         auto &types = _registry.get_components<component::type>();
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
-            if (types[i]->value != component::entity_type::PLAYER) continue;
-            uint32_t idForColor = 0; ecs::entity_t e = _registry.entity_from_index(i);
-            for (auto const &kv : _playerEntities) { if (kv.second == e) { idForColor = kv.first; break; } }
-            _raylib.drawRectangle(
-                (int)(positions[i]->x - drawables[i]->width / 2),
-                (int)(positions[i]->y - drawables[i]->height / 2),
-                (int)drawables[i]->width,
-                (int)drawables[i]->height,
-                colorForId(idForColor)
-            );
+            ecs::entity_t e = _registry.entity_from_index(i);
+            if (types[i]->value == component::entity_type::PLAYER) {
+                uint32_t idForColor = 0;
+                for (auto const &kv : _playerEntities) {
+                    if (kv.second == e) {
+                        idForColor = kv.first;
+                        break;
+                    }
+                }
+                _raylib.drawRectangle(
+                    (int)(positions[i]->x - drawables[i]->width / 2),
+                    (int)(positions[i]->y - drawables[i]->height / 2),
+                    (int)drawables[i]->width,
+                    (int)drawables[i]->height,
+                    colorForId(idForColor)
+                );
+            }
+            else if (types[i]->value == component::entity_type::ENEMY) {
+                _raylib.drawRectangle(
+                    (int)(positions[i]->x - drawables[i]->width / 2),
+                    (int)(positions[i]->y - drawables[i]->height / 2),
+                    (int)drawables[i]->width,
+                    (int)drawables[i]->height,
+                    RED
+                );
+            }
         }
         _raylib.endDrawing();
     }
@@ -201,6 +219,44 @@ namespace game::scene {
             auto obstacle = game::entities::create_obstacle(_registry, 200.f + i * 200.f, 400.f);
             _obstacles.push_back(obstacle);
         }
+    }
+
+    void GameScene::create_enemies() {
+        for (int i = 0; i < 5; ++i) {
+            ecs::entity_t enemy = _registry.spawn_entity();
+            _registry.add_component<component::position>(enemy, component::position{
+                100.f + i * 120.f, 100.f
+            });
+            _registry.add_component<component::drawable>(enemy, component::drawable{
+                40.f, 40.f
+            });
+            _registry.add_component<component::type>(enemy, component::type{
+                component::entity_type::ENEMY
+            });
+            _registry.add_component<component::health>(enemy, component::health{
+                3, 3
+            });
+            _registry.add_component<component::velocity>(enemy, component::velocity{
+                (i % 2 == 0 ? 50.f : -50.f), 0.f
+            });
+        }
+    }
+
+    void GameScene::setup_enemy_ai_system() {
+    _registry.add_system<component::position, component::velocity, component::type>(
+        [this](ecs::registry &reg,
+            ecs::sparse_array<component::position> &pos,
+            ecs::sparse_array<component::velocity> &vel,
+            ecs::sparse_array<component::type> &type) {
+            for (std::size_t i = 0; i < pos.size() && i < vel.size() && i < type.size(); ++i) {
+                if (pos[i] && vel[i] && type[i] &&
+                    type[i]->value == component::entity_type::ENEMY) {
+                    if (pos[i]->x < 20.f || pos[i]->x > _width - 20.f) {
+                        vel[i]->vx *= -1.f;
+                    }
+                }
+            }
+        });
     }
 
     void GameScene::check_collisions() {
