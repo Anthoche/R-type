@@ -19,12 +19,16 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         CACHE STRING "Vcpkg toolchain file")
 endif()
 
-
+# -------------------------
 # Dependencies
+# -------------------------
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
+find_package(SFML 2.5 REQUIRED COMPONENTS system window graphics)
 
+# -------------------------
 # Directories
+# -------------------------
 set(CLIENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Client)
 set(SERVER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Server)
 set(SHARED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shared)
@@ -32,7 +36,9 @@ set(ENGINE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine)
 set(ENGINE_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core)
 set(GAME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Game)
 
+# -------------------------
 # ECS library (Engine/Core)
+# -------------------------
 add_library(ecs STATIC
     ${ENGINE_CORE_DIR}/entity.cpp
     ${ENGINE_CORE_DIR}/registry.cpp
@@ -43,9 +49,9 @@ target_include_directories(ecs PUBLIC
     ${SHARED_DIR}
 )
 
-# r-type_client (with SFML window)
-find_package(SFML 2.5 REQUIRED COMPONENTS system window graphics)
-
+# -------------------------
+# r-type_client (with SFML)
+# -------------------------
 add_executable(r-type_client
     ${ENGINE_CORE_DIR}/entity.cpp
     ${ENGINE_CORE_DIR}/registry.cpp
@@ -76,9 +82,11 @@ target_include_directories(r-type_client PRIVATE
     ${SHARED_DIR}
 )
 
-target_link_libraries(r-type_client PRIVATE ecs sfml-system sfml-window sfml-graphics)
+target_link_libraries(r-type_client PRIVATE ecs sfml-system sfml-window sfml-graphics raylib glfw)
 
+# -------------------------
 # r-type_server (no SFML)
+# -------------------------
 add_executable(r-type_server
     ${SERVER_DIR}/main.cpp
     ${SERVER_DIR}/server.cpp
@@ -95,14 +103,17 @@ target_include_directories(r-type_server PRIVATE
     ${SHARED_DIR}
 )
 
-# Linking
-target_link_libraries(r-type_client PRIVATE raylib glfw)
 target_link_libraries(r-type_server PRIVATE ecs)
 
-# Tests (later)
+# -------------------------
+# Unit tests
+# -------------------------
 enable_testing()
+add_subdirectory(Unit_test)
 
+# -------------------------
 # Installation
+# -------------------------
 install(TARGETS r-type_client r-type_server ecs
     RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib
