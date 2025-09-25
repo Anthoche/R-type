@@ -6,9 +6,9 @@
 */
 
 #include "GameScene.hpp"
+#include "../Système/Collision.hpp"
 #include <iostream>
 #include <cmath>
-
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -40,7 +40,6 @@ namespace game::scene {
 
         setup_movement_system();
         setup_render_system();
-        setup_collision_system();
         setup_health_system();
         game::entities::setup_player_control_system(_registry);
         game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
@@ -142,57 +141,20 @@ namespace game::scene {
         if (_player.value() < positions.size() && positions[_player.value()] &&
             _player.value() < controls.size() && controls[_player.value()]) {
             float speed = controls[_player.value()]->speed;
-            ecs::entity_t playerHitbox = find_player_hitbox();
+            ecs::entity_t playerHitbox = collision::find_player_hitbox(*this);
             if (playerHitbox.value() < hitboxes.size() && hitboxes[playerHitbox.value()]) {
                 auto &playerPos = *positions[_player.value()];
                 auto &playerBox = *hitboxes[playerHitbox.value()];
                 float dt = 0.016f;
                 float testX = playerPos.x + ix * speed * dt;
-                if (is_blocked(testX, playerPos.y, playerPos, playerBox))
+                if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
                     ix = 0.f;
                 float testY = playerPos.y + iy * speed * dt;
-                if (is_blocked(playerPos.x, testY, playerPos, playerBox))
+                if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
                     iy = 0.f;
             }
         }
         _game.getGameClient().sendInput(ix, iy);
-    }
-
-
-    ecs::entity_t GameScene::find_player_hitbox() {
-        auto &links = _registry.get_components<component::hitbox_link>();
-        for (std::size_t i = 0; i < links.size(); ++i) {
-            if (links[i] && links[i]->owner == _player) {
-                return _registry.entity_from_index(i);
-            }
-        }
-        return ecs::entity_t{0};
-    }
-
-    bool GameScene::is_blocked(float testX, float testY,
-                           const component::position &playerPos,
-                           const component::collision_box &playerBox) {
-        float left   = testX - playerBox.width * 0.5f;
-        float right  = testX + playerBox.width * 0.5f;
-        float top    = testY - playerBox.height * 0.5f;
-        float bottom = testY + playerBox.height * 0.5f;
-        auto &positions = _registry.get_components<component::position>();
-        auto &hitboxes  = _registry.get_components<component::collision_box>();
-
-        for (auto &obstacle : _obstacles) {
-            if (obstacle.value() >= positions.size() || !positions[obstacle.value()] || !hitboxes[obstacle.value()])
-                continue;
-            auto &obsPos = *positions[obstacle.value()];
-            auto &obsBox = *hitboxes[obstacle.value()];
-            float obsLeft   = obsPos.x - obsBox.width * 0.5f;
-            float obsRight  = obsPos.x + obsBox.width * 0.5f;
-            float obsTop    = obsPos.y - obsBox.height * 0.5f;
-            float obsBottom = obsPos.y + obsBox.height * 0.5f;
-            bool overlap = right > obsLeft && left < obsRight && bottom > obsTop && top < obsBottom;
-            if (overlap)
-                return true;
-        }
-        return false;
     }
 
     void GameScene::setup_movement_system() {
@@ -217,8 +179,6 @@ namespace game::scene {
                    ecs::sparse_array<component::drawable> &drw) {
             });
     }
-
-    void GameScene::setup_collision_system() {}
 	
     void GameScene::setup_health_system() {
         _registry.add_system<component::health, component::type>(
@@ -245,99 +205,7 @@ namespace game::scene {
 
     void GameScene::check_collisions() {
         for (auto const &kvPlayer : _playerEntities) {
-            handle_entity_collisions(kvPlayer.second);
-        }
-    }
-
-    void GameScene::handle_entity_collisions(ecs::entity_t entity) {
-        auto &positions     = _registry.get_components<component::position>();
-        auto &hitboxes      = _registry.get_components<component::collision_box>();
-        auto &prevPositions = _registry.get_components<component::previous_position>();
-
-        if (entity.value() >= positions.size() || !positions[entity.value()])
-            return;
-        ecs::entity_t entityHitbox = find_hitbox_of(entity);
-        if (!entityHitbox.value() || entityHitbox.value() >= hitboxes.size() || !hitboxes[entityHitbox.value()])
-            return;
-        auto &pos = *positions[entity.value()];
-        auto &box = *hitboxes[entityHitbox.value()];
-        float prevX = (entity.value() < prevPositions.size() && prevPositions[entity.value()])
-                        ? prevPositions[entity.value()]->x
-                        : pos.x;
-        float prevY = (entity.value() < prevPositions.size() && prevPositions[entity.value()])
-                        ? prevPositions[entity.value()]->y
-                        : pos.y;
-        for (auto &obstacle : _obstacles) {
-            if (obstacle.value() >= positions.size() || !positions[obstacle.value()] || !hitboxes[obstacle.value()])
-                continue;
-            auto &obsPos = *positions[obstacle.value()];
-            auto &obsBox = *hitboxes[obstacle.value()];
-            float nextLeft   = pos.x - box.width * 0.5f;
-            float nextRight  = pos.x + box.width * 0.5f;
-            float nextTop    = pos.y - box.height * 0.5f;
-            float nextBottom = pos.y + box.height * 0.5f;
-            float obsLeft   = obsPos.x - obsBox.width * 0.5f;
-            float obsRight  = obsPos.x + obsBox.width * 0.5f;
-            float obsTop    = obsPos.y - obsBox.height * 0.5f;
-            float obsBottom = obsPos.y + obsBox.height * 0.5f;
-            if (!overlap_aabb(nextLeft, nextRight, nextTop, nextBottom,
-                            obsLeft, obsRight, obsTop, obsBottom))
-                continue;
-            resolve_collision(entity, pos, box, obsPos, obsBox, prevX, prevY);
-        }
-    }
-
-    ecs::entity_t GameScene::find_hitbox_of(ecs::entity_t owner) {
-        auto &links = _registry.get_components<component::hitbox_link>();
-        for (std::size_t i = 0; i < links.size(); ++i) {
-            if (links[i] && links[i]->owner == owner) {
-                return _registry.entity_from_index(i);
-            }
-        }
-        return ecs::entity_t{0};
-    }
-
-    bool GameScene::overlap_aabb(float leftA, float rightA, float topA, float bottomA,
-                             float leftB, float rightB, float topB, float bottomB) {
-        return rightA > leftB && leftA < rightB && bottomA > topB && topA < bottomB;
-    }
-
-    void GameScene::resolve_collision(ecs::entity_t playerEntity,
-                                  component::position &playerPos,
-                                  component::collision_box &playerBox,
-                                  const component::position &obsPos,
-                                  const component::collision_box &obsBox,
-                                  float prevX, float prevY) {
-        auto &velocitiesAll  = _registry.get_components<component::velocity>();
-        auto &prevPositions  = _registry.get_components<component::previous_position>();
-        float obsLeft   = obsPos.x - obsBox.width * 0.5f;
-        float obsRight  = obsPos.x + obsBox.width * 0.5f;
-        float obsTop    = obsPos.y - obsBox.height * 0.5f;
-        float obsBottom = obsPos.y + obsBox.height * 0.5f;
-        float moveX = playerPos.x - prevX;
-        float moveY = playerPos.y - prevY;
-        const float skin = 0.5f;
-
-        if (std::fabs(moveX) > std::fabs(moveY)) {
-            if (moveX > 0.f)
-                playerPos.x = obsLeft - playerBox.width * 0.5f - skin;
-            else
-                playerPos.x = obsRight + playerBox.width * 0.5f + skin;
-
-            if (playerEntity.value() < velocitiesAll.size() && velocitiesAll[playerEntity.value()])
-                velocitiesAll[playerEntity.value()]->vx = 0.f;
-        } else {
-            if (moveY > 0.f)
-                playerPos.y = obsTop - playerBox.height * 0.5f - skin;
-            else
-                playerPos.y = obsBottom + playerBox.height * 0.5f + skin;
-
-            if (playerEntity.value() < velocitiesAll.size() && velocitiesAll[playerEntity.value()])
-                velocitiesAll[playerEntity.value()]->vy = 0.f;
-        }
-        if (playerEntity.value() < prevPositions.size() && prevPositions[playerEntity.value()]) {
-            prevPositions[playerEntity.value()]->x = playerPos.x;
-            prevPositions[playerEntity.value()]->y = playerPos.y;
+            collision::handle_entity_collisions(*this, kvPlayer.second);
         }
     }
 } // namespace game::scene

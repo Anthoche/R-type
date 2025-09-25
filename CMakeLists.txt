@@ -65,6 +65,7 @@ add_executable(r-type_client
     ${GAME_DIR}/Entities/random_element.cpp
     ${GAME_DIR}/Scene/GameScene.cpp
     ${GAME_DIR}/Scene/MenuScene.cpp
+    ${GAME_DIR}/Système/Collision.cpp
 )
 
 target_include_directories(r-type_client PRIVATE

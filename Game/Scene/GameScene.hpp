@@ -17,6 +17,7 @@
 #include "../Entities/Include/text.hpp"
 #include "../Entities/Include/random_element.hpp"
 #include "../Game.hpp"
+#include "../Système/Collision.hpp"
 #include <unordered_map>
 
 namespace game::scene {
@@ -73,6 +74,25 @@ namespace game::scene {
          */
         void handle_input(float input_x, float input_y);
 
+    // --- Accessors ---
+    /**
+     * @brief getter to send registry
+     * @return return the current registry.
+     */
+    ecs::registry &get_registry() { return _registry; }
+
+    /**
+     * @brief getter to send player
+     * @return return the current player.
+     */
+    ecs::entity_t get_player() const { return _player; }
+
+    /**
+     * @brief getter to send obstacles
+     * @return return tje current obstacles.
+     */
+    const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
+
     private:
         // --- Game logic ---
         /**
@@ -124,73 +144,9 @@ namespace game::scene {
         void check_collisions();
 
         /**
-         * @brief Check and resolve collisions for a specific entity.
-         * @param entity ECS entity to test and resolve collisions for.
-         */
-        void handle_entity_collisions(ecs::entity_t entity);
-
-        /**
          * @brief Synchronize hitboxes with their parent entity immediately.
          */
         void sync_hitboxes_immediate();
-
-        /**
-         * @brief Find the hitbox entity associated with the local player.
-         * @return Entity ID of the player's hitbox, or 0 if not found.
-         */
-        ecs::entity_t find_player_hitbox();
-
-        /**
-         * @brief Find the hitbox entity associated with a given owner entity.
-         * @param owner Owner entity.
-         * @return Entity ID of the hitbox, or 0 if not found.
-         */
-        ecs::entity_t find_hitbox_of(ecs::entity_t owner);
-
-        /**
-         * @brief Check if movement to a test position would be blocked by an obstacle.
-         * @param testX Target X position.
-         * @param testY Target Y position.
-         * @param playerPos Current player position.
-         * @param playerBox Player collision box.
-         * @return True if blocked, false otherwise.
-         */
-        bool is_blocked(float testX, float testY,
-                        const component::position &playerPos,
-                        const component::collision_box &playerBox);
-
-        /**
-         * @brief Resolve a collision between an entity and an obstacle.
-         *        Applies position correction and updates velocity/previous position.
-         * @param playerEntity The colliding entity.
-         * @param playerPos Reference to the entity's position.
-         * @param playerBox Reference to the entity's collision box.
-         * @param obsPos Reference to the obstacle's position.
-         * @param obsBox Reference to the obstacle's collision box.
-         * @param prevX Previous X position.
-         * @param prevY Previous Y position.
-         */
-        void resolve_collision(ecs::entity_t playerEntity,
-                               component::position &playerPos,
-                               component::collision_box &playerBox,
-                               const component::position &obsPos,
-                               const component::collision_box &obsBox,
-                               float prevX, float prevY);
-
-        /**
-         * @brief Check overlap between two AABBs (Axis-Aligned Bounding Boxes).
-         * @param leftA   Left coordinate of A.
-         * @param rightA  Right coordinate of A.
-         * @param topA    Top coordinate of A.
-         * @param bottomA Bottom coordinate of A.
-         * @param leftB   Left coordinate of B.
-         * @param rightB  Right coordinate of B.
-         * @param topB    Top coordinate of B.
-         * @param bottomB Bottom coordinate of B.
-         * @return True if A and B overlap, false otherwise.
-         */
-        bool overlap_aabb(float leftA, float rightA, float topA, float bottomA,
-                          float leftB, float rightB, float topB, float bottomB);
 
         // --- Entities ---
         ecs::entity_t _player; ///< Local player entity.
