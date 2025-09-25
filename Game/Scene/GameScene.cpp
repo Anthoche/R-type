@@ -6,15 +6,9 @@
 */
 
 #include "GameScene.hpp"
-#include "../Entities/Include/player.hpp"
-#include "../Entities/Include/obstacle.hpp"
-#include "../Entities/Include/hitbox.hpp"
-#include "../Entities/Include/background.hpp"
-#include "../Entities/Include/sound.hpp"
-#include "../Entities/Include/text.hpp"
-#include "../Entities/Include/random_element.hpp"
+#include "../Système/Collision.hpp"
 #include <iostream>
-
+#include <cmath>
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -42,15 +36,13 @@ namespace game::scene {
         _registry.register_component<component::audio>();
         _registry.register_component<component::text>();
         _registry.register_component<component::font>();
+        _registry.register_component<component::previous_position>();
 
         setup_movement_system();
         setup_render_system();
-        setup_collision_system();
         setup_health_system();
         game::entities::setup_player_control_system(_registry);
         game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
-
-        create_player();
         game::entities::create_background(_registry, 400.f, 300.f, 800.f, 600.f, "assets/background.png", 1.f);
         game::entities::create_sound(_registry, "assets/music.ogg", 0.5f, true, true);
         game::entities::create_text(_registry, 20.f, 30.f, "R-Type", 32, "assets/fonts/PressStart2P.ttf");
@@ -61,23 +53,41 @@ namespace game::scene {
 
     void GameScene::update() {
         if (!_game_running) return;
+        std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            netPlayers = _game.getGameClient().players;
+        }
+        for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
+            if (netPlayers.find(it->first) == netPlayers.end()) { _registry.kill_entity(it->second); it = _playerEntities.erase(it); }
+            else { ++it; }
+        }
+        auto &positions = _registry.get_components<component::position>();
+        for (auto const &kv : netPlayers) {
+            uint32_t id = kv.first; float x = kv.second.first; float y = kv.second.second;
+            auto f = _playerEntities.find(id);
+            if (f == _playerEntities.end()) {
+                ecs::entity_t e = game::entities::create_player(_registry, x, y);
+                _playerEntities.emplace(id, e);
+            } else {
+                ecs::entity_t e = f->second; if (e.value() < positions.size() && positions[e.value()]) { positions[e.value()]->x = x; positions[e.value()]->y = y; }
+            }
+        }
+        if (!_player.value() && !_playerEntities.empty()) _player = _playerEntities.begin()->second;
+        auto &pp = _registry.get_components<component::previous_position>();
+        for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) { if (positions[i] && pp[i]) { pp[i]->x = positions[i]->x; pp[i]->y = positions[i]->y; } }
         _registry.run_systems();
-        check_collisions();
     }
 
     void GameScene::render() {
-        std::unordered_map<uint32_t, std::pair<float, float>> pls;
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obs;
-        {
-            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
-            pls = _game.getGameClient().players;
-            obs = _game.getGameClient().obstacles;
-        }
-
         _raylib.beginDrawing();
         _raylib.clearBackground(BLACK);
 
-        // Obstacles from server
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obs;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            obs = _game.getGameClient().obstacles;
+        }
         for (auto const &kv: obs) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
@@ -86,13 +96,22 @@ namespace game::scene {
             _raylib.drawRectangle((int)(x - w / 2), (int)(y - h / 2), (int)w, (int)h, GRAY);
         }
 
-        // Players with per-id color
-        auto colorForId = [](uint32_t id) -> Color {
-            static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE};
-            return palette[id % (sizeof(palette) / sizeof(palette[0]))];
-        };
-        for (auto const &kv: pls) {
-            _raylib.drawRectangle((int)(kv.second.first - 15), (int)(kv.second.second - 15), 30, 30, colorForId(kv.first));
+        auto colorForId = [](uint32_t id) -> Color { static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE}; return palette[id % (sizeof(palette)/sizeof(palette[0]))]; };
+        auto &positions = _registry.get_components<component::position>();
+        auto &drawables = _registry.get_components<component::drawable>();
+        auto &types = _registry.get_components<component::type>();
+        for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
+            if (!positions[i] || !drawables[i] || !types[i]) continue;
+            if (types[i]->value != component::entity_type::PLAYER) continue;
+            uint32_t idForColor = 0; ecs::entity_t e = _registry.entity_from_index(i);
+            for (auto const &kv : _playerEntities) { if (kv.second == e) { idForColor = kv.first; break; } }
+            _raylib.drawRectangle(
+                (int)(positions[i]->x - drawables[i]->width / 2),
+                (int)(positions[i]->y - drawables[i]->height / 2),
+                (int)drawables[i]->width,
+                (int)drawables[i]->height,
+                colorForId(idForColor)
+            );
         }
         _raylib.endDrawing();
     }
@@ -112,15 +131,30 @@ namespace game::scene {
         _game_running = false;
     }
 
-    void GameScene::handle_input(float input_x, float input_y) {
-        auto &velocities = _registry.get_components<component::velocity>();
-        auto &controllables = _registry.get_components<component::controllable>();
-        if (_player.value() < velocities.size() && velocities[_player.value()] &&
-            _player.value() < controllables.size() && controllables[_player.value()]) {
-            velocities[_player.value()]->vx = input_x * controllables[_player.value()]->speed;
-            velocities[_player.value()]->vy = input_y * controllables[_player.value()]->speed;
+   void GameScene::handle_input(float input_x, float input_y) {
+        float ix = input_x;
+        float iy = input_y;
+        auto &positions = _registry.get_components<component::position>();
+        auto &controls  = _registry.get_components<component::controllable>();
+        auto &hitboxes  = _registry.get_components<component::collision_box>();
+
+        if (_player.value() < positions.size() && positions[_player.value()] &&
+            _player.value() < controls.size() && controls[_player.value()]) {
+            float speed = controls[_player.value()]->speed;
+            ecs::entity_t playerHitbox = collision::find_player_hitbox(*this);
+            if (playerHitbox.value() < hitboxes.size() && hitboxes[playerHitbox.value()]) {
+                auto &playerPos = *positions[_player.value()];
+                auto &playerBox = *hitboxes[playerHitbox.value()];
+                float dt = 0.016f;
+                float testX = playerPos.x + ix * speed * dt;
+                if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
+                    ix = 0.f;
+                float testY = playerPos.y + iy * speed * dt;
+                if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
+                    iy = 0.f;
+            }
         }
-        _game.getGameClient().sendInput(input_x, input_y);
+        _game.getGameClient().sendInput(ix, iy);
     }
 
     void GameScene::setup_movement_system() {
@@ -145,8 +179,6 @@ namespace game::scene {
                    ecs::sparse_array<component::drawable> &drw) {
             });
     }
-
-    void GameScene::setup_collision_system() {}
 	
     void GameScene::setup_health_system() {
         _registry.add_system<component::health, component::type>(
@@ -162,9 +194,7 @@ namespace game::scene {
             });
     }
 
-    void GameScene::create_player() {
-        _player = game::entities::create_player(_registry, 100.f, 300.f);
-    }
+    void GameScene::create_player() {}
 
     void GameScene::create_obstacles() {
         for (int i = 0; i < 3; ++i) {
@@ -173,5 +203,9 @@ namespace game::scene {
         }
     }
 
-    void GameScene::check_collisions() {}
+    void GameScene::check_collisions() {
+        for (auto const &kvPlayer : _playerEntities) {
+            collision::handle_entity_collisions(*this, kvPlayer.second);
+        }
+    }
 } // namespace game::scene
