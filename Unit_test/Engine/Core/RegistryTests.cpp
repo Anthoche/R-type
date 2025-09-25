@@ -5,6 +5,7 @@
 ** test_registry.cpp
 */
 
+#include <cstdint>
 #include <criterion/criterion.h>
 #include "registry.hpp"
 

@@ -5,7 +5,7 @@
 ** test_zipper.cpp
 */
 
-
+#include <cstdint>
 #include <criterion/criterion.h>
 #include "sparse_array.hpp"
 #include "zipper.hpp"
