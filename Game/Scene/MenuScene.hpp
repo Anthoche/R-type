@@ -10,6 +10,7 @@
 
     #include "../../Engine/Rendering/scene/AScene.hpp"
     #include "../Game.hpp"
+    #include <vector>
 
 namespace scene {
 
@@ -60,6 +61,25 @@ class MenuScene: public AScene {
 
     private:
         Game &_game; ///< Reference to the game instance.
+
+        Font _font{};
+        //Title
+        std::string _gameTitle;
+        int const _titleSize = 90;
+        float _titleCenterY;
+
+        //Buttons
+        std::vector<std::string> _buttons;
+        Color const _accentColor{26, 170, 177, 255};
+        Vector2 const _buttonSize{280.f, 70.f};
+        int const _buttonTextSize = 35;
+        int const _buttonSpacing = 35;
+        float _buttonCenterY{};
+        Vector2 _buttonPosition{};
+
+        int getCenterY(int screenHeight, int elementHeight) const;
+
+        int getButtonsCenterY(int screenHeight, int numberOfButtons, int buttonHeight, int buttonSpacing) const;
 };
 
 } // namespace scene

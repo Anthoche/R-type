@@ -270,6 +270,15 @@ class Raylib {
          */
         bool checkCollisionPointRec(Vector2 point, Rectangle rec);
 
+		/**
+		 * @brief Draw rectangle with rounded edges
+		 * @param rec The rectangle to draw
+		 * @param roundness The rect roundness (0 to 1)
+		 * @param segments ??
+		 * @param color The rectangle fill color
+		 */
+		void drawRectangleRounded(Rectangle rec, float roundness, int segments, Color color);
+
         /**
          * @brief Draw a line between two points.
          * @param startX Start X.
@@ -299,6 +308,19 @@ class Raylib {
 
         // === rtext module ===
 
+		/**
+		 * @brief Load font from file into GPU memory (VRAM)
+		 * @param fileName The file path of the font file
+		 * @return The loaded font
+		 */
+		Font loadFont(std::string const &fileName);
+
+		/**
+		 * @brief Unload font from GPU memory (VRAM)
+		 * @param font The font to unload
+		 */
+		void unloadFont(Font font);
+
         /**
          * @brief Measure the width of text with given font size.
          * @param text Text string.
@@ -306,6 +328,16 @@ class Raylib {
          * @return Text width in pixels.
          */
         int measureText(std::string const &text, int fontSize);
+
+		/**
+		 * @brief Measure string size for a specific Font
+		 * @param font The font used for the text
+		 * @param text The text to measure
+		 * @param fontSize The size of the text font
+		 * @param spacing The spacing between letters in the text
+		 * @return Vector {width, height} of the measured text
+		 */
+		Vector2 measureTextEx(Font font, std::string const &text, float fontSize, float spacing);
 
         /**
          * @brief Draw text on screen.
@@ -316,6 +348,17 @@ class Raylib {
          * @param color Text color.
          */
         void drawText(std::string const &text, int posX, int posY, int fontSize, Color color);
+
+		/**
+		 * @brief Draw text using font and additional parameters
+		 * @param font The font to be used to draw the text
+		 * @param text The text to draw
+		 * @param position The position of the text
+		 * @param fontSize The font size of the text
+		 * @param spacing The spacing between letters
+		 * @param tint The text color
+		 */
+		void drawTextEx(Font font, std::string const &text, Vector2 position, float fontSize, float spacing, Color tint);
 
         /**
          * @brief Format text with variable arguments (like printf).

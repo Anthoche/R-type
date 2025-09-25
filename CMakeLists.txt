@@ -120,3 +120,14 @@ install(TARGETS r-type_client r-type_server ecs
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
 )
+
+# -------------------------
+# Assets setup
+# -------------------------
+execute_process(
+    # COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/assets.zip # /!\ DO NOT DELETE, to be used after
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Game/Assets/ ./assets # Temporary solution to get access to assets directory
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+target_compile_definitions(r-type_client PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/assets")
