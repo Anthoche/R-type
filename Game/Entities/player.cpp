@@ -14,6 +14,8 @@ ecs::entity_t create_player(ecs::registry &reg, float x, float y, const std::str
 	auto player = reg.spawn_entity();
 	
 	reg.emplace_component<component::position>(player, x, y);
+
+	reg.emplace_component<component::previous_position>(player, x, y);
 	
 	reg.emplace_component<component::velocity>(player, 0.f, 0.f);
 	
@@ -23,10 +25,10 @@ ecs::entity_t create_player(ecs::registry &reg, float x, float y, const std::str
 	
 	reg.emplace_component<component::type>(player, component::entity_type::PLAYER);
 	
-	reg.emplace_component<component::collision_box>(player, 50.f, 30.f);
+	reg.emplace_component<component::collision_box>(player, 30.f, 30.f);
 	
 	component::drawable drawable;
-	drawable.width = 50.f;
+	drawable.width = 30.f;
 	drawable.height = 30.f;
 	drawable.r = 0.f; drawable.g = 1.f; drawable.b = 1.f; drawable.a = 1.f;
 	reg.add_component<component::drawable>(player, std::move(drawable));

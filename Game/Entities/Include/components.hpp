@@ -26,6 +26,15 @@ namespace component {
     };
 
     /**
+     * @struct previous_position
+     * @brief Stores previous frame position for collision resolution.
+     */
+    struct previous_position {
+        float x{0.f};
+        float y{0.f};
+    };
+
+    /**
      * @struct velocity
      * @brief Represents the velocity of an entity in 2D space.
      */

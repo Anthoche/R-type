@@ -14,6 +14,8 @@ ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, const std::s
     auto obstacle = reg.spawn_entity();
 
     reg.emplace_component<component::position>(obstacle, x, y);
+    
+    reg.emplace_component<component::previous_position>(obstacle, x, y);
 
     reg.emplace_component<component::velocity>(obstacle, 0.f, 0.f);
 
@@ -21,11 +23,11 @@ ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, const std::s
 
     reg.emplace_component<component::type>(obstacle, component::entity_type::OBSTACLE);
 
-    reg.emplace_component<component::collision_box>(obstacle, 48.f, 48.f);
+    reg.emplace_component<component::collision_box>(obstacle, 60.f, 60.f);
 
     component::drawable drawable;
-    drawable.width = 48.f;
-    drawable.height = 48.f;
+    drawable.width = 60.f;
+    drawable.height = 60.f;
     drawable.r = 0.6f; drawable.g = 0.6f; drawable.b = 0.6f; drawable.a = 1.f;
     reg.add_component<component::drawable>(obstacle, std::move(drawable));
 
