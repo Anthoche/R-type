@@ -1,15 +1,40 @@
 /*
 ** EPITECH PROJECT, 2025
-** R-Type
+** G-CPP-500-PAR-5-1-rtype-1
+** File description:
+** ServerGame
 */
 #include "ServerGame.hpp"
 #include <algorithm>
 #include <cstring>
 #include <thread>
+#include <fstream>
+#include <iostream>
 
 ServerGame::ServerGame(UDP_socket &sock) : socket(sock) {}
 
-void ServerGame::run() {
+void ServerGame::load_players_from_json(const std::string &json_path)
+{
+    try {
+        std::cout << "[DEBUG] Tentative d'ouverture du fichier : " << json_path << std::endl;
+        std::ifstream f(json_path);
+        if (!f.is_open()) {
+            std::cerr << "[ERROR] Impossible d'ouvrir le fichier JSON: " << json_path << std::endl;
+            std::cerr << "[ERROR] Erreur : " << strerror(errno) << std::endl; // Affiche la raison
+            return;
+        }
+        nlohmann::json players_data = nlohmann::json::parse(f);
+        game::storage::store_players(reg, players_data);
+        auto positions = reg.get_components<component::position>();
+        std::cout << "[INFO] " << positions.size() << " entité(s) joueur(s) créée(s)." << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "[ERROR] Erreur lors du parsing des joueurs: " << e.what() << std::endl;
+    }
+}
+
+void ServerGame::run()
+{
+    load_players_from_json("../Game/Config_assets/Players/players.json");
     initialize_player_positions();
     initialize_obstacles();
     const int tick_ms = 16;
@@ -21,13 +46,15 @@ void ServerGame::run() {
     }
 }
 
-void ServerGame::initialize_player_positions() {
+void ServerGame::initialize_player_positions()
+{
     for (const auto& kv : socket.getClients()) {
         playerPositions[kv.second] = {100.f + (kv.second - 1) * 50.f, 300.f};
     }
 }
 
-void ServerGame::process_pending_messages() {
+void ServerGame::process_pending_messages()
+{
     while (true) {
         std::vector<uint8_t> data;
         sockaddr_in from = {};
@@ -36,7 +63,8 @@ void ServerGame::process_pending_messages() {
     }
 }
 
-void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from) {
+void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from)
+{
     if (data.size() < sizeof(MessageType)) return;
     MessageType type = *reinterpret_cast<const MessageType*>(data.data());
     if (type == MessageType::ClientInput) {
@@ -61,7 +89,8 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const s
     }
 }
 
-void ServerGame::broadcast_states_to_clients() {
+void ServerGame::broadcast_states_to_clients()
+{
     for (const auto& kv : socket.getClients()) {
         uint32_t id = kv.second;
         auto it = playerPositions.find(id);
@@ -78,8 +107,9 @@ void ServerGame::broadcast_states_to_clients() {
     }
 }
 
-void ServerGame::initialize_obstacles() {
-    struct O { float x,y,w,h; }; O list[3] = {
+void ServerGame::initialize_obstacles()
+{
+    struct O { float x,y,w,h; } list[3] = {
         {200.f, 400.f, 60.f, 60.f},
         {400.f, 400.f, 60.f, 60.f},
         {600.f, 400.f, 60.f, 60.f}
@@ -92,7 +122,8 @@ void ServerGame::initialize_obstacles() {
     }
 }
 
-void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h) {
+void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h)
+{
     ObstacleSpawnMessage m;
     m.type = MessageType::ObstacleSpawn;
     m.obstacleId = htonl(obstacleId);
@@ -108,14 +139,16 @@ void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y,
     socket.broadcast(&m, sizeof(m));
 }
 
-void ServerGame::broadcast_obstacle_despawn(uint32_t obstacleId) {
+void ServerGame::broadcast_obstacle_despawn(uint32_t obstacleId)
+{
     ObstacleDespawnMessage m;
     m.type = MessageType::ObstacleDespawn;
     m.obstacleId = htonl(obstacleId);
     socket.broadcast(&m, sizeof(m));
 }
 
-void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {
+void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms)
+{
     auto tick_end = std::chrono::high_resolution_clock::now();
     auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(tick_end - start).count();
     if (elapsed_ms < tick_ms) {

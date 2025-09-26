@@ -4,7 +4,6 @@
 ** File description:
 ** server
 */
-
 #pragma once
 
 #include "Network_handler/Include/UDP_socket.hpp"
@@ -29,54 +28,54 @@ class GameServer {
     float enemySpawnTimerSec = 0.f; ///< Timer for enemy spawning logic.
     std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles; ///< Maps obstacle IDs to their (x,y,width,height).
 
-    public:
-        /**
-         * @brief Constructs a GameServer instance.
-         * @param port The UDP port to listen on.
-         */
-        GameServer(uint16_t port);
+public:
+    /**
+     * @brief Constructs a GameServer instance.
+     * @param port The UDP port to listen on.
+     */
+    GameServer(uint16_t port);
 
-        /**
-         * @brief Main server loop.
-         *
-         * Waits for 4 clients to connect, then starts the game.
-         * Delegates game logic to ServerGame after all clients are connected.
-         */
-        void run();
+    /**
+     * @brief Main server loop.
+     *
+     * Waits for 4 clients to connect, then starts the game.
+     * Delegates game logic to ServerGame after all clients are connected.
+     */
+    void run();
 
-        ~GameServer() = default;
+    ~GameServer() = default;
 
-    private:
-        /**
-         * @brief Handles a new client connection request.
-         * @param data Received network data (expected: ClientHelloMessage).
-         * @param clientAddr Address of the connecting client.
-         *
-         * Assigns a unique ID to the client and sends it back.
-         * Starts the game if 4 clients are connected.
-         */
-        void handleClientHello(const std::vector<uint8_t>& data, const sockaddr_in& clientAddr);
+private:
+    /**
+     * @brief Handles a new client connection request.
+     * @param data Received network data (expected: ClientHelloMessage).
+     * @param clientAddr Address of the connecting client.
+     *
+     * Assigns a unique ID to the client and sends it back.
+     * Starts the game if 4 clients are connected.
+     */
+    void handleClientHello(const std::vector<uint8_t>& data, const sockaddr_in& clientAddr);
 
-        /**
-         * @brief Broadcasts the game start message to all connected clients.
-         *
-         * Sent when 4 clients are ready.
-         */
-        void broadcastGameStart();
+    /**
+     * @brief Broadcasts the game start message to all connected clients.
+     *
+     * Sent when 4 clients are ready.
+     */
+    void broadcastGameStart();
 
-        /**
-         * @brief Processes a message from a connected client.
-         * @param data Received network data (expected: ClientInputMessage).
-         * @param from Address of the client who sent the message.
-         *
-         * Updates player position based on input and clamps to window bounds.
-         */
-        void handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from);
+    /**
+     * @brief Processes a message from a connected client.
+     * @param data Received network data (expected: ClientInputMessage).
+     * @param from Address of the client who sent the message.
+     *
+     * Updates player position based on input and clamps to window bounds.
+     */
+    void handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from);
 
-        /**
-         * @brief Sleeps to maintain a fixed game tick rate.
-         * @param start Timestamp at the beginning of the tick.
-         * @param tick_ms Desired tick duration in milliseconds.
-         */
-        void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
+    /**
+     * @brief Sleeps to maintain a fixed game tick rate.
+     * @param start Timestamp at the beginning of the tick.
+     * @param tick_ms Desired tick duration in milliseconds.
+     */
+    void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
 };

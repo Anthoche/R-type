@@ -21,13 +21,15 @@ ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::stri
 
     reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
 
-    reg.emplace_component<component::collision_box>(enemy, 30.f, 30.f);
+    reg.emplace_component<component::collision_box>(enemy, 40.f, 28.f);
 
     component::drawable drawable;
-    drawable.width = 30.f;
-    drawable.height = 30.f;
+    drawable.width = 40.f;
+    drawable.height = 28.f;
     drawable.r = 1.f; drawable.g = 0.2f; drawable.b = 0.2f; drawable.a = 1.f;
     reg.add_component<component::drawable>(enemy, std::move(drawable));
+
+    // Attach hitbox
     create_hitbox_for(reg, enemy);
 
     if (!imagePath.empty()) {
