@@ -5,6 +5,7 @@
 ** test_entity.cpp
 */
 
+#include <cstdint>
 #include <criterion/criterion.h>
 #include "entity.hpp"
 

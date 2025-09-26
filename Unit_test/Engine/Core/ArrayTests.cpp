@@ -5,6 +5,7 @@
 ** test_array.cpp
 */
 
+#include <cstdint>
 #include <criterion/criterion.h>
 #include "sparse_array.hpp"
 

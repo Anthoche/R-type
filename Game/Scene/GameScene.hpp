@@ -10,6 +10,7 @@
 #include "../../Engine/Rendering/scene/AScene.hpp"
 #include "../../Engine/Core/Include/entity.hpp"
 #include "../Entities/Include/player.hpp"
+#include "../Entities/Include/enemy.hpp"
 #include "../Entities/Include/obstacle.hpp"
 #include "../Entities/Include/hitbox.hpp"
 #include "../Entities/Include/background.hpp"
@@ -158,6 +159,7 @@ namespace game::scene {
         // --- Entities ---
         ecs::entity_t _player; ///< Local player entity.
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
+        std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
 
         // --- Game state ---

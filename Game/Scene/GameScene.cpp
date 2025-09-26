@@ -79,6 +79,7 @@ namespace game::scene {
         auto &pp = _registry.get_components<component::previous_position>();
         for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) { if (positions[i] && pp[i]) { pp[i]->x = positions[i]->x; pp[i]->y = positions[i]->y; } }
         _registry.run_systems();
+        check_collisions();
     }
 
     void GameScene::render() {
@@ -98,7 +99,11 @@ namespace game::scene {
             _raylib.drawRectangle((int)(x - w / 2), (int)(y - h / 2), (int)w, (int)h, GRAY);
         }
 
-        auto colorForId = [](uint32_t id) -> Color { static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE}; return palette[id % (sizeof(palette)/sizeof(palette[0]))]; };
+        auto colorForId = [](uint32_t id) -> Color { 
+            static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE}; 
+            return palette[id % (sizeof(palette)/sizeof(palette[0]))]; 
+        };
+
         auto &positions = _registry.get_components<component::position>();
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
@@ -149,9 +154,7 @@ namespace game::scene {
         _game_running = false;
     }
 
-   void GameScene::handle_input(float input_x, float input_y) {
-        float ix = input_x;
-        float iy = input_y;
+    void GameScene::handle_input(float input_x, float input_y) {
         auto &positions = _registry.get_components<component::position>();
         auto &controls  = _registry.get_components<component::controllable>();
         auto &hitboxes  = _registry.get_components<component::collision_box>();
@@ -159,20 +162,28 @@ namespace game::scene {
         if (_player.value() < positions.size() && positions[_player.value()] &&
             _player.value() < controls.size() && controls[_player.value()]) {
             float speed = controls[_player.value()]->speed;
+            float dt = 0.016f;
+
             ecs::entity_t playerHitbox = collision::find_player_hitbox(*this);
             if (playerHitbox.value() < hitboxes.size() && hitboxes[playerHitbox.value()]) {
                 auto &playerPos = *positions[_player.value()];
                 auto &playerBox = *hitboxes[playerHitbox.value()];
-                float dt = 0.016f;
+
+                float ix = input_x;
+                float iy = input_y;
+
                 float testX = playerPos.x + ix * speed * dt;
+                float testY = playerPos.y + iy * speed * dt;
+
+                // Check séparés sur X et Y
                 if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
                     ix = 0.f;
-                float testY = playerPos.y + iy * speed * dt;
                 if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
                     iy = 0.f;
+
+                _game.getGameClient().sendInput(ix, iy);
             }
         }
-        _game.getGameClient().sendInput(ix, iy);
     }
 
     void GameScene::setup_movement_system() {
@@ -223,22 +234,8 @@ namespace game::scene {
 
     void GameScene::create_enemies() {
         for (int i = 0; i < 5; ++i) {
-            ecs::entity_t enemy = _registry.spawn_entity();
-            _registry.add_component<component::position>(enemy, component::position{
-                100.f + i * 120.f, 100.f
-            });
-            _registry.add_component<component::drawable>(enemy, component::drawable{
-                40.f, 40.f
-            });
-            _registry.add_component<component::type>(enemy, component::type{
-                component::entity_type::ENEMY
-            });
-            _registry.add_component<component::health>(enemy, component::health{
-                3, 3
-            });
-            _registry.add_component<component::velocity>(enemy, component::velocity{
-                (i % 2 == 0 ? 50.f : -50.f), 0.f
-            });
+            auto enemy = game::entities::create_enemy(_registry, 100.f + i * 100.f, 200.f);
+            _enemys.push_back(enemy);
         }
     }
 
