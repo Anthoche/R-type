@@ -94,6 +94,14 @@ namespace component {
     };
 
     /**
+     * @struct clickable
+     * @brief Marks an entity as clickable
+     */
+    struct clickable {
+        std::string _id{};
+    };
+
+    /**
      * @struct controllable
      * @brief Marks an entity as player-controllable.
      */

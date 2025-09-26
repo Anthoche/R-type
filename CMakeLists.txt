@@ -68,6 +68,7 @@ add_executable(r-type_client
     ${GAME_DIR}/Entities/background.cpp
     ${GAME_DIR}/Entities/sound.cpp
     ${GAME_DIR}/Entities/text.cpp
+    ${GAME_DIR}/Entities/button.cpp
     ${GAME_DIR}/Entities/random_element.cpp
     ${GAME_DIR}/Scene/GameScene.cpp
     ${GAME_DIR}/Scene/MenuScene.cpp
