@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.5)
 # Project setup
 # -------------------------
 set(OUTPUT UnitTests)
+set(ENGINE_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/Core)
+set(SHARED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../Shared)
 project(${OUTPUT} LANGUAGES CXX)
 
 # -------------------------
