@@ -18,6 +18,7 @@
 #include "../Server/Network_handler/Include/UDP_socket.hpp"
 #include "Entities/Include/components.hpp"
 #include "Entities/Include/entity_storage.hpp"
+#include "Entities/Include/component_registration.hpp"
 
 class ServerGame {
     UDP_socket &socket; ///< Reference to the UDP socket used for communication.
@@ -44,9 +45,9 @@ public:
 
 private:
     /**
-     * @brief Initialize player positions at the start of the game.
+     * @brief Initialize player at the start of the game.
      */
-    void initialize_player_positions();
+    void assign_players_to_clients();
 
     /**
      * @brief Initialize obstacles at the start of the game.

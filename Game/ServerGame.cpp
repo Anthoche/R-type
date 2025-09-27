@@ -34,8 +34,9 @@ void ServerGame::load_players_from_json(const std::string &json_path)
 
 void ServerGame::run()
 {
+    register_all_components(reg);
     load_players_from_json("../Game/Config_assets/Players/players.json");
-    initialize_player_positions();
+    assign_players_to_clients();
     initialize_obstacles();
     const int tick_ms = 16;
     while (true) {
@@ -46,12 +47,33 @@ void ServerGame::run()
     }
 }
 
-void ServerGame::initialize_player_positions()
+void ServerGame::assign_players_to_clients()
 {
-    for (const auto& kv : socket.getClients()) {
-        playerPositions[kv.second] = {100.f + (kv.second - 1) * 50.f, 300.f};
+    auto &clients = socket.getClients();
+    auto positions = reg.get_components<component::position>();
+
+    if (positions.size() < clients.size()) {
+        std::cerr << "[ERROR] Pas assez d'entités joueur pour tous les clients !" << std::endl;
+        return;
     }
+
+    size_t i = 0;
+    for (const auto &kv : clients) {
+        uint32_t clientId = kv.second;
+        auto &posOpt = positions[i];
+
+        if (posOpt.has_value()) {
+            auto &pos = posOpt.value();
+            playerPositions[clientId] = std::make_pair(pos.x, pos.y);
+        } else {
+            std::cerr << "[WARN] Pas de position définie pour l'entité " << i << std::endl;
+        }
+        i++;
+    }
+
+    std::cout << "[INFO] Joueurs attribués aux clients (" << playerPositions.size() << ")" << std::endl;
 }
+
 
 void ServerGame::process_pending_messages()
 {
@@ -95,17 +117,30 @@ void ServerGame::broadcast_states_to_clients()
         uint32_t id = kv.second;
         auto it = playerPositions.find(id);
         if (it == playerPositions.end()) continue;
+
         StateUpdateMessage m;
         m.type = MessageType::StateUpdate;
         m.clientId = htonl(id);
+
         uint32_t xbits, ybits;
         std::memcpy(&xbits, &it->second.first, sizeof(float));
         std::memcpy(&ybits, &it->second.second, sizeof(float));
         m.posXBits = htonl(xbits);
         m.posYBits = htonl(ybits);
-        socket.broadcast(&m, sizeof(m));
+
+        sockaddr_in addr = {};
+        addr.sin_family = AF_INET;
+        size_t colonPos = kv.first.find(':');
+        std::string ipStr = kv.first.substr(0, colonPos);
+        uint16_t port = static_cast<uint16_t>(std::stoi(kv.first.substr(colonPos + 1)));
+
+        inet_pton(AF_INET, ipStr.c_str(), &addr.sin_addr);
+        addr.sin_port = htons(port);
+
+        socket.sendTo(&m, sizeof(m), addr);
     }
 }
+
 
 void ServerGame::initialize_obstacles()
 {
