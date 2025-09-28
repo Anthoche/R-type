@@ -24,7 +24,6 @@ endif()
 # -------------------------
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
-find_package(SFML 2.5 REQUIRED COMPONENTS system window graphics)
 
 # -------------------------
 # Directories
@@ -50,7 +49,7 @@ target_include_directories(ecs PUBLIC
 )
 
 # -------------------------
-# r-type_client (with SFML)
+# r-type_client (with Raylib)
 # -------------------------
 add_executable(r-type_client
     ${ENGINE_CORE_DIR}/entity.cpp
@@ -83,10 +82,10 @@ target_include_directories(r-type_client PRIVATE
     ${SHARED_DIR}
 )
 
-target_link_libraries(r-type_client PRIVATE ecs sfml-system sfml-window sfml-graphics raylib glfw)
+target_link_libraries(r-type_client PRIVATE ecs raylib glfw)
 
 # -------------------------
-# r-type_server (no SFML)
+# r-type_server (no Raylib)
 # -------------------------
 add_executable(r-type_server
     ${SERVER_DIR}/main.cpp
