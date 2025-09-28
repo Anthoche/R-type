@@ -1,8 +1,8 @@
 {
-    "name": "rtype-dependencies",
-    "version-string": "1.0.0",
-    "dependencies": [
-        "raylib",
-        "glfw3"
-    ]
+  "name": "rtype-dependencies",
+  "version": "1.0.0",
+  "dependencies": [
+    "raylib",
+    "glfw3"
+  ]
 }

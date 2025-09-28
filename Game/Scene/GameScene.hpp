@@ -4,147 +4,180 @@
 ** File description:
 ** GameScene
 */
-
 #ifndef GAMESCENE_HPP
-    #define GAMESCENE_HPP
+#define GAMESCENE_HPP
 
-    #include "../../Engine/Rendering/scene/AScene.hpp"
-    #include "../../Engine/Rendering/scene/SceneHandler.hpp"
-    #include "../../Engine/Core/Include/entity.hpp"
-    #include "../Entities/Include/components.hpp"
+#include "../../Engine/Rendering/scene/AScene.hpp"
+#include "../../Engine/Core/Include/entity.hpp"
+#include "../Entities/Include/player.hpp"
+#include "../Entities/Include/enemy.hpp"
+#include "../Entities/Include/obstacle.hpp"
+#include "../Entities/Include/hitbox.hpp"
+#include "../Entities/Include/background.hpp"
+#include "../Entities/Include/sound.hpp"
+#include "../Entities/Include/text.hpp"
+#include "../Entities/Include/random_element.hpp"
+#include "../Game.hpp"
+#include "../Système/Collision.hpp"
+#include <unordered_map>
 
 namespace game::scene {
-
-/**
- * @class GameScene
- * @brief Represents the main game scene for R-Type.
- *
- * This scene manages the game loop logic, including:
- * - Initialization and rendering.
- * - Handling player input and events.
- * - Managing entities (player, enemies, obstacles).
- * - Setting up systems (movement, rendering, collision, health).
- * - Collision detection and game state updates.
- */
-class GameScene : public AScene {
-public:
     /**
-     * @brief Construct a GameScene with a reference to the SceneHandler.
-     * @param sceneHandler Reference to the global scene manager.
+     * @class GameScene
+     * @brief Represents the main game scene for R-Type.
+     *
+     * This scene manages the game loop logic, including:
+     * - Initialization and rendering.
+     * - Handling player input and events.
+     * - Managing entities (player, enemies, obstacles).
+     * - Setting up ECS systems (movement, rendering, collision, health).
+     * - Collision detection and game state updates.
      */
-    GameScene(SceneHandler &sceneHandler);
+    class GameScene : public AScene {
+    public:
+        /**
+         * @brief Construct a GameScene with a reference to the Game instance.
+         * @param game Reference to the game instance.
+         */
+        GameScene(Game &game);
 
+        /**
+         * @brief Default destructor.
+         */
+        ~GameScene() override = default;
+
+        // --- Overridden lifecycle methods ---
+        /**
+         * @brief Initialize the scene (entities, systems, state).
+         */
+        void init() override;
+
+        /**
+         * @brief Render the scene (draw entities/components).
+         */
+        void render() override;
+
+        /**
+         * @brief Handle input and system events.
+         */
+        void handleEvents() override;
+
+        /**
+         * @brief Called when the scene is closed.
+         */
+        void onClose() override;
+
+        // --- Event handling ---
+        /**
+         * @brief Handle player input.
+         * @param input_x Horizontal input (movement).
+         * @param input_y Vertical input (movement).
+         */
+        void handle_input(float input_x, float input_y);
+
+    // --- Accessors ---
     /**
-     * @brief Default destructor.
+     * @brief getter to send registry
+     * @return return the current registry.
      */
-    ~GameScene() override = default;
-
-    /**
-     * @brief Default constructor.
-     */
-    GameScene();
-
-    // --- Overridden lifecycle methods ---
-
-    /**
-     * @brief Initialize the scene (entities, systems, state).
-     */
-    void init() override;
-
-    /**
-     * @brief Render the scene (draw entities/components).
-     */
-    void render() override;
-
-    /**
-     * @brief Handle input and system events.
-     */
-    void handleEvents() override;
-
-    /**
-     * @brief Called when the scene is closed.
-     */
-    void onClose() override;
-
-    // --- Event handling ---
-
-    /**
-     * @brief Handle player input.
-     * @param input_x Horizontal input (movement).
-     * @param input_y Vertical input (movement).
-     */
-    void handle_input(float input_x, float input_y);
-
-private:
-    // --- Game logic ---
+    ecs::registry &get_registry() { return _registry; }
 
     /**
-     * @brief Update the game state (called every frame).
+     * @brief getter to send player
+     * @return return the current player.
      */
-    void update();
-
-    // --- Game systems ---
+    ecs::entity_t get_player() const { return _player; }
 
     /**
-     * @brief Setup the movement system for entities.
+     * @brief getter to send obstacles
+     * @return return tje current obstacles.
      */
-    void setup_movement_system();
+    const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
 
-    /**
-     * @brief Setup the rendering system for entities.
-     */
-    void setup_render_system();
+    private:
+        // --- Game logic ---
+        /**
+         * @brief Update the game state (called every frame).
+         */
+        void update();
 
-    /**
-     * @brief Setup the collision detection system.
-     */
-    void setup_collision_system();
+        // --- Game systems ---
+        /**
+         * @brief Setup the movement system for entities.
+         */
+        void setup_movement_system();
 
-    /**
-     * @brief Setup the health system for entities.
-     */
-    void setup_health_system();
+        /**
+         * @brief Setup the rendering system for entities.
+         */
+        void setup_render_system();
 
-    // --- Entity creation ---
+        /**
+         * @brief Setup the collision detection system (custom).
+         */
+        void setup_collision_system();
 
-    /**
-     * @brief Create the player entity and initialize components.
-     */
-    void create_player();
+        /**
+         * @brief Setup the ECS collision system (engine-defined).
+         */
+        void setup_ecs_collision_system();
 
-    /**
-     * @brief Spawn enemy entities.
-     */
-    void create_enemies();
+        void setup_enemy_ai_system();
 
-    /**
-     * @brief Create obstacles in the scene.
-     */
-    void create_obstacles();
+        /**
+         * @brief Setup the health system for entities.
+         */
+        void setup_health_system();
 
-    // --- Collision management ---
+        // --- Entity creation ---
+        /**
+         * @brief Create enemy entities that move horizontally.
+         */
+        void create_enemies();
 
-    /**
-     * @brief Check and resolve collisions between entities.
-     */
-    void check_collisions();
+        /**
+         * @brief Create the player entity and initialize components.
+         */
+        void create_player();
 
-    // --- Entities ---
+        /**
+         * @brief Create obstacles in the scene.
+         */
+        void create_obstacles();
 
-    ecs::entity_t _player; ///< Main player entity.
-    std::vector<ecs::entity_t> _enemies; ///< List of active enemies.
-    std::vector<ecs::entity_t> _obstacles; ///< List of active obstacles.
+        // --- Collision management ---
+        /**
+         * @brief Check and resolve collisions for all entities.
+         */
+        void check_collisions();
 
-    SceneHandler &_sceneHandler; ///< Reference to the global scene handler.
+        /**
+         * @brief Synchronize hitboxes with their parent entity immediately.
+         */
+        void sync_hitboxes_immediate();
 
-    // --- Game state ---
+        // --- Entities ---
+        ecs::entity_t _player; ///< Local player entity.
+        std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
+        std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
 
-    bool _game_running; ///< Indicates whether the game is running.
-    double _enemy_spawn_timer; ///< Timer tracking enemy spawn intervals.
-    double _startTime; ///< Start time of the scene.
-    const float _enemy_spawn_interval; ///< Fixed interval between enemy spawns.
-};
+        // --- Game state ---
+        bool _game_running; ///< Indicates whether the game is running.
+        double _startTime; ///< Start time of the scene.
+        Game &_game; ///< Reference to the game instance.
 
+        // --- Helpers ---
+        /**
+         * @brief Synchronize ECS state with network messages.
+         */
+        void sync_network_state();
+
+        /**
+         * @brief Render ECS entities organized by layer.
+         */
+        void draw_ecs_layers();
+    };
 } // namespace game::scene
 
 #endif // GAMESCENE_HPP

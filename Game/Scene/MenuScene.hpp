@@ -9,7 +9,7 @@
     #define MENUSCENE_HPP
 
     #include "../../Engine/Rendering/scene/AScene.hpp"
-    #include "../../Engine/Rendering/scene/SceneHandler.hpp"
+    #include "../Game.hpp"
 
 namespace scene {
 
@@ -27,9 +27,9 @@ class MenuScene: public AScene {
     public:
         /**
          * @brief Construct a MenuScene with a reference to the SceneHandler.
-         * @param sceneHandler Reference to the global scene manager.
+         * @param game The game instance.
          */
-        MenuScene(SceneHandler &sceneHandler);
+        MenuScene(Game &game);
 
         /**
          * @brief Default destructor.
@@ -59,7 +59,7 @@ class MenuScene: public AScene {
         void onClose() override;
 
     private:
-        SceneHandler &_sceneHandler; ///< Reference to the global scene handler.
+        Game &_game; ///< Reference to the game instance.
 };
 
 } // namespace scene
