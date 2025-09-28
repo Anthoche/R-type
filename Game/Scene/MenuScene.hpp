@@ -69,13 +69,16 @@ class MenuScene: public AScene {
         float _titleCenterY;
 
         //Buttons
-        std::vector<std::string> _buttons;
         Color const _accentColor{26, 170, 177, 255};
         Vector2 const _buttonSize{280.f, 70.f};
         int const _buttonTextSize = 35;
         int const _buttonSpacing = 35;
         float _buttonCenterY{};
         Vector2 _buttonPosition{};
+
+        void resetButtonStates();
+        void handleButtonClick(std::string const &id);
+        void drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize, float spacing, Color color, Color textColor, bool isHovered, bool isClicked);
 
         int getCenterY(int screenHeight, int elementHeight) const;
 
