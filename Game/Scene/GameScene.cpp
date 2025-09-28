@@ -35,7 +35,6 @@ namespace game::scene {
         _registry.register_component<component::sprite>();
         _registry.register_component<component::audio>();
         _registry.register_component<component::text>();
-        _registry.register_component<component::font>();
         _registry.register_component<component::previous_position>();
 
         setup_movement_system();
@@ -45,7 +44,7 @@ namespace game::scene {
         game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
         game::entities::create_background(_registry, 400.f, 300.f, 800.f, 600.f, "assets/background.png", 1.f);
         game::entities::create_sound(_registry, "assets/music.ogg", 0.5f, true, true);
-        game::entities::create_text(_registry, 20.f, 30.f, "R-Type", 32, "assets/fonts/PressStart2P.ttf");
+        game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
         game::entities::create_random_element(_registry, 600.f, 450.f, 64.f, 64.f, "assets/items/star.png", "assets/sfx/pickup.wav", 0.8f, false, false);
         create_obstacles();
         create_enemies();
@@ -197,7 +196,7 @@ namespace game::scene {
                    ecs::sparse_array<component::drawable> &drw) {
             });
     }
-	
+
     void GameScene::setup_health_system() {
         _registry.add_system<component::health, component::type>(
             [](ecs::registry &reg,

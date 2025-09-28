@@ -63,8 +63,8 @@ class MenuScene: public AScene {
         Game &_game; ///< Reference to the game instance.
 
         Font _font{};
+
         //Title
-        std::string _gameTitle;
         int const _titleSize = 90;
         float _titleCenterY;
 

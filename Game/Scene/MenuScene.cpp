@@ -9,10 +9,10 @@
 #include "background.hpp"
 #include "button.hpp"
 #include "components.hpp"
+#include "text.hpp"
 
 namespace scene {
 	MenuScene::MenuScene(Game &game) : AScene(960, 540, "R-Type - Menu"), _game(game) {
-		_gameTitle = "R-Type";
 		_titleCenterY = static_cast<float>(getCenterY(_height, _titleSize));
 		_buttonCenterY = static_cast<float>(getButtonsCenterY(_height, 3, _buttonSize.y, _buttonSpacing));
 		_buttonPosition = {600.f, _buttonCenterY};
@@ -32,6 +32,8 @@ namespace scene {
 		_registry.register_component<component::hoverable>();
 		_registry.register_component<component::type>();
 
+		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
+
 		game::entities::create_button(_registry, "button_play", "Play", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 		game::entities::create_button(_registry, "button_settings", "Settings", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
@@ -44,8 +46,6 @@ namespace scene {
 	void MenuScene::render() {
 		_raylib.beginDrawing();
 		_raylib.clearBackground(BLACK);
-
-		_raylib.drawTextEx(_font, _gameTitle, (Vector2){20.0f, _titleCenterY}, _titleSize, -0.5f, RAYWHITE);
 
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &positions = _registry.get_components<component::position>();
@@ -64,7 +64,11 @@ namespace scene {
 				std::string content = text[i]->content;
 				int fontSize = text[i]->font_size;
 				float spacing = text[i]->spacing;
-				drawButton(pos, size, content, fontSize, spacing, _accentColor, WHITE, hoverable[i]->isHovered, clickable[i]->isClicked);
+				Color textColor = text[i]->color;
+				drawButton(pos, size, content, fontSize, spacing, _accentColor, textColor, hoverable[i]->isHovered, clickable[i]->isClicked);
+			}
+			if (types[i]->value == component::entity_type::TEXT) {
+				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
 			}
 		}
 		_raylib.endDrawing();

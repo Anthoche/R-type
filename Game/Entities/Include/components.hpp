@@ -82,16 +82,9 @@ namespace component {
 	struct text {
 		std::string content{}; ///< UTF-8 text to display
 		int font_size{24}; ///< Font size in pixels
-		unsigned char r{255}, g{255}, b{255}, a{255}; ///< RGBA color
 		float spacing{1.f}; ///< Glyph spacing in pixels
-	};
-
-	/**
-	* @struct font
-	* @brief Optional font resource for text rendering.
-	*/
-	struct font {
-		std::string font_path{}; ///< Filepath to TTF/OTF font
+		Color color; ///< RGBA color
+		Font font{}; ///< Font to use for rendering
 	};
 
 	/**
