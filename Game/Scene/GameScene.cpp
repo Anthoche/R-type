@@ -216,8 +216,12 @@ namespace game::scene {
                ecs::sparse_array<component::type> &type) {
                 for (std::size_t i = 0; i < health.size() && i < type.size(); ++i) {
                     if (health[i] && type[i] && health[i]->current <= 0) {
-                        ecs::entity_t entity = reg.entity_from_index(i);
-                        reg.kill_entity(entity);
+                        if (type[i]->value == component::entity_type::PLAYER) {
+                            reg.remove_component<component::drawable>(reg.entity_from_index(i));
+                        } else {
+                            ecs::entity_t entity = reg.entity_from_index(i);
+                            reg.kill_entity(entity);
+                        }
                     }
                 }
             });
