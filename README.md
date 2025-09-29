@@ -7,43 +7,68 @@
 
 ## 📋 Project Description
 
-Re create the famous game R-type
+R-Type is a remake of the legendary side-scrolling shooter arcade game, developed as part of an Epitech project.
+The goal is to faithfully recreate the classic gameplay experience while building a modular and scalable game engine from scratch.
+
+This project focuses on:
+
+* Implementing an Entity-Component-System (ECS) architecture for flexibility and reusability
+
+* Separating engine logic from game-specific logic to allow future game development beyond R-Type
+
+* Supporting multiplayer gameplay through a dedicated server-client architecture
+
+* Leveraging Raylib for rendering and cross-platform compatibility
 
 ## 🛠️ Technologies Used
 
 ### Frontend
 
 * **C++** - Development language
-* **Raylib** - Graphical librairie
+* **Raylib** - Graphics library
 
+### Compilation & Build
+
+CMake – Cross-platform build system and project configuration
+
+### Testing
+
+Criterion – Unit testing framework
 
 ## 📁 Project Structure
 
 ```
-r-type/
-├── engine/               # Generic engine (independent from R-Type)
-│   ├── core/             # Core (ECS, Event Bus, Time Management)
-│   ├── rendering/        # Rendering (Raylib wrapper)
-│   ├── physics/          # Collisions, hitboxes
-│   └── utils/            # Math, logging, serialization
+R-Type/
+├── Client/               # Graphical client
+│   ├── Input/            # Input handling
+│   ├── Network_client/   # Communication with the server
 │
-├── game/                 # R-Type game (built on top of the engine)
-│   ├── entities/         # Prefabs (Player, Enemy, Bullet...)
-│   ├── systems/          # Game logic (MovementSystem, CombatSystem...)
-│   ├── scenes/           # Levels, menus
-│   └── assets/           # Sprites, sounds
+├── Engine/               # Generic engine (independent from R-Type)
+│   ├── Core/             # ECS, Event Bus, Time Management
+│   ├── Physics/          # Collisions, hitboxes
+│   └── Rendering/        # Rendering (Raylib wrapper)
 │
-├── server/               # Authoritative server
-│   ├── game_logic/       # Game rules (spawn, score...)
-│   └── network_handler/  # Client management
+├── Game/                 # R-Type game (built on top of the engine)
+│   ├── Assets/           # Game assets (sprites, sounds)
+│   │   ├── sounds/       # Audio files
+│   │   └── sprites/      # Image files
+│   ├── Config_assets/    # Config files (players, settings…)
+│   ├── Entities/         # Prefabs (Player, Enemy, Bullet…)
+│   ├── Scene/            # Levels, menus
+│   ├── Systeme/          # Game systems (logic, mechanics)
 │
-├── client/               # Graphical client
-│   ├── input/            # Input handling
-│   └── network_client/   # Communication with the server
+├── Server/               # Authoritative server
+│   ├── Game_logic/       # Game rules (spawn, score…)
+│   ├── Network_handler/  # Client management
 │
-├── shared/               # Shared code (protocol, common structures)
+├── Shared/               # Shared code (protocol, common structures)
 │
-└── tests/                # Unit tests (catch2, doctest)
+├── Unit_test/            # Unit tests
+│   └── Engine/           # Engine-related tests
+│
+├── CMakeLists.txt        # Root build configuration
+├── vcpkg/                # Dependencies manager
+└── README.md
 
 ```
 
