@@ -31,6 +31,11 @@ jobs:
       run: |
         git remote add mirror ${{ secrets.MIRROR_REPO_URL }}
     
+    - name: Setup sparse checkout to exclude .github
+      run: |
+        git sparse-checkout init --cone
+        git sparse-checkout set '*' ':!/.github'
+    
     - name: Push to mirror
       run: |
         git push mirror --all
