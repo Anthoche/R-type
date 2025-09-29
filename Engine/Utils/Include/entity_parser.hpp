@@ -1,15 +1,15 @@
 /*
 ** EPITECH PROJECT, 2025
-** G-CPP-500-PAR-5-1-rtype-1
+** R-type
 ** File description:
 ** entity_parser
 */
 
 #pragma once
 
+#include "../../Core/Include/registry.hpp"
+#include "../../Core/Entities/Include/components.hpp"
 #include <nlohmann/json.hpp>
-#include "../Engine/Core/Include/registry.hpp"
-#include "components.hpp"
 #include <iostream>
 
 

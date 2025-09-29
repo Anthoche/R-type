@@ -5,7 +5,7 @@
 ** main
 */
 
-#include "../Game/Game.hpp"
+#include "../Engine/Game.hpp"
 
 int main(int argc, char *argv[]) {
 	if (argc < 3) {

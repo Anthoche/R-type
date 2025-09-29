@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include <utility>
-#include "../../Engine/Rendering/Raylib.hpp"
+#include "../../Rendering/Raylib.hpp"
 
 namespace game::render {
 

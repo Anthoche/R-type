@@ -8,7 +8,7 @@
 #ifndef MENUSCENE_HPP
     #define MENUSCENE_HPP
 
-    #include "../../Engine/Rendering/scene/AScene.hpp"
+    #include "../../Rendering/scene/AScene.hpp"
     #include "../Game.hpp"
 
 namespace scene {

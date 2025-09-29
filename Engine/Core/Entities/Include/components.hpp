@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../Engine/Core/Include/entity.hpp"
+#include "../../Include/entity.hpp"
 #include <string>
 
 /**

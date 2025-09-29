@@ -5,8 +5,8 @@
 ** GameScene
 */
 
-#include "GameScene.hpp"
-#include "../Système/Collision.hpp"
+#include "Include/GameScene.hpp"
+#include "../Physics/Include/Collision.hpp"
 #include <iostream>
 #include <cmath>
 

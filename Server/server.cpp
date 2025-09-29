@@ -5,7 +5,7 @@
 ** server
 */
 #include "server.hpp"
-#include "../Game/ServerGame.hpp"
+#include "Game_logic/Include/ServerGame.hpp"
 #include <iostream>
 #include <chrono>
 #include <thread>

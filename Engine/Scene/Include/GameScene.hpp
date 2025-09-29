@@ -9,16 +9,16 @@
 
 #include "../../Engine/Rendering/scene/AScene.hpp"
 #include "../../Engine/Core/Include/entity.hpp"
-#include "../Entities/Include/player.hpp"
-#include "../Entities/Include/enemy.hpp"
-#include "../Entities/Include/obstacle.hpp"
-#include "../Entities/Include/hitbox.hpp"
-#include "../Entities/Include/background.hpp"
-#include "../Entities/Include/sound.hpp"
-#include "../Entities/Include/text.hpp"
-#include "../Entities/Include/random_element.hpp"
+#include "../../Engine/Core/Entities/Include/player.hpp"
+#include "../../Engine/Core/Entities/Include/enemy.hpp"
+#include "../../Engine/Core/Entities/Include/obstacle.hpp"
+#include "../../Engine/Core/Entities/Include/hitbox.hpp"
+#include "../../Engine/Core/Entities/Include/background.hpp"
+#include "../../Engine/Core/Entities/Include/sound.hpp"
+#include "../../Engine/Core/Entities/Include/text.hpp"
+#include "../../Engine/Core/Entities/Include/random_element.hpp"
+#include "../../Physics/Include/Collision.hpp"
 #include "../Game.hpp"
-#include "../Système/Collision.hpp"
 #include <unordered_map>
 
 namespace game::scene {

@@ -5,14 +5,14 @@
 ** entity_parser
 */
 
-#include "entity_parser.hpp"
-#include "Include/player.hpp"
-#include "Include/background.hpp"
-#include "Include/enemy.hpp"
-#include "Include/obstacle.hpp"
-#include "Include/random_element.hpp"
-#include "Include/sound.hpp"
-#include "Include/text.hpp"
+#include "Include/entity_parser.hpp"
+#include "../Core/Entities/Include/player.hpp"
+#include "../Core/Entities/Include/background.hpp"
+#include "../Core/Entities/Include/enemy.hpp"
+#include "../Core/Entities/Include/obstacle.hpp"
+#include "../Core/Entities/Include/random_element.hpp"
+#include "../Core/Entities/Include/sound.hpp"
+#include "../Core/Entities/Include/text.hpp"
 #include <fstream>
 #include <stdexcept>
 

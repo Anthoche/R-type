@@ -5,7 +5,7 @@
 ** MenuScene
 */
 
-#include "MenuScene.hpp"
+#include "Include/MenuScene.hpp"
 
 namespace scene {
 	MenuScene::MenuScene(Game &game) : AScene(960, 540, "R-Type - Menu"), _game(game) {

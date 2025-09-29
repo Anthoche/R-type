@@ -1,4 +1,11 @@
-#include "../Scene/GameScene.hpp"
+/*
+** EPITECH PROJECT, 2025
+** R-type
+** File description:
+** Collision
+*/
+
+#include "../Scene/Include/GameScene.hpp"
 #include <iostream>
 #include <cmath>
 

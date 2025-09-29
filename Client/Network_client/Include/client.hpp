@@ -9,6 +9,7 @@
 #pragma once
 
 #include "../../../Shared/protocol.hpp"
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -21,6 +22,7 @@
 #include <unordered_map>
 #include <atomic>
 #include <utility>
+
 
 class Game;
 

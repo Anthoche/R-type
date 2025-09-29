@@ -8,7 +8,7 @@
 #pragma once
 
 #include "components.hpp"
-#include "../Engine/Core/Include/registry.hpp"
+#include "../../Include/registry.hpp"
 
 namespace game::entities {
 
