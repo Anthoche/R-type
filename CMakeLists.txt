@@ -19,7 +19,7 @@ endif()
 # -------------------------
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
-find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 # -------------------------
 # Directories
