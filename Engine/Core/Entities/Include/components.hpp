@@ -94,6 +94,24 @@ namespace component {
     };
 
     /**
+     * @struct clickable
+     * @brief Marks an entity as clickable (for UI elements like buttons).
+     */
+    struct clickable {
+        std::string id{};
+        bool isClicked{false};
+    };
+
+    /**
+     * @struct hoverable
+     * @brief Marks an entity as hoverable (for UI elements like buttons).
+     */
+    struct hoverable {
+        std::string id{};
+        bool isHovered{false};
+    };
+
+    /**
      * @struct controllable
      * @brief Marks an entity as player-controllable.
      */
@@ -130,7 +148,8 @@ namespace component {
         OBSTACLE,  ///< Obstacle in the game
         BACKGROUND,///< Background entity
         SOUND,     ///< Sound-only entity
-        TEXT       ///< Text label entity
+        TEXT,      ///< Text label entity
+        BUTTON     ///< Button entity (UI)
     };
 
     /**

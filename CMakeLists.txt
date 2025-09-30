@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
     CACHE STRING "Vcpkg toolchain file")
 project(rtype LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if (NOT CMAKE_BUILD_TYPE)
@@ -128,3 +128,14 @@ install(TARGETS r-type_client r-type_server ecs
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
 )
+
+# -------------------------
+# Assets setup
+# -------------------------
+execute_process(
+    # COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/assets.zip # /!\ DO NOT DELETE, to be used after
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Engine/Assets/ ./assets
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+target_compile_definitions(r-type_client PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/assets")
