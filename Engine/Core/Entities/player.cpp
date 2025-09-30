@@ -25,8 +25,6 @@ ecs::entity_t create_player(ecs::registry &reg, float x, float y, const std::str
 	
 	reg.emplace_component<component::type>(player, component::entity_type::PLAYER);
 	
-	reg.emplace_component<component::collision_box>(player, 30.f, 30.f);
-	
 	component::drawable drawable;
 	drawable.width = 30.f;
 	drawable.height = 30.f;
@@ -50,7 +48,6 @@ void setup_player_control_system(ecs::registry &reg) {
 		[](ecs::registry &reg,
 		   ecs::sparse_array<component::velocity> &vel,
 		   ecs::sparse_array<component::controllable> &ctrl) {
-			// TODO: Implémenter un système d'input générique
 		});
 }
 
