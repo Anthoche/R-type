@@ -10,6 +10,7 @@
 #include <thread>
 #include <fstream>
 #include <iostream>
+#include <cmath>
 
 ServerGame::ServerGame(UDP_socket &sock) : socket(sock) {}
 
@@ -40,6 +41,39 @@ void ServerGame::process_pending_messages() {
     }
 }
 
+bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
+                        float left2, float right2, float top2, float bottom2) {
+    return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
+}
+
+bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
+                        const std::unordered_map<uint32_t, std::tuple<float, float, float, float>>& obstacles) {
+    float halfW = playerWidth * 0.5f;
+    float halfH = playerHeight * 0.5f;
+    float left   = testX - halfW;
+    float right  = testX + halfW;
+    float top    = testY - halfH;
+    float bottom = testY + halfH;
+    
+    for (const auto& kv : obstacles) {
+        float obsX = std::get<0>(kv.second);
+        float obsY = std::get<1>(kv.second);
+        float obsW = std::get<2>(kv.second);
+        float obsH = std::get<3>(kv.second);
+        
+        float obsLeft   = obsX - obsW * 0.5f;
+        float obsRight  = obsX + obsW * 0.5f;
+        float obsTop    = obsY - obsH * 0.5f;
+        float obsBottom = obsY + obsH * 0.5f;
+        
+        if (check_aabb_overlap(left, right, top, bottom,
+                              obsLeft, obsRight, obsTop, obsBottom)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from) {
     if (data.size() < sizeof(MessageType)) return;
     MessageType type = *reinterpret_cast<const MessageType*>(data.data());
@@ -52,11 +86,18 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const s
             float inputX, inputY;
             std::memcpy(&inputX, &xbits, sizeof(float));
             std::memcpy(&inputY, &ybits, sizeof(float));
+            
             auto& pos = playerPositions[id];
-            float speed = 200.f / 60.f; // units per tick at 60Hz
-            pos.first += inputX * speed;
-            pos.second += inputY * speed;
+            float speed = 200.f / 60.f;
+            const float playerWidth = 30.f;
+            const float playerHeight = 30.f;
             const float halfSize = 15.f;
+            float newX = pos.first + inputX * speed;
+            float newY = pos.second + inputY * speed;
+            if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, obstacles))
+                pos.first = newX;
+            if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, obstacles))
+                pos.second = newY;
             const float maxX = 800.f - halfSize;
             const float maxY = 600.f - halfSize;
             pos.first = std::clamp(pos.first, halfSize, maxX);

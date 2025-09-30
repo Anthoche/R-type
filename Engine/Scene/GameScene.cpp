@@ -155,35 +155,7 @@ namespace game::scene {
     }
 
     void GameScene::handle_input(float input_x, float input_y) {
-        auto &positions = _registry.get_components<component::position>();
-        auto &controls  = _registry.get_components<component::controllable>();
-        auto &hitboxes  = _registry.get_components<component::collision_box>();
-
-        if (_player.value() < positions.size() && positions[_player.value()] &&
-            _player.value() < controls.size() && controls[_player.value()]) {
-            float speed = controls[_player.value()]->speed;
-            float dt = 0.016f;
-
-            ecs::entity_t playerHitbox = collision::find_player_hitbox(*this);
-            if (playerHitbox.value() < hitboxes.size() && hitboxes[playerHitbox.value()]) {
-                auto &playerPos = *positions[_player.value()];
-                auto &playerBox = *hitboxes[playerHitbox.value()];
-
-                float ix = input_x;
-                float iy = input_y;
-
-                float testX = playerPos.x + ix * speed * dt;
-                float testY = playerPos.y + iy * speed * dt;
-
-                // Check séparés sur X et Y
-                if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
-                    ix = 0.f;
-                if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
-                    iy = 0.f;
-
-                _game.getGameClient().sendInput(ix, iy);
-            }
-        }
+        _game.getGameClient().sendInput(input_x, input_y);
     }
 
     void GameScene::setup_movement_system() {

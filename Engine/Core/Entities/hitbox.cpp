@@ -22,14 +22,12 @@ namespace game::entities {
         reg.add_component<component::position>(hitbox, std::move(initialPos));
 
         component::collision_box box{32.f, 32.f};
-        auto &boxes = reg.get_components<component::collision_box>();
         auto &drawables = reg.get_components<component::drawable>();
         std::size_t idx = owner.value();
-        if (idx < boxes.size() && boxes[idx])
-            box.width = boxes[idx]->width, box.height = boxes[idx]->height;
-        else if (idx < drawables.size() && drawables[idx])
-            box.width = drawables[idx]->width, box.height = drawables[idx]->height;
-
+        if (idx < drawables.size() && drawables[idx]) {
+            box.width = drawables[idx]->width;
+            box.height = drawables[idx]->height;
+        }
         reg.add_component<component::collision_box>(hitbox, std::move(box));
         reg.emplace_component<component::hitbox_link>(hitbox, owner, 0.f, 0.f);
         return hitbox;
@@ -43,8 +41,6 @@ namespace game::entities {
         ecs::sparse_array<component::hitbox_link> &link)
         {
             auto &positionsAll = reg.get_components<component::position>();
-            auto &boxesAll = reg.get_components<component::collision_box>();
-
             for (std::size_t i = 0; i < hitPos.size() && i < hitBox.size() && i < link.size(); ++i) {
                 if (!hitPos[i] || !hitBox[i] || !link[i])
                     continue;
@@ -55,15 +51,11 @@ namespace game::entities {
                         ownerIndex = j;
                         break;
                     }
-                }
+                }    
                 if (ownerIndex == static_cast<std::size_t>(-1))
                     continue;
                 hitPos[i]->x = positionsAll[ownerIndex]->x + link[i]->offsetX;
                 hitPos[i]->y = positionsAll[ownerIndex]->y + link[i]->offsetY;
-                if (ownerIndex < boxesAll.size() && boxesAll[ownerIndex]) {
-                    hitBox[i]->width = boxesAll[ownerIndex]->width;
-                    hitBox[i]->height = boxesAll[ownerIndex]->height;
-                }
             }
         });
     }
