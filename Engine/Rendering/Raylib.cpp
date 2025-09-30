@@ -163,6 +163,10 @@ void Raylib::drawRectangleLines(int posX, int posY, int width, int height, Color
 	DrawRectangleLines(posX, posY, width, height, color);
 }
 
+void Raylib::drawRectangleRounded(Rectangle rec, float roundness, int segments, Color color) {
+	DrawRectangleRounded(rec, roundness, segments, color);
+}
+
 void Raylib::drawLine(int startX, int startY, int endX, int endY, Color color) {
 	DrawLine(startX, startY, endX, endY, color);
 }
@@ -176,12 +180,29 @@ void Raylib::drawPlane(Vector3 centerPos, Vector2 size, Color color) {
 }
 
 // rtext
+
+Font Raylib::loadFont(std::string const &fileName) {
+	return LoadFont(fileName.c_str());
+}
+
+void Raylib::unloadFont(Font font) {
+	UnloadFont(font);
+}
+
 int Raylib::measureText(std::string const &text, int fontSize) {
 	return MeasureText(text.c_str(), fontSize);
 }
 
+Vector2 Raylib::measureTextEx(Font font, std::string const &text, float fontSize, float spacing) {
+	return MeasureTextEx(font, text.c_str(), fontSize, spacing);
+}
+
 void Raylib::drawText(std::string const &text, int posX, int posY, int fontSize, Color color) {
 	DrawText(text.c_str(), posX, posY, fontSize, color);
+}
+
+void Raylib::drawTextEx(Font font, std::string const &text, Vector2 position, float fontSize, float spacing, Color tint) {
+	DrawTextEx(font, text.c_str(), position, fontSize, spacing, tint);
 }
 
 void Raylib::imageDrawText(Image *dst, std::string const &text, int posX, int posY, int fontSize, Color color) {
@@ -266,15 +287,15 @@ void Raylib::unloadShader(Shader const &shader) {
 	UnloadShader(shader);
 }
 
-void Raylib::setShaderValue(Shader const& shader, int locIndex, const Vector4& value, int uniformType) {
+void Raylib::setShaderValue(Shader const &shader, int locIndex, const Vector4 &value, int uniformType) {
 	SetShaderValue(shader, locIndex, &value, uniformType);
 }
 
-void Raylib::setShaderValue(Shader const& shader, int locIndex, float value, int uniformType) {
+void Raylib::setShaderValue(Shader const &shader, int locIndex, float value, int uniformType) {
 	SetShaderValue(shader, locIndex, &value, uniformType);
 }
 
-void Raylib::setShaderValue(Shader const& shader, int locIndex, int value, int uniformType) {
+void Raylib::setShaderValue(Shader const &shader, int locIndex, int value, int uniformType) {
 	SetShaderValue(shader, locIndex, &value, uniformType);
 }
 

@@ -33,5 +33,4 @@ bool AScene::isOpen() const {
 
 void AScene::close() {
 	_isOpen = false;
-	onClose();
 }
