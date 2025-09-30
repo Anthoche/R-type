@@ -6,27 +6,39 @@
 */
 
 #include "Include/connexion.hpp"
+#include "Include/UDP_socket.hpp"
 #include <arpa/inet.h>
 
-Connexion::Connexion(uint16_t port) : socket(port) {}
+Connexion::Connexion(asio::io_context& io, uint16_t port) : socket(port) {}
 
-bool Connexion::tryReceive(std::vector<uint8_t>& data, sockaddr_in& from) {
-    return socket.try_receive(data, from);
+void Connexion::asyncReceive(std::function<void(const asio::error_code&, std::vector<uint8_t>, asio::ip::udp::endpoint)> handler) {
+    std::vector<uint8_t> data;
+    sockaddr_in clientAddr;
+    if (socket.try_receive(data, clientAddr)) {
+        asio::ip::udp::endpoint endpoint = UDP_socket::sockaddrToEndpoint(clientAddr);
+        asio::error_code ec; // Pas d'erreur si on a reçu des données
+        handler(ec, std::move(data), endpoint);
+    }
 }
 
-void Connexion::sendTo(const void* msg, size_t size, const sockaddr_in& to) {
-    socket.sendTo(msg, size, to);
+void Connexion::sendTo(const void* msg, size_t size, const asio::ip::udp::endpoint& to) {
+    sockaddr_in clientAddr = UDP_socket::endpointToSockaddr(to);
+    socket.sendTo(msg, size, clientAddr);
 }
 
 void Connexion::broadcast(const void* msg, size_t size) {
-    socket.broadcast(msg, size);
+    for (const auto& [addrStr, endpoint] : endpoints) {
+        sockaddr_in clientAddr = UDP_socket::endpointToSockaddr(endpoint);
+        socket.sendTo(msg, size, clientAddr);
+    }
 }
 
-void Connexion::addClient(const sockaddr_in& addr, uint32_t id) {
-    char ipStr[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &addr.sin_addr, ipStr, INET_ADDRSTRLEN);
-    clients[ipStr] = id;
-    socket.addClient(addr, id);
+void Connexion::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t id) {
+    std::string addrStr = endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
+    clients[addrStr] = id;
+    endpoints[addrStr] = endpoint;
+    sockaddr_in clientAddr = UDP_socket::endpointToSockaddr(endpoint);
+    socket.addClient(clientAddr, id);
 }
 
 size_t Connexion::getClientCount() const {
@@ -34,5 +46,7 @@ size_t Connexion::getClientCount() const {
 }
 
 const std::unordered_map<std::string, uint32_t>& Connexion::getClients() const {
-    return clients;
+    retur
+const std::unordered_map<std::string, asio::ip::udp::endpoint>& Connexion::getEndpoints() const {
+    return endpoints;
 }

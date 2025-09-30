@@ -20,6 +20,7 @@ endif()
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(asio CONFIG REQUIRED)
 
 # -------------------------
 # Directories
@@ -80,6 +81,7 @@ target_include_directories(r-type_client PRIVATE
     ${ENGINE_DIR}/Scene
     ${ENGINE_UTILS_DIR}/Include
     ${SHARED_DIR}
+    ${ASIO_INCLUDE_DIR}
 )
 target_link_libraries(r-type_client PRIVATE ecs raylib glfw nlohmann_json)
 
@@ -111,6 +113,7 @@ target_include_directories(r-type_server PRIVATE
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_UTILS_DIR}/Include
     ${SHARED_DIR}
+    ${ASIO_INCLUDE_DIR}
 )
 target_link_libraries(r-type_server PRIVATE ecs nlohmann_json)
 

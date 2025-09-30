@@ -7,14 +7,13 @@
 
 #pragma once
 
+#include <asio.hpp>
 #include <unordered_map>
 #include <vector>
-#include <sys/socket.h>
+#include <string>
+#include <mutex>
+#include <cstdint>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstring>
-#include <iostream>
 
 /**
  * @brief UDP socket wrapper for non-blocking network communication.
@@ -23,17 +22,13 @@
  * Supports both blocking and non-blocking receive operations.
  */
 class UDP_socket {
-    int socketFd; ///< File descriptor for the UDP socket.
-    sockaddr_in serverAddr; ///< Server address structure.
-    std::unordered_map<std::string, uint32_t> clients; ///< Maps client addresses (as "ip:port") to their assigned IDs.
-
     public:
         /**
          * @brief Constructs a UDP_socket bound to the specified port.
          * @param port The UDP port to listen on.
          * @throws std::runtime_error if socket creation or binding fails.
          */
-        UDP_socket(uint16_t port);
+        explicit UDP_socket(uint16_t port);
 
         /**
          * @brief Destroys the UDP_socket and closes the socket file descriptor.
@@ -88,4 +83,32 @@ class UDP_socket {
          * @return A const reference to the clients map (address string -> client ID).
          */
         const std::unordered_map<std::string, uint32_t>& getClients() const { return clients; }
+        
+        /**
+         * @brief Converts a UDP endpoint to a unique string key.
+         * @param ep The UDP endpoint to convert.
+         * @return A string in the format "IP:port".
+         */
+        static std::string endpointToKey(const asio::ip::udp::endpoint& ep);
+
+        /**
+         * @brief Converts a sockaddr_in to an asio UDP endpoint.
+         * @param in The sockaddr_in structure.
+         * @return The corresponding asio::ip::udp::endpoint.
+         */
+        static asio::ip::udp::endpoint sockaddrToEndpoint(const sockaddr_in& in);
+        
+        /**
+         * @brief Converts an asio UDP endpoint to a sockaddr_in.
+         * @param ep The asio::ip::udp::endpoint.
+         * @return The corresponding sockaddr_in structure.
+         */
+        static sockaddr_in endpointToSockaddr(const asio::ip::udp::endpoint& ep);
+    private:
+        asio::io_context ioContext;
+        asio::ip::udp::socket socket;
+        std::unordered_map<std::string, uint32_t> clients;
+        mutable std::mutex clientsMutex;
 };
+
+

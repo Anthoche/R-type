@@ -10,6 +10,7 @@
 #include "../../Network_handler/Include/connexion.hpp"
 #include "../../../Shared/protocol.hpp"
 #include <atomic>
+#include <iostream>
 
 /**
  * @brief Manages the initial player connection phase and game startup.
@@ -18,43 +19,44 @@
  * once 4 players are connected. Uses Connexion for network operations.
  */
 class GameSetup {
-    public:
-        /**
-         * @brief Constructs a GameSetup instance.
-         * @param connexion Reference to the network connection manager.
-         */
-        GameSetup(Connexion& connexion);
+public:
+    /**
+     * @brief Constructs a GameSetup instance.
+     * @param connexion Reference to the network connection manager.
+     */
+    GameSetup(Connexion& connexion);
 
-        ~GameSetup() = default;
+    ~GameSetup() = default;
 
-        /**
-         * @brief Waits for 4 players to connect.
-         * @return true once all players are connected and the game is ready to start.
-         *
-         * Listens for ClientHello messages and assigns unique IDs to each client.
-         * Sets gameStarted to true when 4 clients are connected.
-         */
-        bool waitForPlayers();
+    /**
+     * @brief Starts waiting asynchronously for players to connect.
+     * 
+     * Once 4 players are connected, gameStarted is set to true.
+     */
+    void startWaiting();
 
-        /**
-         * @brief Broadcasts the GameStart message to all connected clients.
-         *
-         * Called automatically once 4 players are connected.
-         */
-        void broadcastGameStart();
+    /**
+     * @brief Broadcasts the GameStart message to all connected clients.
+     */
+    void broadcastGameStart();
+    
+    /**
+     * @brief Checks if the game has started.
+     * @return true if the game has started, false otherwise.
+     */
+    bool isGameStarted() const;
+private:
+    Connexion& connexion; ///< Reference to the network connection manager.
+    std::atomic<uint32_t> nextClientId{1}; ///< Next available client ID.
+    std::atomic<bool> gameStarted{false}; ///< Flag indicating if the game has started.
 
-    private:
-        Connexion& connexion; ///< Reference to the network connection manager.
-        std::atomic<uint32_t> nextClientId{1}; ///< Next available client ID.
-        std::atomic<bool> gameStarted{false}; ///< Flag indicating if the game has started.
+    /**
+     * @brief Asynchronously wait for the next client message.
+     */
+    void doAsyncReceive();
 
-        /**
-         * @brief Processes a ClientHello message from a new player.
-         * @param data Received network data (expected: ClientHelloMessage).
-         * @param clientAddr Address of the connecting client.
-         *
-         * Assigns a unique ID to the client and sends a ServerAssignId response.
-         * Sets gameStarted to true if 4 clients are connected.
-         */
-        void handleClientHello(const std::vector<uint8_t>& data, const sockaddr_in& clientAddr);
+    /**
+     * @brief Processes a ClientHello message from a new player.
+     */
+    void handleClientHello(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& clientAddr);
 };

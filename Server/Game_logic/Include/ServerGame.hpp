@@ -12,82 +12,41 @@
 #include <cstdint>
 #include <chrono>
 #include <vector>
-#include <sys/socket.h>
 #include <nlohmann/json.hpp>
-
 #include "../../../Shared/protocol.hpp"
-#include "../../Network_handler/Include/UDP_socket.hpp"
+#include "../../Network_handler/Include/connexion.hpp"
 #include "../../../Engine/Core/Include/registry.hpp"
 #include "../../../Engine/Utils/Include/entity_storage.hpp"
 
 class ServerGame {
-    UDP_socket &socket; ///< Reference to the UDP socket used for communication.
+    Connexion &connexion; ///< Reference to the UDP connection manager
     std::unordered_map<uint32_t, std::pair<float, float>> playerPositions; ///< Player positions keyed by player ID.
     std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles; ///< Obstacles keyed by ID (x,y,w,h).
 
-    public:
-        /**
-         * @brief Construct a new ServerGame.
-         * @param sock Reference to the UDP socket used for client communication.
-         */
-        explicit ServerGame(UDP_socket &sock);
+public:
+    /**
+     * @brief Construct a new ServerGame.
+     * @param conn Reference to the network connection manager.
+     */
+    explicit ServerGame(Connexion &conn);
 
-        /**
-         * @brief Run the main server game loop.
-         *
-         * This loop processes client messages, updates game state,
-         * and broadcasts updates.
-         */
-        void run();
+    /**
+     * @brief Run the main server game loop.
+     *
+     * Processes client messages, updates game state, and broadcasts updates.
+     */
+    void run();
 
-    private:
-        /**
-         * @brief Initialize player positions at the start of the game.
-         */
-        void initialize_player_positions();
+private:
+    void initialize_player_positions();
+    void initialize_obstacles();
+    void setup_async_receive();
 
-        /**
-         * @brief Initialize obstacles at the start of the game.
-         */
-        void initialize_obstacles();
+    void handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);
 
-        /**
-         * @brief Process any pending network messages from clients.
-         */
-        void process_pending_messages();
+    void broadcast_states_to_clients();
+    void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h);
+    void broadcast_obstacle_despawn(uint32_t obstacleId);
 
-        /**
-         * @brief Handle a single message from a client.
-         * @param data Raw message data received from the client.
-         * @param from Client network address.
-         */
-        void handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from);
-
-        /**
-         * @brief Broadcast the current state of all entities to connected clients.
-         */
-        void broadcast_states_to_clients();
-
-        /**
-         * @brief Notify clients that an obstacle has spawned.
-         * @param obstacleId Unique ID of the obstacle.
-         * @param x X-coordinate of the obstacle.
-         * @param y Y-coordinate of the obstacle.
-         * @param w Width of the obstacle.
-         * @param h Height of the obstacle.
-         */
-        void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h);
-
-        /**
-         * @brief Notify clients that an obstacle has been removed.
-         * @param obstacleId ID of the despawned obstacle.
-         */
-        void broadcast_obstacle_despawn(uint32_t obstacleId);
-
-        /**
-         * @brief Sleep to maintain a fixed tick rate for the server loop.
-         * @param start Start time of the current tick.
-         * @param tick_ms Duration of one tick in milliseconds.
-         */
-        void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
+    void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
 };
