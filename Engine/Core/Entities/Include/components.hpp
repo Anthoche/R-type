@@ -178,4 +178,8 @@ namespace component {
         float offsetX{0.f};     ///< X offset relative to owner position
         float offsetY{0.f};     ///< Y offset relative to owner position
     };
+
+    struct ClientId {
+        std::size_t id;
+    };
 }

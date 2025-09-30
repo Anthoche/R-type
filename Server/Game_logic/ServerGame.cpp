@@ -12,7 +12,8 @@
 #include <iostream>
 #include <cmath>
 
-ServerGame::ServerGame(UDP_socket &sock) : socket(sock) {}
+
+ServerGame::ServerGame(UDP_socket &sock) : socket(sock), registry_server() {}
 
 void ServerGame::run() {
     initialize_player_positions();
