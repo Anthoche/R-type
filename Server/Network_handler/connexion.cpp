@@ -7,7 +7,12 @@
 
 #include "Include/connexion.hpp"
 #include "Include/UDP_socket.hpp"
-#include <arpa/inet.h>
+#if defined(_WIN32) || defined(_WIN64)
+    #include <WinSock2.h>
+    #include <ws2tcpip.h>
+#else
+    #include <arpa/inet.h>
+#endif
 
 Connexion::Connexion(asio::io_context& io, uint16_t port) : socket(port) {}
 
@@ -46,7 +51,8 @@ size_t Connexion::getClientCount() const {
 }
 
 const std::unordered_map<std::string, uint32_t>& Connexion::getClients() const {
-    retur
+    return clients;
+}
 const std::unordered_map<std::string, asio::ip::udp::endpoint>& Connexion::getEndpoints() const {
     return endpoints;
 }

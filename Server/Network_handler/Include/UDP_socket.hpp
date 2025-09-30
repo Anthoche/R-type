@@ -13,7 +13,12 @@
 #include <string>
 #include <mutex>
 #include <cstdint>
-#include <netinet/in.h>
+#if defined(_WIN32) || defined(_WIN64)
+    #include <WinSock2.h>
+    #include <ws2tcpip.h>
+#else
+    #include <netinet/in.h>
+#endif
 
 /**
  * @brief UDP socket wrapper for non-blocking network communication.
