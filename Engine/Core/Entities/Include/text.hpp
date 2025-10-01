@@ -11,12 +11,14 @@
 #include "../../Include/registry.hpp"
 
 namespace game::entities {
+	/**
+	* Create a text entity at a position.
+	*/
+	ecs::entity_t create_text(ecs::registry &reg, Vector2 pos, const std::string &content, Color color, int fontSize);
 
-/**
- * Create a text entity at a position, with optional font.
- */
-ecs::entity_t create_text(ecs::registry &reg, float x, float y, const std::string &content, int fontSize = 24, const std::string &fontPath = "");
-
+	/**
+	* Create a text entity at a position, with advanced parameters.
+	*/
+	ecs::entity_t create_text(ecs::registry &reg, Vector2 pos, const std::string &content, Color color = WHITE, float spacing = 1.f,
+							int fontSize = 24, Font const &font = GetFontDefault());
 }
-
-

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <raylib.h>
 #include "../../Include/entity.hpp"
 #include <string>
 
@@ -74,16 +75,17 @@ namespace component {
         bool autoplay{false};     ///< Start playing on creation
     };
 
-    /**
-     * @struct text
-     * @brief Text content and styling for on-screen labels.
-     */
-    struct text {
-        std::string content{};    ///< UTF-8 text to display
-        int font_size{24};        ///< Font size in pixels
-        unsigned char r{255}, g{255}, b{255}, a{255}; ///< RGBA color
-        int spacing{1};           ///< Glyph spacing in pixels
-    };
+	/**
+	* @struct text
+	* @brief Text content and styling for on-screen labels.
+	*/
+	struct text {
+		std::string content{}; ///< UTF-8 text to display
+		int font_size{24}; ///< Font size in pixels
+		float spacing{1.f}; ///< Glyph spacing in pixels
+		Color color; ///< RGBA color
+		Font font{}; ///< Font to use for rendering
+	};
 
     /**
      * @struct font

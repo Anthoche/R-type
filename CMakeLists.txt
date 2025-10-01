@@ -1,13 +1,18 @@
 cmake_minimum_required(VERSION 3.16)
+
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
     CACHE STRING "Vcpkg toolchain file")
+
 project(rtype LANGUAGES CXX)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
+
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE
         "${CMAKE_SOURCE_DIR}/external/vcpkg/scripts/buildsystems/vcpkg.cmake"
@@ -41,7 +46,9 @@ set(ENGINE_UTILS_DIR ${ENGINE_DIR}/Utils)
 add_library(ecs STATIC
     ${ENGINE_CORE_DIR}/entity.cpp
     ${ENGINE_CORE_DIR}/registry.cpp
+        Engine/Core/Entities/Include/button.hpp
 )
+
 target_include_directories(ecs PUBLIC
     ${ENGINE_CORE_DIR}/Include
     ${SHARED_DIR}
@@ -70,7 +77,9 @@ add_executable(r-type_client
     ${ENGINE_DIR}/Scene/GameScene.cpp
     ${ENGINE_DIR}/Scene/MenuScene.cpp
     ${ENGINE_PHYSICS_DIR}/Collision.cpp
+        Engine/Core/Entities/button.cpp
 )
+
 target_include_directories(r-type_client PRIVATE
     ${CLIENT_DIR}/Network_client/Include
     ${ENGINE_CORE_DIR}/Include
@@ -81,6 +90,7 @@ target_include_directories(r-type_client PRIVATE
     ${ENGINE_UTILS_DIR}/Include
     ${SHARED_DIR}
 )
+
 target_link_libraries(r-type_client PRIVATE ecs raylib glfw nlohmann_json)
 
 # -------------------------
@@ -104,6 +114,7 @@ add_executable(r-type_server
     ${ENGINE_ENTITIES_DIR}/random_element.cpp
     ${ENGINE_ENTITIES_DIR}/hitbox.cpp
 )
+
 target_include_directories(r-type_server PRIVATE
     ${SERVER_DIR}/Network_handler/Include
     ${SERVER_DIR}/Game_logic/Include
@@ -134,7 +145,7 @@ install(TARGETS r-type_client r-type_server ecs
 # -------------------------
 execute_process(
     # COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/assets.zip # /!\ DO NOT DELETE, to be used after
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Engine/Assets/ ./assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Engine/Assets/ ./assets # Temporary solution to get access to assets directory
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 

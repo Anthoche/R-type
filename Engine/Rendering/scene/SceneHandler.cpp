@@ -54,7 +54,6 @@ void SceneHandler::open(const std::string &name) {
 		scene->handleEvents();
 		scene->render();
 	}
-
 	scene->onClose();
 	_scenes[name].second = false;
 }
