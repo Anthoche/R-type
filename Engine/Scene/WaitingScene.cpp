@@ -2,48 +2,20 @@
 ** EPITECH PROJECT, 2025
 ** rtype
 ** File description:
-** MenuScene
+** WaitingScene
 */
 
-#include "Include/MenuScene.hpp"
+#include "Include/WaitingScene.hpp"
 #include "button.hpp"
 #include "components.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
 
 namespace scene {
-	MenuScene::MenuScene(Game &game) : AScene(960, 540, "R-Type - Menu"), _game(game) {
-		_titleCenterY = static_cast<float>(getCenterY(_height, _titleSize));
-		_buttonCenterY = static_cast<float>(getButtonsCenterY(_height, 3, _buttonSize.y, _buttonSpacing));
-		_buttonPosition = {600.f, _buttonCenterY};
+	WaitingScene::WaitingScene(Game &game) : AScene(960, 540, "R-Type - Waiting..."), _game(game) {
 	}
 
-	void MenuScene::init() {
-		_isOpen = true;
-		_raylib.enableCursor();
-		_raylib.setTargetFPS(60);
-
-		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
-
-		_registry.register_component<component::position>();
-		_registry.register_component<component::drawable>();
-		_registry.register_component<component::text>();
-		_registry.register_component<component::clickable>();
-		_registry.register_component<component::hoverable>();
-		_registry.register_component<component::type>();
-
-		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
-
-		game::entities::create_button(_registry, "button_play", "Play", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
-		game::entities::create_button(_registry, "button_settings", "Settings", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
-		game::entities::create_button(_registry, "button_quit", "Quit", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-
-		_game.getGameClient().sendHello();
-	}
-
-	void MenuScene::render() {
+	void WaitingScene::render() {
 		_raylib.beginDrawing();
 		_raylib.clearBackground(BLACK);
 
@@ -64,9 +36,10 @@ namespace scene {
 				std::string content = text[i]->content;
 				int fontSize = text[i]->font_size;
 				float spacing = text[i]->spacing;
+				Color color = drawables[i]->color;
 				Color textColor = text[i]->color;
-				drawButton(pos, size, content, fontSize, spacing, _accentColor, textColor, hoverable[i]->isHovered,
-							clickable[i]->isClicked);
+				drawButton(pos, size, content, fontSize, spacing, color, textColor, hoverable[i]->isHovered, clickable[i]->isClicked,
+							clickable[i]->enabled);
 			}
 			if (types[i]->value == component::entity_type::TEXT) {
 				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
@@ -75,14 +48,8 @@ namespace scene {
 		_raylib.endDrawing();
 	}
 
-	void MenuScene::handleEvents() {
+	void WaitingScene::handleEvents() {
 		resetButtonStates();
-
-		if (_game.getGameStatus() == GameStatus::RUNNING) {
-			// TODO: à enlever après implémentation de la waiting scene
-			_game.getSceneHandler().open("game");
-			return;
-		}
 
 		switch (_raylib.getKeyPressed()) {
 			default:
@@ -101,7 +68,7 @@ namespace scene {
 			if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				hoverable[i]->isHovered = true;
-				if (_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+				if (_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT) && clickable[i]->enabled) {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
@@ -109,11 +76,46 @@ namespace scene {
 		}
 	}
 
-	void MenuScene::onClose() {
+	void WaitingScene::init() {
+		_isOpen = true;
+		_raylib.enableCursor();
+		_raylib.setTargetFPS(60);
+
+		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+
+		_registry.register_component<component::position>();
+		_registry.register_component<component::drawable>();
+		_registry.register_component<component::text>();
+		_registry.register_component<component::clickable>();
+		_registry.register_component<component::hoverable>();
+		_registry.register_component<component::type>();
+
+		std::string title = "Waiting for players...";
+		int titleFontSize = 38;
+		Vector2 titleSize = _raylib.measureTextEx(_font, title.c_str(), titleFontSize, -0.5f);
+		float titleCenterY = getCenterY(_height, titleSize.y) - 100;
+		float titleCenterX = _width / 2 - titleSize.x / 2;
+
+		Vector2 buttonSize = {180.f, 70.f};
+		Vector2 buttonBasePos = {_width / 2 - buttonSize.x / 2, static_cast<float>(getCenterY(_height, buttonSize.y) + 50)};
+		Vector2 playButtonPos = buttonBasePos;
+		Vector2 quitButtonPos = buttonBasePos;
+		playButtonPos.x -= 110;
+		quitButtonPos.x += 110;
+
+		Color accentColor = Color{26, 170, 177, 255};
+
+		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title, RAYWHITE, -0.5f, titleFontSize, _font);
+
+		game::entities::create_button(_registry, "button_join", "Join", playButtonPos, buttonSize, accentColor, RAYWHITE);
+		game::entities::create_button(_registry, "button_quit", "Quit", quitButtonPos, buttonSize, RED, RAYWHITE);
+	}
+
+	void WaitingScene::onClose() {
 		_raylib.unloadFont(_font);
 	}
 
-	void MenuScene::resetButtonStates() {
+	void WaitingScene::resetButtonStates() {
 		auto &positions = _registry.get_components<component::position>();
 		auto &clickable = _registry.get_components<component::clickable>();
 		auto &hoverable = _registry.get_components<component::hoverable>();
@@ -122,27 +124,27 @@ namespace scene {
 			if (!positions[i] || !clickable[i] || !hoverable[i]) continue;
 			clickable[i]->isClicked = false;
 			hoverable[i]->isHovered = false;
+
+			if (clickable[i]->id == "button_join") {
+				if (_game.getGameStatus() == GameStatus::PENDING_START || _game.getGameStatus() == GameStatus::RUNNING) {
+					clickable[i]->enabled = true;
+				} else {
+					clickable[i]->enabled = false;
+				}
+			}
 		}
 	}
 
-	void MenuScene::handleButtonClick(std::string const &id) {
-		if (id == "button_play") {
-			if (!_game.getGameClient().isConnected()) {
-				// Send to waiting for server scene
-			} else if (_game.getGameStatus() == GameStatus::WAITING_PLAYERS) {
-				_game.getSceneHandler().open("waiting");
-			} else {
-				_game.getSceneHandler().open("game");
-			}
-		} else if (id == "button_settings") {
-			// Open settings menu
+	void WaitingScene::handleButtonClick(std::string const &id) {
+		if (id == "button_join") {
+			_game.getSceneHandler().open("game");
 		} else if (id == "button_quit") {
 			close();
 		}
 	}
 
-	void MenuScene::drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize,
-								float spacing, Color color, Color textColor, bool isHovered, bool isClicked) {
+	void WaitingScene::drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize,
+								float spacing, Color color, Color textColor, bool isHovered, bool isClicked, bool isEnabled) {
 		Vector2 textPos = {position.x + size.x / 2, position.y + size.y / 2};
 		Vector2 textSize = _raylib.measureTextEx(_font, content, fontSize, spacing);
 		textPos.x -= textSize.x / 2;
@@ -150,13 +152,18 @@ namespace scene {
 
 		Rectangle rect = {position.x, position.y, size.x, size.y};
 
-		if (isHovered) {
-			Color temp = textColor;
-			textColor = color;
-			color = temp;
-		}
-		if (isClicked) {
-			color.a -= 50;
+		if (isEnabled) {
+			if (isHovered) {
+				Color temp = textColor;
+				textColor = color;
+				color = temp;
+			}
+			if (isClicked) {
+				color.a -= 50;
+			}
+		} else {
+			color.a = 100;
+			textColor.a = 100;
 		}
 		_raylib.drawRectangleRounded(rect, 0.5, 10, color);
 		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, textColor);

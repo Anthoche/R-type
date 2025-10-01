@@ -26,7 +26,7 @@ ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::stri
     component::drawable drawable;
     drawable.width = 40.f;
     drawable.height = 28.f;
-    drawable.r = 1.f; drawable.g = 0.2f; drawable.b = 0.2f; drawable.a = 1.f;
+    drawable.color = RED;
     reg.add_component<component::drawable>(enemy, std::move(drawable));
 
     // Attach hitbox
