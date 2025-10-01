@@ -26,7 +26,7 @@ The project is divided into several modules:
 
 ## 🛠️ Technologies Used
 
-### Frontend
+### Language & Libs
 
 * **C++** - Development language
 * **Raylib** - Graphical library
@@ -34,11 +34,12 @@ The project is divided into several modules:
 
 ### Compilation & Build
 
-CMake – Cross-platform build system and project configuration
+* **CMake** – Cross-platform build system and project configuration
+* **VCPKG** - Cross-platform package manager for C++
 
 ### Testing
 
-Criterion – Unit testing framework
+* **Criterion** – Unit testing framework
 
 ## 📁 Project Structure
 
@@ -70,16 +71,11 @@ r-type/
 
 ```
 
-## 📚 Documentation
-
-- 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**  
-  Visual representations of system architecture.
-
 ## 🔧 Development
 
 ### Available Scripts
 
-#### 1.Install dependencies
+#### 1. Install dependencies
 vcpkg:
 
 ```bash
@@ -90,7 +86,7 @@ sudo dnf install libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel 
 git submodule update --init --recursive
 ```
 
-#### 2.Build the project
+#### 2. Build the project
 ```bash
 mkdir build
 cd build
@@ -98,7 +94,7 @@ cmake ..
 make
 ```
 
-#### 3.Launch the project
+#### 3. Launch the project
 3.1 server:
 
 ```bash
@@ -117,11 +113,14 @@ make
 
 ## 📚 Documentation
 
-- 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**  
+- 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**<br>
 Visual representations of system architecture.
 
-- 🖥️ **[Mirror Repository](https://github.com/Anthoche/R-type)**  
-  Repository to run CI.
+- 📕 **[Wiki](https://github.com/Anthoche/R-type/wiki)**<br>
+Simple wiki to explain some technical details of the project.
+
+- 🖥️ **[Mirror Repository](https://github.com/Anthoche/R-type)**<br>
+Repository to run CI.
 
 ## 👥 Team
 
@@ -131,7 +130,7 @@ Visual representations of system architecture.
 - [Mariia Semenchenko](https://github.com/mariiasemenchenko)
 - [Corto Morrow](https://github.com/NuggetReckt)
 
-
+<br>
 *Last update: September 2025*
 
 ---
