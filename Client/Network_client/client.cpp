@@ -6,14 +6,16 @@
 */
 #include "Include/client.hpp"
 #include "../../Engine/Game.hpp"
+#if defined(_WIN32)
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+#else
+    #include <arpa/inet.h>
+#endif
 
 
 GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
     : clientName(name), _game(game) {
-    socketFd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (socketFd < 0) {
-        throw std::runtime_error("Failed to create socket");
-    }
     serverAddr = {};
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(serverPort);
@@ -25,7 +27,6 @@ GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverP
 GameClient::~GameClient() {
     running = false;
     if (rxThread.joinable()) rxThread.join();
-    close(socketFd);
 }
 
 void GameClient::run() {
@@ -44,13 +45,7 @@ void GameClient::sendHello() {
     msg.clientId = htonl(0);
     strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
     msg.clientName[sizeof(msg.clientName) - 1] = '\0';
-    ssize_t sentBytes = sendto(
-        socketFd, &msg, sizeof(msg), 0,
-        (struct sockaddr *)&serverAddr, sizeof(serverAddr)
-    );
-    if (sentBytes < 0) {
-        std::cerr << "[ERREUR] Échec de l'envoi de ClientHello" << std::endl;
-    }
+    socket.sendTo(&msg, sizeof(msg), serverAddr);
 }
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
@@ -77,22 +72,17 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 
 void GameClient::recvLoop() {
     while (running) {
-        std::vector<uint8_t> buffer(1024);
+        std::vector<uint8_t> buffer;
         sockaddr_in fromAddr = {};
-        socklen_t fromAddrLen = sizeof(fromAddr);
-        ssize_t bytesReceived = recvfrom(
-            socketFd, buffer.data(), buffer.size(), MSG_DONTWAIT,
-            (struct sockaddr *)&fromAddr, &fromAddrLen
-        );
-        if (bytesReceived <= 0) {
+        if (socket.try_receive(buffer, fromAddr)) {
+            if (buffer.size() < sizeof(MessageType)) {
+                continue;
+            }
+            MessageType type = *reinterpret_cast<MessageType *>(buffer.data());
+            handleMessage(type, buffer);
+        } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
-            continue;
         }
-        if (bytesReceived < (ssize_t)sizeof(MessageType)) {
-            continue;
-        }
-        MessageType type = *reinterpret_cast<MessageType *>(buffer.data());
-        handleMessage(type, buffer);
     }
 }
 
@@ -154,10 +144,7 @@ void GameClient::sendInput(float inputX, float inputY) {
     std::memcpy(&ybits, &inputY, sizeof(float));
     m.inputXBits = htonl(xbits);
     m.inputYBits = htonl(ybits);
-    sendto(
-        socketFd, &m, sizeof(m), 0,
-        (struct sockaddr *)&serverAddr, sizeof(serverAddr)
-    );
+    socket.sendTo(&m, sizeof(m), serverAddr);
 }
 
 void GameClient::runRenderLoop() {

@@ -11,6 +11,9 @@
 #include <string>
 #include <raylib.h>
 
+// Type alias pour Rectangle de raylib
+using RaylibRectangle = Rectangle;
+
 /**
  * @class Raylib
  * @brief A C++ wrapper around selected functions from the raylib library.
@@ -241,7 +244,7 @@ class Raylib {
 		 * @param rec The rectangle to draw
 		 * @param color The color of the rectangle
 		 */
-		void drawRectangleRec(Rectangle rec, Color color);
+		void drawRectangleRec(RaylibRectangle rec, Color color);
 
         /**
          * @brief Draw a rotated rectangle using pro parameters.
@@ -250,7 +253,7 @@ class Raylib {
          * @param rotation Rotation angle.
          * @param color Rectangle color.
          */
-        void drawRectanglePro(Rectangle rec, Vector2 origin, float rotation, Color color);
+        void drawRectanglePro(RaylibRectangle rec, Vector2 origin, float rotation, Color color);
 
         /**
          * @brief Draw the outline of a rectangle.
@@ -268,7 +271,7 @@ class Raylib {
          * @param rec Rectangle to test against.
          * @return True if collision detected.
          */
-        bool checkCollisionPointRec(Vector2 point, Rectangle rec);
+        bool checkCollisionPointRec(Vector2 point, RaylibRectangle rec);
 
         /**
          * @brief Draw a line between two points.

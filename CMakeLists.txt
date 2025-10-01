@@ -54,6 +54,7 @@ target_include_directories(ecs PUBLIC
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
     ${CLIENT_DIR}/Network_client/client.cpp
+    ${CLIENT_DIR}/Network_client/UDP_socket.cpp
     ${ENGINE_DIR}/Game.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/enemy.cpp
@@ -83,7 +84,11 @@ target_include_directories(r-type_client PRIVATE
     ${SHARED_DIR}
     ${ASIO_INCLUDE_DIR}
 )
-target_link_libraries(r-type_client PRIVATE ecs raylib glfw nlohmann_json)
+target_link_libraries(r-type_client PRIVATE ecs raylib glfw nlohmann_json asio)
+
+if (WIN32)
+    target_compile_definitions(r-type_client PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
+endif()
 
 # -------------------------
 # r-type_server (no Raylib)

@@ -9,17 +9,8 @@
 #pragma once
 
 #include "../../../Shared/protocol.hpp"
-
-#ifdef _WIN32
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    #pragma comment(lib, "ws2_32.lib")
-#else
-    #include <sys/socket.h>
-    #include <netinet/in.h>
-    #include <arpa/inet.h>
-    #include <unistd.h>
-#endif
+#include "UDP_socket.hpp"
+#include <asio.hpp>
 #include <cstring>
 #include <iostream>
 #include <thread>
@@ -42,7 +33,7 @@ class Game;
  */
 class GameClient {
 private:
-    int socketFd; ///< File descriptor for the UDP socket.
+    UDP_socket socket; ///< UDP socket for network communication.
     sockaddr_in serverAddr{}; ///< Server address structure.
     uint32_t clientId{0}; ///< Unique client ID assigned by the server.
     std::string clientName; ///< Name of this client.
