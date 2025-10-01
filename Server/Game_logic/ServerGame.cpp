@@ -5,6 +5,7 @@
 ** ServerGame
 */
 #include "Include/ServerGame.hpp"
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>
 #include <thread>
@@ -12,10 +13,49 @@
 #include <iostream>
 #include <cmath>
 
+// === Couleurs pour les logs ===
+#define RESET   "\033[0m"
+#define RED     "\033[31m"      // Errors
+#define GREEN   "\033[32m"      // Info
+#define YELLOW  "\033[33m"      // Debug
+#define BLUE    "\033[34m"      // Affichage classique
 
-ServerGame::ServerGame(UDP_socket &sock) : socket(sock), registry_server() {}
+// Macros pour les logs
+#define LOG_ERROR(msg)   std::cerr << RED << "[ERROR] " << msg << RESET << std::endl
+#define LOG_INFO(msg)    std::cout << GREEN << "[INFO] " << msg << RESET << std::endl
+#define LOG_DEBUG(msg)   std::cout << YELLOW << "[DEBUG] " << msg << RESET << std::endl
+#define LOG(msg)         std::cout << BLUE << msg << RESET << std::endl
+
+
+
+static nlohmann::json load_json_from_file(const std::string &path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open JSON file: " + path);
+    }
+    nlohmann::json data;
+    file >> data;
+    return data;
+}
+
+ServerGame::ServerGame(UDP_socket &sock) : socket(sock), registry_server() {
+    registry_server.register_component<component::position>();
+    registry_server.register_component<component::previous_position>();
+    registry_server.register_component<component::velocity>();
+    registry_server.register_component<component::controllable>();
+    registry_server.register_component<component::health>();
+    registry_server.register_component<component::type>();
+    registry_server.register_component<component::client_id>();
+    registry_server.register_component<component::drawable>();
+    registry_server.register_component<component::sprite>();
+    registry_server.register_component<component::collision_box>();
+    registry_server.register_component<component::hitbox_link>();
+}
 
 void ServerGame::run() {
+    LOG("[Server] Starting game loop...");
+    load_players("../Engine/Assets/Config_assets/Players/players.json");
+    //load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
     initialize_player_positions();
     initialize_obstacles();
     const int tick_ms = 16;
@@ -27,7 +67,49 @@ void ServerGame::run() {
     }
 }
 
+void ServerGame::load_players(const std::string &path) {
+    try {
+        auto json = load_json_from_file(path);
+        game::storage::store_players(registry_server, json);
+        LOG_DEBUG("===== Loaded Players =====");
+        auto &positions = registry_server.get_components<component::position>();
+        auto &clientIds = registry_server.get_components<component::client_id>();
+        for (std::size_t i = 0; i < positions.size(); ++i) {
+            if (positions[i].has_value() && clientIds[i].has_value()) {
+                auto &pos = positions[i].value();
+                auto &cid = clientIds[i].value();
+                ecs::entity_t entity = registry_server.entity_from_index(i);
+                LOG("Player entity " << entity
+                          << " client_id=" << cid.id
+                          << " pos=(" << pos.x << ", " << pos.y << ")");
+            }
+        }
+    } catch (const std::exception &e) {
+        LOG_ERROR("load_players failed: " << e.what());
+    }
+}
+
+void ServerGame::load_level(const std::string &path) {
+    try {
+        auto json = load_json_from_file(path);
+        game::storage::store_level_entities(registry_server, json);
+        LOG_DEBUG("===== Loaded Level Entities =====");
+        auto &positions = registry_server.get_components<component::position>();
+        for (std::size_t i = 0; i < positions.size(); ++i) {
+            if (positions[i].has_value()) {
+                auto &pos = positions[i].value();
+                ecs::entity_t entity = registry_server.entity_from_index(i);
+                LOG("Entity " << entity
+                          << " pos=(" << pos.x << ", " << pos.y << ")");
+            }
+        }
+    } catch (const std::exception &e) {
+        LOG_ERROR("load_level failed: " << e.what());
+    }
+}
+
 void ServerGame::initialize_player_positions() {
+    LOG_DEBUG("Initializing player positions...");
     for (const auto& kv : socket.getClients()) {
         playerPositions[kv.second] = {100.f + (kv.second - 1) * 50.f, 300.f};
     }
@@ -55,18 +137,18 @@ bool is_position_blocked(float testX, float testY, float playerWidth, float play
     float right  = testX + halfW;
     float top    = testY - halfH;
     float bottom = testY + halfH;
-    
+
     for (const auto& kv : obstacles) {
         float obsX = std::get<0>(kv.second);
         float obsY = std::get<1>(kv.second);
         float obsW = std::get<2>(kv.second);
         float obsH = std::get<3>(kv.second);
-        
+
         float obsLeft   = obsX - obsW * 0.5f;
         float obsRight  = obsX + obsW * 0.5f;
         float obsTop    = obsY - obsH * 0.5f;
         float obsBottom = obsY + obsH * 0.5f;
-        
+
         if (check_aabb_overlap(left, right, top, bottom,
                               obsLeft, obsRight, obsTop, obsBottom)) {
             return true;
@@ -87,7 +169,7 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const s
             float inputX, inputY;
             std::memcpy(&inputX, &xbits, sizeof(float));
             std::memcpy(&inputY, &ybits, sizeof(float));
-            
+
             auto& pos = playerPositions[id];
             float speed = 200.f / 60.f;
             const float playerWidth = 30.f;
@@ -125,6 +207,7 @@ void ServerGame::broadcast_states_to_clients() {
 }
 
 void ServerGame::initialize_obstacles() {
+    LOG_DEBUG("Initializing obstacles...");
     struct O { float x,y,w,h; }; O list[3] = {
         {200.f, 400.f, 60.f, 60.f},
         {400.f, 400.f, 60.f, 60.f},

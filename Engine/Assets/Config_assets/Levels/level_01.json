@@ -1,0 +1,58 @@
+{
+  "level": {
+    "backgrounds": [
+      {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1920.0,
+        "height": 1080.0,
+        "image_path": "assets/background.png",
+        "scale": 1.0
+      }
+    ],
+    "enemies": [
+      {
+        "x": 900.0,
+        "y": 200.0,
+        "image_path": "assets/enemy1.png"
+      }
+    ],
+    "obstacles": [
+      {
+        "x": 400.0,
+        "y": 300.0,
+        "image_path": "assets/rock.png"
+      }
+    ],
+    "random_elements": [
+      {
+        "x": 500.0,
+        "y": 100.0,
+        "width": 64.0,
+        "height": 64.0,
+        "image_path": "assets/item.png",
+        "sound_path": "assets/item.wav",
+        "volume": 0.8,
+        "loop": false,
+        "autoplay": true
+      }
+    ],
+    "sounds": [
+      {
+        "sound_path": "assets/music.ogg",
+        "volume": 1.0,
+        "loop": true,
+        "autoplay": true
+      }
+    ],
+    "texts": [
+      {
+        "x": 100.0,
+        "y": 50.0,
+        "content": "Welcome to R-Type!",
+        "font_size": 32,
+        "font_path": "assets/font.ttf"
+      }
+    ]
+  }
+}

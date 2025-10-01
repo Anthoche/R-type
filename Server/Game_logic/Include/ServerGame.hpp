@@ -19,6 +19,7 @@
 #include "../../Network_handler/Include/UDP_socket.hpp"
 #include "../../../Engine/Core/Include/registry.hpp"
 #include "../../../Engine/Utils/Include/entity_storage.hpp"
+#include "../../../Engine/Utils/Include/entity_parser.hpp"
 
 class ServerGame {
     UDP_socket &socket; ///< Reference to the UDP socket used for communication.
@@ -91,4 +92,7 @@ class ServerGame {
          * @param tick_ms Duration of one tick in milliseconds.
          */
         void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
+
+        void load_players(const std::string &path);
+        void load_level(const std::string &path);
 };
