@@ -1,0 +1,84 @@
+{
+    "players": [
+        {
+            "id": 1,
+            "x": 0,
+            "y": 0,
+            "image_path": "assets/r-typesheet42.png",
+            "health": 100,
+            "speed": 300.0,
+            "collision_box": {
+                "width": 30.0,
+                "height": 30.0
+            },
+            "drawable": {
+                "width": 30.0,
+                "height": 30.0,
+                "r": 0.0,
+                "g": 1.0,
+                "b": 1.0,
+                "a": 1.0
+            }
+        },
+        {
+            "id": 2,
+            "x": 0,
+            "y": 0,
+            "image_path": "assets/r-typesheet42.png",
+            "health": 100,
+            "speed": 300.0,
+            "collision_box": {
+                "width": 30.0,
+                "height": 30.0
+            },
+            "drawable": {
+                "width": 30.0,
+                "height": 30.0,
+                "r": 0.0,
+                "g": 1.0,
+                "b": 0.5,
+                "a": 1.0
+            }
+        },
+        {
+            "id": 3,
+            "x": 0,
+            "y": 0,
+            "image_path": "assets/r-typesheet42.png",
+            "health": 100,
+            "speed": 300.0,
+            "collision_box": {
+                "width": 30.0,
+                "height": 30.0
+            },
+            "drawable": {
+                "width": 30.0,
+                "height": 30.0,
+                "r": 0.5,
+                "g": 1.0,
+                "b": 0.0,
+                "a": 1.0
+            }
+        },
+        {
+            "id": 4,
+            "x": 0,
+            "y": 0,
+            "image_path": "assets/r-typesheet42.png",
+            "health": 100,
+            "speed": 300.0,
+            "collision_box": {
+                "width": 30.0,
+                "height": 30.0
+            },
+            "drawable": {
+                "width": 30.0,
+                "height": 30.0,
+                "r": 0.0,
+                "g": 0.8,
+                "b": 0.8,
+                "a": 1.0
+            }
+        }
+    ]
+}

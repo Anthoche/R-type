@@ -5,7 +5,7 @@
 ** client
 */
 #include "Include/client.hpp"
-#include "Game.hpp"
+#include "../../Engine/Game.hpp"
 
 
 GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)

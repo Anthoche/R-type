@@ -4,9 +4,8 @@
 ** File description:
 ** server
 */
-
 #include "server.hpp"
-#include "../Game/ServerGame.hpp"
+#include "Game_logic/Include/ServerGame.hpp"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -15,9 +14,9 @@
 
 GameServer::GameServer(uint16_t port) : socket(port) {}
 
-void GameServer::run() {
+void GameServer::run()
+{
     std::cout << "Serveur démarré. En attente de 4 clients..." << std::endl;
-
     // accept clients until game start
     while (!gameStarted) {
         std::vector<uint8_t> data;
@@ -40,7 +39,8 @@ void GameServer::run() {
     game.run();
 }
 
-void GameServer::handleClientHello(const std::vector<uint8_t>& data, const sockaddr_in& clientAddr) {
+void GameServer::handleClientHello(const std::vector<uint8_t>& data, const sockaddr_in& clientAddr)
+{
     if (gameStarted) {
         return;
     }
@@ -63,7 +63,8 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data, const socka
     }
 }
 
-void GameServer::broadcastGameStart() {
+void GameServer::broadcastGameStart()
+{
     GameStartMessage msg;
     msg.type = MessageType::GameStart;
     msg.clientCount = htonl(4);
@@ -71,7 +72,8 @@ void GameServer::broadcastGameStart() {
     std::cout << "[DEBUG] Message GameStart envoyé à tous les clients." << std::endl;
 }
 
-void GameServer::handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from) {
+void GameServer::handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from)
+{
     if (data.size() < sizeof(MessageType)) return;
     MessageType type = *reinterpret_cast<const MessageType*>(data.data());
     if (type == MessageType::ClientInput) {
@@ -99,7 +101,8 @@ void GameServer::handle_client_message(const std::vector<uint8_t>& data, const s
     }
 }
 
-void GameServer::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {
+void GameServer::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms)
+{
     auto tick_end = std::chrono::high_resolution_clock::now();
     auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(tick_end - start).count();
     if (elapsed_ms < tick_ms) {

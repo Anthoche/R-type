@@ -5,7 +5,7 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems
 
 project(rtype LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -24,6 +24,7 @@ endif()
 # -------------------------
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 # -------------------------
 # Directories
@@ -32,8 +33,12 @@ set(CLIENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Client)
 set(SERVER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Server)
 set(SHARED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shared)
 set(ENGINE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine)
-set(ENGINE_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine/Core)
-set(GAME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Game)
+set(ENGINE_CORE_DIR ${ENGINE_DIR}/Core)
+set(ENGINE_ENTITIES_DIR ${ENGINE_CORE_DIR}/Entities)
+set(ENGINE_RENDERING_DIR ${ENGINE_DIR}/Rendering)
+set(ENGINE_SCENE_DIR ${ENGINE_RENDERING_DIR}/scene)
+set(ENGINE_PHYSICS_DIR ${ENGINE_DIR}/Physics)
+set(ENGINE_UTILS_DIR ${ENGINE_DIR}/Utils)
 
 # -------------------------
 # ECS library (Engine/Core)
@@ -41,6 +46,7 @@ set(GAME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Game)
 add_library(ecs STATIC
     ${ENGINE_CORE_DIR}/entity.cpp
     ${ENGINE_CORE_DIR}/registry.cpp
+        Engine/Core/Entities/Include/button.hpp
 )
 
 target_include_directories(ecs PUBLIC
@@ -52,38 +58,40 @@ target_include_directories(ecs PUBLIC
 # r-type_client (with Raylib)
 # -------------------------
 add_executable(r-type_client
-    ${ENGINE_CORE_DIR}/entity.cpp
-    ${ENGINE_CORE_DIR}/registry.cpp
-    ${ENGINE_DIR}/Rendering/Raylib.cpp
-    ${ENGINE_DIR}/Rendering/scene/AScene.cpp
-    ${ENGINE_DIR}/Rendering/scene/SceneHandler.cpp
     ${CLIENT_DIR}/main.cpp
     ${CLIENT_DIR}/Network_client/client.cpp
-    ${GAME_DIR}/Game.cpp
-    ${GAME_DIR}/Entities/player.cpp
-    ${GAME_DIR}/Entities/enemy.cpp
-    ${GAME_DIR}/Entities/hitbox.cpp
-    ${GAME_DIR}/Entities/obstacle.cpp
-    ${GAME_DIR}/Entities/background.cpp
-    ${GAME_DIR}/Entities/sound.cpp
-    ${GAME_DIR}/Entities/text.cpp
-    ${GAME_DIR}/Entities/button.cpp
-    ${GAME_DIR}/Entities/random_element.cpp
-    ${GAME_DIR}/Scene/GameScene.cpp
-    ${GAME_DIR}/Scene/MenuScene.cpp
-    ${GAME_DIR}/Système/Collision.cpp
+    ${ENGINE_DIR}/Game.cpp
+    ${ENGINE_ENTITIES_DIR}/player.cpp
+    ${ENGINE_ENTITIES_DIR}/enemy.cpp
+    ${ENGINE_ENTITIES_DIR}/hitbox.cpp
+    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
+    ${ENGINE_ENTITIES_DIR}/background.cpp
+    ${ENGINE_ENTITIES_DIR}/sound.cpp
+    ${ENGINE_ENTITIES_DIR}/text.cpp
+    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_UTILS_DIR}/entity_parser.cpp
+    ${ENGINE_UTILS_DIR}/entity_storage.cpp
+    ${ENGINE_RENDERING_DIR}/Raylib.cpp
+    ${ENGINE_SCENE_DIR}/AScene.cpp
+    ${ENGINE_SCENE_DIR}/SceneHandler.cpp
+    ${ENGINE_DIR}/Scene/GameScene.cpp
+    ${ENGINE_DIR}/Scene/MenuScene.cpp
+    ${ENGINE_PHYSICS_DIR}/Collision.cpp
+        Engine/Core/Entities/button.cpp
 )
 
 target_include_directories(r-type_client PRIVATE
     ${CLIENT_DIR}/Network_client/Include
-    ${CLIENT_DIR}/Input
-    ${GAME_DIR}
-    ${GAME_DIR}/Entities/Include
-    ${GAME_DIR}/Scene
+    ${ENGINE_CORE_DIR}/Include
+    ${ENGINE_ENTITIES_DIR}/Include
+    ${ENGINE_RENDERING_DIR}
+    ${ENGINE_SCENE_DIR}
+    ${ENGINE_DIR}/Scene
+    ${ENGINE_UTILS_DIR}/Include
     ${SHARED_DIR}
 )
 
-target_link_libraries(r-type_client PRIVATE ecs raylib glfw)
+target_link_libraries(r-type_client PRIVATE ecs raylib glfw nlohmann_json)
 
 # -------------------------
 # r-type_server (no Raylib)
@@ -94,17 +102,28 @@ add_executable(r-type_server
     ${SERVER_DIR}/Network_handler/connexion.cpp
     ${SERVER_DIR}/Network_handler/UDP_socket.cpp
     ${SERVER_DIR}/Game_logic/game_setup.cpp
-    ${GAME_DIR}/ServerGame.cpp
+    ${SERVER_DIR}/Game_logic/ServerGame.cpp
+    ${ENGINE_UTILS_DIR}/entity_parser.cpp
+    ${ENGINE_UTILS_DIR}/entity_storage.cpp
+    ${ENGINE_ENTITIES_DIR}/player.cpp
+    ${ENGINE_ENTITIES_DIR}/enemy.cpp
+    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
+    ${ENGINE_ENTITIES_DIR}/background.cpp
+    ${ENGINE_ENTITIES_DIR}/sound.cpp
+    ${ENGINE_ENTITIES_DIR}/text.cpp
+    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/hitbox.cpp
 )
 
 target_include_directories(r-type_server PRIVATE
     ${SERVER_DIR}/Network_handler/Include
     ${SERVER_DIR}/Game_logic/Include
-    ${GAME_DIR}
+    ${ENGINE_CORE_DIR}/Include
+    ${ENGINE_ENTITIES_DIR}/Include
+    ${ENGINE_UTILS_DIR}/Include
     ${SHARED_DIR}
 )
-
-target_link_libraries(r-type_server PRIVATE ecs)
+target_link_libraries(r-type_server PRIVATE ecs nlohmann_json)
 
 # -------------------------
 # Unit tests
@@ -126,7 +145,7 @@ install(TARGETS r-type_client r-type_server ecs
 # -------------------------
 execute_process(
     # COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/assets.zip # /!\ DO NOT DELETE, to be used after
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Game/Assets/ ./assets # Temporary solution to get access to assets directory
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Engine/Assets/ ./assets # Temporary solution to get access to assets directory
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 

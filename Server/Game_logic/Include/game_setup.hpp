@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "connexion.hpp"
-#include "protocol.hpp"
+#include "../../Network_handler/Include/connexion.hpp"
+#include "../../../Shared/protocol.hpp"
 #include <atomic>
 
 /**

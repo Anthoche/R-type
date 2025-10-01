@@ -6,8 +6,8 @@
 */
 
 #include "SceneHandler.hpp"
-#include "../../../Game/Scene/MenuScene.hpp"
-#include "../../../Game/Scene/GameScene.hpp"
+#include "../../Scene/Include/MenuScene.hpp"
+#include "../../Scene/Include/GameScene.hpp"
 
 SceneHandler::SceneHandler(Game &game) : _game(game) {
 	_raylib = Raylib();

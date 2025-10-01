@@ -29,12 +29,16 @@ The project is divided into several modules:
 ### Frontend
 
 * **C++** - Development language
-* **Raylib** - Graphical librairie
+* **Raylib** - Graphical library
+* **Asio** - Network library
 
-### Backend
+### Compilation & Build
 
-* **Asio** - network librairie
+CMake – Cross-platform build system and project configuration
 
+### Testing
+
+Criterion – Unit testing framework
 
 ## 📁 Project Structure
 
@@ -65,6 +69,11 @@ r-type/
 └── tests/                # Unit tests (catch2, doctest)
 
 ```
+
+## 📚 Documentation
+
+- 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**  
+  Visual representations of system architecture.
 
 ## 🔧 Development
 
