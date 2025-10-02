@@ -19,8 +19,20 @@ namespace scene {
     void SettingsScene::render() {
         _raylib.beginDrawing();
         _raylib.clearBackground(BLACK);
-        _raylib.drawText("Settings Page", 350, 200, 40, RAYWHITE);
-        _raylib.drawText("Press ESC to return", 330, 300, 20, LIGHTGRAY);
+
+        _raylib.drawText("R-Type", 380, 50, 60, RAYWHITE);
+
+        _raylib.drawText("1. Difficulty", 250, 180, 30, WHITE);
+        _raylib.drawText("Medium", 600, 180, 30, RAYWHITE);
+
+        _raylib.drawText("2. Lives", 250, 250, 30, WHITE);
+        _raylib.drawText("3", 600, 250, 30, RAYWHITE);
+
+        _raylib.drawText("3. Sound", 250, 320, 30, WHITE);
+        _raylib.drawText("On", 600, 320, 30, RAYWHITE);
+
+        _raylib.drawText("< Back", 50, 480, 25, LIGHTGRAY);
+
         _raylib.endDrawing();
     }
 
