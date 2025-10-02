@@ -8,6 +8,7 @@
 #include "SceneHandler.hpp"
 #include "../../../Game/Scene/MenuScene.hpp"
 #include "../../../Game/Scene/GameScene.hpp"
+#include "../../../Game/Scene/SettingsScene.hpp"
 
 SceneHandler::SceneHandler(Game &game) : _game(game) {
 	_raylib = Raylib();
@@ -21,6 +22,7 @@ void SceneHandler::addScene(const std::string &name, const std::shared_ptr<IScen
 void SceneHandler::setupScenes() {
 	addScene("menu", std::make_shared<scene::MenuScene>(_game));
 	addScene("game", std::make_shared<game::scene::GameScene>(_game));
+	addScene("settings", std::make_shared<scene::SettingsScene>(_game));
 }
 
 void SceneHandler::openMenu() {

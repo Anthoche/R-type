@@ -78,14 +78,17 @@ namespace scene {
 		resetButtonStates();
 
 		if (_game.getGameStatus() == GameStatus::RUNNING) {
-			_game.getSceneHandler().open("game");
-			return;
-		}
+        _game.getSceneHandler().open("game");
+        return;
+    }
 
-		switch (_raylib.getKeyPressed()) {
-			default:
-				break;
-		}
+    switch (_raylib.getKeyPressed()) {
+        case KEY_S:
+            _game.getSceneHandler().open("settings");
+            break;
+        default:
+            break;
+    }
 
 		Vector2 mousePos = _raylib.getMousePosition();
 		auto &positions = _registry.get_components<component::position>();
@@ -127,7 +130,7 @@ namespace scene {
 		if (id == "button_play") {
 			// Launch game
 		} else if (id == "button_settings") {
-			// Open settings menu
+			 _game.getSceneHandler().open("settings");
 		} else if (id == "button_quit") {
 			close();
 		}
