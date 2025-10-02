@@ -43,22 +43,27 @@ private:
     std::thread rxThread; ///< Thread for receiving network messages.
     std::atomic<bool> running{false}; ///< Flag to control the client lifecycle.
     Game &_game; ///< Reference to the game instance.
-
-public:
+    
+    public:
     /**
      * @brief Temporarily exposed for state access.
      */
     std::mutex stateMutex; ///< Mutex to protect shared game state.
-
+    
     /**
      * @brief Maps client IDs to their (x,y) positions.
      */
     std::unordered_map<uint32_t, std::pair<float, float>> players;
-
+    
     /**
      * @brief Maps obstacle IDs to their (x,y,width,height).
      */
     std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
+    
+    /**
+     * @brief Maps projectiles IDs to their (x,y,width,height).
+     */
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
 
     /**
      * @brief Constructs a GameClient and connects to the server.
@@ -147,4 +152,27 @@ public:
      * @param buffer Raw message data.
      */
     void handleObstacleDespawn(const std::vector<uint8_t> &buffer);
+
+    /**
+     * @brief Handles an shoot message.
+     */
+    void sendShoot();
+
+    /**
+     * @brief Handles an projectiles spwan message.
+     * @param buffer Raw message data.
+     */
+    void handleProjectileSpawn(const std::vector<uint8_t> &buffer);
+
+    /**
+     * @brief Handles an projectiles despwan message.
+     * @param buffer Raw message data.
+     */
+    void handleProjectileDespawn(const std::vector<uint8_t> &buffer);
+
+    /**
+     * @brief Handles an projectiles update message.
+     * @param buffer Raw message data.
+     */
+    void handleProjectileUpdate(const std::vector<uint8_t> &buffer);
 };

@@ -151,7 +151,8 @@ namespace component {
         BACKGROUND,///< Background entity
         SOUND,     ///< Sound-only entity
         TEXT,      ///< Text label entity
-        BUTTON     ///< Button entity (UI)
+        BUTTON,     ///< Button entity (UI)
+        PROJECTILE,  ///< projectile entity
     };
 
     /**

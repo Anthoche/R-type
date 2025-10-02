@@ -76,7 +76,12 @@ namespace game::scene {
         }
         if (!_player.value() && !_playerEntities.empty()) _player = _playerEntities.begin()->second;
         auto &pp = _registry.get_components<component::previous_position>();
-        for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) { if (positions[i] && pp[i]) { pp[i]->x = positions[i]->x; pp[i]->y = positions[i]->y; } }
+        for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) { 
+            if (positions[i] && pp[i]) { 
+                pp[i]->x = positions[i]->x; pp[i]->y = positions[i]->y; 
+            } 
+        }
+        check_projectile_enemy_collisions();
         _registry.run_systems();
         check_collisions();
     }
@@ -135,6 +140,11 @@ namespace game::scene {
                 );
             }
         }
+        for (auto &kv : _game.getGameClient().projectiles) {
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
+            _raylib.drawRectangle((int)(x - 5), (int)(y - 2), 10, 5, WHITE);
+        }
         _raylib.endDrawing();
     }
 
@@ -142,17 +152,31 @@ namespace game::scene {
         update();
         float input_x = 0.f;
         float input_y = 0.f;
-        if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP)) input_y = -1.f;
-        if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN)) input_y = 1.f;
-        if (_raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT)) input_x = -1.f;
-        if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT)) input_x = 1.f;
+        static float lastShotTime = 0.f;
+        const float SHOOT_COOLDOWN = 0.3f;
+
+        if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP))
+            input_y = -1.f;
+        if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN))
+            input_y = 1.f;
+        if (_raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT))
+            input_x = -1.f;
+        if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT))
+            input_x = 1.f;
+        if (_raylib.isKeyPressed(KEY_SPACE)) {
+            float currentTime = _raylib.getTime();
+            if (currentTime - lastShotTime >= SHOOT_COOLDOWN) {
+                handle_shoot();
+                lastShotTime = currentTime;
+            }
+        }
         handle_input(input_x, input_y);
     }
 
-    void GameScene::onClose() {
-        _game_running = false;
+    void GameScene::handle_shoot() {
+        _game.getGameClient().sendShoot();
     }
-
+    
     void GameScene::handle_input(float input_x, float input_y) {
         _game.getGameClient().sendInput(input_x, input_y);
     }
@@ -234,6 +258,55 @@ namespace game::scene {
     void GameScene::check_collisions() {
         for (auto const &kvPlayer : _playerEntities) {
             collision::handle_entity_collisions(*this, kvPlayer.second);
+        }
+    }
+ 
+    void GameScene::onClose() {
+        _game_running = false;
+    }
+
+    void GameScene::check_projectile_enemy_collisions() {
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> localProjs;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            localProjs = _game.getGameClient().projectiles;
+        }
+        
+        auto &positions = _registry.get_components<component::position>();
+        auto &drawables = _registry.get_components<component::drawable>();
+        auto &types = _registry.get_components<component::type>();
+        
+        for (const auto& proj : localProjs) {
+            float projX = std::get<0>(proj.second);
+            float projY = std::get<1>(proj.second);
+            
+            float projLeft = projX - 5.f;
+            float projRight = projX + 5.f;
+            float projTop = projY - 2.5f;
+            float projBottom = projY + 2.5f;
+            
+            for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
+                if (!positions[i] || !drawables[i] || !types[i]) continue;
+                
+                if (types[i]->value == component::entity_type::ENEMY) {
+                    float enemyX = positions[i]->x;
+                    float enemyY = positions[i]->y;
+                    float enemyW = drawables[i]->width;
+                    float enemyH = drawables[i]->height;
+                    
+                    float enemyLeft = enemyX - enemyW * 0.5f;
+                    float enemyRight = enemyX + enemyW * 0.5f;
+                    float enemyTop = enemyY - enemyH * 0.5f;
+                    float enemyBottom = enemyY + enemyH * 0.5f;
+                    
+                    if (projRight > enemyLeft && projLeft < enemyRight &&
+                        projBottom > enemyTop && projTop < enemyBottom) {                    
+                        ecs::entity_t entity = _registry.entity_from_index(i);
+                        _registry.kill_entity(entity);                    
+                        break;
+                    }
+                }
+            }
         }
     }
 } // namespace game::scene
