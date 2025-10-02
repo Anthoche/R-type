@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+cd build
+
+./r-type_client localhost test1 &
+./r-type_client localhost test2 &
+./r-type_client localhost test3 &
+./r-type_client localhost test4

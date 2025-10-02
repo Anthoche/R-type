@@ -78,12 +78,6 @@ namespace scene {
 	void MenuScene::handleEvents() {
 		resetButtonStates();
 
-		if (_game.getGameStatus() == GameStatus::RUNNING) {
-			// TODO: à enlever après implémentation de la waiting scene
-			_game.getSceneHandler().open("game");
-			return;
-		}
-
 		switch (_raylib.getKeyPressed()) {
 			default:
 				break;
