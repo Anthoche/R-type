@@ -26,6 +26,24 @@ public:
 
 private:
     Game &_game;
+
+    Font _font{};
+    std::string _sceneTitle;
+    int const _titleSize = 80;
+
+    std::vector<std::string> _buttons;
+    std::vector<std::string> _values;
+    Color const _accentColor{26, 170, 177, 255};
+    Vector2 const _buttonSize{300.f, 50.f};
+    int const _buttonTextSize = 23;
+    int const _buttonSpacing = 20;
+
+    Vector2 _buttonPosition{};
+    int getCenterY(int screenHeight, int elementHeight) const;
+    int getButtonsCenterY(int screenHeight, int numberOfButtons, 
+                        int buttonHeight, int buttonSpacing) const;
+
+
 };
 }
 
