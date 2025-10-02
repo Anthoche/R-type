@@ -68,6 +68,12 @@ namespace game::scene {
         void onClose() override;
 
         // --- Event handling ---
+
+        /**
+         * @brief handle shoot input.
+         */
+        void handle_shoot();
+
         /**
          * @brief Handle player input.
          * @param input_x Horizontal input (movement).
@@ -150,6 +156,11 @@ namespace game::scene {
          * @brief Check and resolve collisions for all entities.
          */
         void check_collisions();
+
+        /**
+         * @brief Check and resolve collisions for projectile on enemy.
+         */
+        void check_projectile_enemy_collisions();
 
         /**
          * @brief Synchronize hitboxes with their parent entity immediately.

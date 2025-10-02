@@ -24,7 +24,11 @@ enum class MessageType : uint8_t {
     EnemyUpdate,      /**< Server updates an enemy's position */
     EnemyDespawn,     /**< Server removes an enemy */
     ObstacleSpawn,    /**< Server spawns a new obstacle */
-    ObstacleDespawn   /**< Server removes an obstacle */
+    ObstacleDespawn,   /**< Server removes an obstacle */
+    ClientShoot,        /**< CLient send a shoot */
+    ProjectileSpawn,      /**< Server create an projectile */
+    ProjectileUpdate,     /**< Server update an projectile */
+    ProjectileDespawn     /**< Server delete an projectile */
 };
 
 /**
@@ -118,4 +122,43 @@ struct ObstacleSpawnMessage {
 struct ObstacleDespawnMessage {
     MessageType type;          /**< Message type (ObstacleDespawn) */
     uint32_t obstacleId;       /**< Obstacle ID to remove (network byte order) */
+};
+
+/**
+ * @brief Message sent by client to send shoot
+ */
+struct ClientShootMessage {
+    MessageType type;     // ClientShoot
+    uint32_t clientId;    // ID du client qui tire (network byte order)
+};
+
+/**
+ * @brief Message sent by server to create an projectile
+ */
+struct ProjectileSpawnMessage {
+    MessageType type;         // ProjectileSpawn
+    uint32_t projectileId;    // ID unique du projectile
+    uint32_t ownerId;         // ID du joueur qui a tiré
+    uint32_t posXBits;        // Position X (float bits)
+    uint32_t posYBits;        // Position Y (float bits)
+    uint32_t velXBits;        // Vélocité X (float bits)
+    uint32_t velYBits;        // Vélocité Y (float bits)
+};
+
+/**
+ * @brief Message sent by server to update an projectile
+ */
+struct ProjectileUpdateMessage {
+    MessageType type;       // ProjectileUpdate
+    uint32_t projectileId;  // ID unique du projectile
+    uint32_t posXBits;      // Position X (float bits)
+    uint32_t posYBits;      // Position y (float bits)
+};
+
+/**
+ * @brief Message sent by server to remove an projectile
+ */
+struct ProjectileDespawnMessage {
+    MessageType type;       // ProjectileDeSpawn
+    uint32_t projectileId;  // ID unique du projectile
 };

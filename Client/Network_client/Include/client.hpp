@@ -35,122 +35,145 @@ class Game;
  * - A render thread for user input and display.
  */
 class GameClient {
-private:
-	int _serverPort; ///< Server port
-	std::string _serverIp; ///< Server IP address
-	int socketFd; ///< File descriptor for the UDP socket.
-	sockaddr_in serverAddr{}; ///< Server address structure.
-	uint32_t clientId{0}; ///< Unique client ID assigned by the server.
-	std::string clientName; ///< Name of this client.
-	std::thread rxThread; ///< Thread for receiving network messages.
-	std::atomic<bool> running{false}; ///< Flag to control the client lifecycle.
-	Game &_game; ///< Reference to the game instance.
-	bool _isConnected; ///< Is connected bool
+  private:
+    int _serverPort; ///< Server port
+    std::string _serverIp; ///< Server IP address
+    int socketFd; ///< File descriptor for the UDP socket.
+    sockaddr_in serverAddr{}; ///< Server address structure.
+    uint32_t clientId{0}; ///< Unique client ID assigned by the server.
+    std::string clientName; ///< Name of this client.
+    std::thread rxThread; ///< Thread for receiving network messages.
+    std::atomic<bool> running{false}; ///< Flag to control the client lifecycle.
+    Game &_game; ///< Reference to the game instance.
+    bool _isConnected; ///< Is connected bool
 
-public:
-	/**
-	* @brief Temporarily exposed for state access.
-	*/
-	std::mutex stateMutex; ///< Mutex to protect shared game state.
+  public:
+    /**
+    * @brief Temporarily exposed for state access.
+    */
+    std::mutex stateMutex; ///< Mutex to protect shared game state.
 
-	/**
-	* @brief Maps client IDs to their (x,y) positions.
-	*/
-	std::unordered_map<uint32_t, std::pair<float, float> > players;
+    /**
+    * @brief Maps client IDs to their (x,y) positions.
+    */
+    std::unordered_map<uint32_t, std::pair<float, float> > players;
 
-	/**
-	* @brief Maps obstacle IDs to their (x,y,width,height).
-	*/
-	std::unordered_map<uint32_t, std::tuple<float, float, float, float> > obstacles;
+    /**
+    * @brief Maps obstacle IDs to their (x,y,width,height).
+    */
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float> > obstacles;
 
-	/**
-	* @brief Constructs a GameClient and connects to the server.
-	* @param game The game instance.
-	* @param serverIp IP address of the game server.
-	* @param serverPort UDP port of the game server.
-	* @param name Name of this client.
-	* @throws std::runtime_error if socket creation or server address resolution fails.
-	*/
-	GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name);
+    /**
+    * @brief Constructs a GameClient and connects to the server.
+    * @param game The game instance.
+    * @param serverIp IP address of the game server.
+    * @param serverPort UDP port of the game server.
+    * @param name Name of this client.
+    * @throws std::runtime_error if socket creation or server address resolution fails.
+    */
+    GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name);
 
-	/**
-	* @brief Destroys the GameClient, cleans up resources, and stops all threads.
-	*/
-	~GameClient();
+    /**
+    * @brief Destroys the GameClient, cleans up resources, and stops all threads.
+    */
+    ~GameClient();
 
-	/**
-	* Checks if the client is connected to the server
-	* @return True if the client is connected to the server, false otherwise
-	*/
-	bool isConnected() const;
+    /**
+    * Checks if the client is connected to the server
+    * @return True if the client is connected to the server, false otherwise
+    */
+    bool isConnected() const;
 
-	/**
-	* Connects to the server
-	*/
-	void connect();
+    /**
+    * Connects to the server
+    */
+    void connect();
 
-	/**
-	* @brief Starts the client main loop.
-	*
-	* Launches the network receive thread and waits for the game to start.
-	*/
-	void run();
+    /**
+    * @brief Starts the client main loop.
+    *
+    * Launches the network receive thread and waits for the game to start.
+    */
+    void run();
 
-	/**
-	* @brief Sends a ClientHello message to the server to initiate connection.
-	*/
-	void sendHello();
+    /**
+    * @brief Sends a ClientHello message to the server to initiate connection.
+    */
+    void sendHello();
 
-	/**
-	* @brief Network receive loop.
-	*
-	* Listens for incoming messages and dispatches them to the appropriate handler.
-	*/
-	void recvLoop();
+    /**
+    * @brief Network receive loop.
+    *
+    * Listens for incoming messages and dispatches them to the appropriate handler.
+    */
+    void recvLoop();
 
-	/**
-	* @brief Sends player input to the server.
-	* @param inputX Horizontal input (-1 to 1).
-	* @param inputY Vertical input (-1 to 1).
-	*/
-	void sendInput(float inputX, float inputY);
+    /**
+    * @brief Sends player input to the server.
+    * @param inputX Horizontal input (-1 to 1).
+    * @param inputY Vertical input (-1 to 1).
+    */
+    void sendInput(float inputX, float inputY);
 
-	/**
-	* @brief Dispatches an incoming message to the appropriate handler.
-	* @param type Type of the message.
-	* @param buffer Raw message data.
-	*/
-	void handleMessage(MessageType type, const std::vector<uint8_t> &buffer);
+    /**
+    * @brief Dispatches an incoming message to the appropriate handler.
+    * @param type Type of the message.
+    * @param buffer Raw message data.
+    */
+    void handleMessage(MessageType type, const std::vector<uint8_t> &buffer);
 
-	// --- Player-related message handlers ---
-	/**
-	* @brief Handles a ServerAssignId message.
-	* @param buffer Raw message data.
-	*/
-	void handleServerAssignId(const std::vector<uint8_t> &buffer);
+    // --- Player-related message handlers ---
+    /**
+    * @brief Handles a ServerAssignId message.
+    * @param buffer Raw message data.
+    */
+    void handleServerAssignId(const std::vector<uint8_t> &buffer);
 
-	/**
-	* @brief Handles a GameStart message.
-	* @param buffer Raw message data.
-	*/
-	void handleGameStart(const std::vector<uint8_t> &buffer);
+    /**
+    * @brief Handles a GameStart message.
+    * @param buffer Raw message data.
+    */
+    void handleGameStart(const std::vector<uint8_t> &buffer);
 
-	/**
-	* @brief Handles a StateUpdate message (player position update).
-	* @param buffer Raw message data.
-	*/
-	void handlePlayerUpdate(const std::vector<uint8_t> &buffer);
+    /**
+    * @brief Handles a StateUpdate message (player position update).
+    * @param buffer Raw message data.
+    */
+    void handlePlayerUpdate(const std::vector<uint8_t> &buffer);
 
-	// --- Obstacle-related message handlers ---
-	/**
-	* @brief Handles an ObstacleSpawn message.
-	* @param buffer Raw message data.
-	*/
-	void handleObstacleSpawn(const std::vector<uint8_t> &buffer);
+    // --- Obstacle-related message handlers ---
+    /**
+    * @brief Handles an ObstacleSpawn message.
+    * @param buffer Raw message data.
+    */
+    void handleObstacleSpawn(const std::vector<uint8_t> &buffer);
 
-	/**
-	* @brief Handles an ObstacleDespawn message.
-	* @param buffer Raw message data.
-	*/
-	void handleObstacleDespawn(const std::vector<uint8_t> &buffer);
+    /**
+    * @brief Handles an ObstacleDespawn message.
+    * @param buffer Raw message data.
+    */
+    void handleObstacleDespawn(const std::vector<uint8_t> &buffer);
+
+    /**
+     * @brief Handles an shoot message.
+     */
+    void sendShoot();
+
+    /**
+     * @brief Handles an projectiles spwan message.
+     * @param buffer Raw message data.
+     */
+    void handleProjectileSpawn(const std::vector<uint8_t> &buffer);
+
+    /**
+     * @brief Handles an projectiles despwan message.
+     * @param buffer Raw message data.
+     */
+    void handleProjectileDespawn(const std::vector<uint8_t> &buffer);
+
+    /**
+     * @brief Handles an projectiles update message.
+     * @param buffer Raw message data.
+     */
+    void handleProjectileUpdate(const std::vector<uint8_t> &buffer);
 };
