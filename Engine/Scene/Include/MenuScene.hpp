@@ -10,7 +10,6 @@
 
     #include "../../Rendering/scene/AScene.hpp"
     #include "../Game.hpp"
-    #include <vector>
 
 namespace scene {
 
@@ -27,7 +26,7 @@ namespace scene {
 class MenuScene: public AScene {
     public:
         /**
-         * @brief Construct a MenuScene with a reference to the SceneHandler.
+         * @brief Construct a MenuScene with a reference to the game.
          * @param game The game instance.
          */
         MenuScene(Game &game);
@@ -79,10 +78,6 @@ class MenuScene: public AScene {
         void resetButtonStates();
         void handleButtonClick(std::string const &id);
         void drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize, float spacing, Color color, Color textColor, bool isHovered, bool isClicked);
-
-        int getCenterY(int screenHeight, int elementHeight) const;
-
-        int getButtonsCenterY(int screenHeight, int numberOfButtons, int buttonHeight, int buttonSpacing) const;
 };
 
 } // namespace scene

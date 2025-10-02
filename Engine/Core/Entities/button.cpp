@@ -22,10 +22,7 @@ namespace game::entities {
 		component::drawable drawable;
 		drawable.width = size.x;
 		drawable.height = size.y;
-		drawable.r = 0.f;
-		drawable.g = 1.f;
-		drawable.b = 1.f;
-		drawable.a = 1.f; //TODO: Replace with Raylib color types (0 to 255) & use color
+		drawable.color = color;
 		reg.add_component<component::drawable>(button, std::move(drawable));
 
 		component::text text;
@@ -33,7 +30,6 @@ namespace game::entities {
 		text.font_size = 35;
 		text.content = displayName;
 		text.color = textColor;
-
 		reg.emplace_component<component::text>(button, std::move(text));
 		return button;
 	}

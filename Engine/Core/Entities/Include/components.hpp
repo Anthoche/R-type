@@ -51,7 +51,7 @@ namespace component {
     struct drawable {
         float width{32.f};  ///< Width of the entity
         float height{32.f}; ///< Height of the entity
-        float r{1.f}, g{1.f}, b{1.f}, a{1.f}; ///< Color in RGBA
+        Color color{WHITE}; ///< Color in RGBA
     };
 
     /**
@@ -101,6 +101,7 @@ namespace component {
      */
     struct clickable {
         std::string id{};
+        bool enabled{true};
         bool isClicked{false};
     };
 

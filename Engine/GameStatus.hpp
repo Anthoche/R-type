@@ -9,10 +9,11 @@
 #define RTYPE_GAMESTATUS_HPP
 
 /**
- * @brief The status of the game: WAITING, RUNNING, FINISHED
+ * @brief The status of the game: WAITING_PLAYERS, PENDING_START, RUNNING, FINISHED
  */
 enum class GameStatus {
-	WAITING, ///< Waiting for players to join
+	WAITING_PLAYERS, ///< Waiting for players to join
+	PENDING_START, ///< Waiting for the game to start
 	RUNNING, ///< Game is running
 	FINISHED ///< Game is finished
 };
