@@ -64,6 +64,11 @@ class GameClient {
     std::unordered_map<uint32_t, std::tuple<float, float, float, float> > obstacles;
 
     /**
+     * @brief Maps projectiles IDs to their (x,y,width,height).
+     */
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
+
+    /**
     * @brief Constructs a GameClient and connects to the server.
     * @param game The game instance.
     * @param serverIp IP address of the game server.
