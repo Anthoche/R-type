@@ -6,9 +6,15 @@
 */
 
 #ifndef RTYPE_RENDERUTILS_HPP
-	#define RTYPE_RENDERUTILS_HPP
+#define RTYPE_RENDERUTILS_HPP
 
-int getCenterY(int screenHeight, int elementHeight);
+#include "Raylib.hpp"
+#include <string>
+
+float getElementCenter(int screenAxis, int elementAxis);
+
+void drawButton(Raylib &raylib, Vector2 position, Vector2 size, std::string const &content, Font font, int fontSize, float spacing,
+				Color color, Color textColor, bool isHovered, bool isClicked, bool isEnabled);
 
 int getButtonsCenterY(int screenHeight, int numberOfButtons, int buttonHeight, int buttonSpacing);
 

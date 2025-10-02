@@ -13,7 +13,6 @@ GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverP
 	_isConnected = false;
 	_serverIp = serverIp;
 	_serverPort = serverPort;
-	connect();
 }
 
 GameClient::~GameClient() {
@@ -37,6 +36,7 @@ bool GameClient::isConnected() const {
 }
 
 void GameClient::connect() {
+	std::cout << "[DEBUG] Connecting to server..." << std::endl;
 	socketFd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (socketFd < 0) {
 		throw std::runtime_error("Failed to create socket");
@@ -47,7 +47,11 @@ void GameClient::connect() {
 	if (inet_pton(AF_INET, _serverIp.c_str(), &serverAddr.sin_addr) <= 0) {
 		throw std::runtime_error("Invalid server IP");
 	}
+	std::cout << "[DEBUG] Initialized connection." << std::endl;
+	std::cout << "[DEBUG] Sending packet..." << std::endl;
+	sendHello();
 	_isConnected = true; // Does not work here, for testing only!
+	std::cout << "[DEBUG] Connected successfully to the server!" << std::endl;
 }
 
 void GameClient::sendHello() {
@@ -61,7 +65,7 @@ void GameClient::sendHello() {
 		(struct sockaddr *) &serverAddr, sizeof(serverAddr)
 	);
 	if (sentBytes < 0) {
-		std::cerr << "[ERREUR] Échec de l'envoi de ClientHello" << std::endl;
+		throw std::runtime_error("Failed to send hello packet");
 	}
 }
 

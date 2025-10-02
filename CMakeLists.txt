@@ -79,6 +79,7 @@ add_executable(r-type_client
     ${ENGINE_DIR}/Scene/GameScene.cpp
     ${ENGINE_DIR}/Scene/MenuScene.cpp
     ${ENGINE_DIR}/Scene/WaitingScene.cpp
+    ${ENGINE_DIR}/Scene/ServerWaitScene.cpp
     ${ENGINE_PHYSICS_DIR}/Collision.cpp
 )
 
