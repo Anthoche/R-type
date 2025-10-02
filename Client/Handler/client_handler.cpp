@@ -2,56 +2,14 @@
 ** EPITECH PROJECT, 2025
 ** G-CPP-500-PAR-5-1-rtype-1
 ** File description:
-** client
+** client_handlers - Message handling logic
 */
-#include "Include/client.hpp"
+
+#include "../client.hpp"
 #include "../../Engine/Game.hpp"
-
-
-GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
-    : clientName(name), _game(game) {
-    socketFd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (socketFd < 0) {
-        throw std::runtime_error("Failed to create socket");
-    }
-    serverAddr = {};
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(serverPort);
-    if (inet_pton(AF_INET, serverIp.c_str(), &serverAddr.sin_addr) <= 0) {
-        throw std::runtime_error("Invalid server IP");
-    }
-}
-
-GameClient::~GameClient() {
-    running = false;
-    if (rxThread.joinable()) rxThread.join();
-    close(socketFd);
-}
-
-void GameClient::run() {
-    std::cout << "Client démarré. En attente du début du jeu..." << std::endl;
-    running = true;
-    rxThread = std::thread(&GameClient::recvLoop, this);
-    while (_game.getGameStatus() != GameStatus::RUNNING) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-    std::cout << "Le jeu commence, ouverture de la fenêtre client..." << std::endl;
-}
-
-void GameClient::sendHello() {
-    ClientHelloMessage msg;
-    msg.type = MessageType::ClientHello;
-    msg.clientId = htonl(0);
-    strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
-    msg.clientName[sizeof(msg.clientName) - 1] = '\0';
-    ssize_t sentBytes = sendto(
-        socketFd, &msg, sizeof(msg), 0,
-        (struct sockaddr *)&serverAddr, sizeof(serverAddr)
-    );
-    if (sentBytes < 0) {
-        std::cerr << "[ERREUR] Échec de l'envoi de ClientHello" << std::endl;
-    }
-}
+#include "../../Engine/Utils/Include/entity_parser.hpp"
+#include "../../Engine/Scene/Include/GameScene.hpp"
+#include <nlohmann/json.hpp>
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
     switch (type) {
@@ -70,29 +28,27 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::ObstacleDespawn:
             handleObstacleDespawn(buffer);
             break;
+        case MessageType::EntityData: {
+            if (buffer.size() < sizeof(EntityDataMessage)) return;
+            const EntityDataMessage *msg = reinterpret_cast<const EntityDataMessage*>(buffer.data());
+            std::string jsonStr(msg->jsonData, msg->dataLength);
+            try {
+                nlohmann::json j = nlohmann::json::parse(jsonStr);
+                if (!j.contains("type")) {
+                    throw std::runtime_error("Entity JSON sans champ 'type'");
+                }
+                ecs::entity_t e = handleEntityCreation(j);
+                // Vérifier si l'entité est valide (différente de 0)
+                if (e.value() != 0) {
+                    std::cout << "[Client] Entity reçue et reconstruite: " << j.dump() << std::endl;
+                }
+            } catch (const std::exception &e) {
+                std::cerr << "[Client] Erreur JSON: " << e.what() << std::endl;
+            }
+            break;
+        }
         default:
             break;
-    }
-}
-
-void GameClient::recvLoop() {
-    while (running) {
-        std::vector<uint8_t> buffer(1024);
-        sockaddr_in fromAddr = {};
-        socklen_t fromAddrLen = sizeof(fromAddr);
-        ssize_t bytesReceived = recvfrom(
-            socketFd, buffer.data(), buffer.size(), MSG_DONTWAIT,
-            (struct sockaddr *)&fromAddr, &fromAddrLen
-        );
-        if (bytesReceived <= 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
-            continue;
-        }
-        if (bytesReceived < (ssize_t)sizeof(MessageType)) {
-            continue;
-        }
-        MessageType type = *reinterpret_cast<MessageType *>(buffer.data());
-        handleMessage(type, buffer);
     }
 }
 
@@ -145,21 +101,36 @@ void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
     obstacles.erase(id);
 }
 
-void GameClient::sendInput(float inputX, float inputY) {
-    ClientInputMessage m{};
-    m.type = MessageType::ClientInput;
-    m.clientId = htonl(clientId);
-    uint32_t xbits, ybits;
-    std::memcpy(&xbits, &inputX, sizeof(float));
-    std::memcpy(&ybits, &inputY, sizeof(float));
-    m.inputXBits = htonl(xbits);
-    m.inputYBits = htonl(ybits);
-    sendto(
-        socketFd, &m, sizeof(m), 0,
-        (struct sockaddr *)&serverAddr, sizeof(serverAddr)
+ecs::entity_t GameClient::handleEntityCreation(const nlohmann::json& j)
+{
+    auto gameScene = std::dynamic_pointer_cast<game::scene::GameScene>(
+        _game.getSceneHandler().getScene("game")
     );
-}
-
-void GameClient::runRenderLoop() {
-    /* ... (code commenté inchangé) ... */
+    
+    if (!gameScene) {
+        std::cerr << "[Client] GameScene introuvable" << std::endl;
+        return ecs::entity_t{0};
+    }
+    
+    ecs::registry& reg = gameScene->get_registry();
+    
+    auto typeVal = static_cast<component::entity_type>(j["type"].get<int>());
+    switch (typeVal) {
+        case component::entity_type::PLAYER:
+            return game::parsing::parse_player(reg, j);
+        case component::entity_type::ENEMY:
+            return game::parsing::parse_enemy(reg, j);
+        case component::entity_type::OBSTACLE:
+            return game::parsing::parse_obstacle(reg, j);
+        case component::entity_type::BACKGROUND:
+            return game::parsing::parse_background(reg, j);
+        case component::entity_type::SOUND:
+            return game::parsing::parse_sound(reg, j);
+        case component::entity_type::TEXT:
+            return game::parsing::parse_text(reg, j);
+        default:
+            std::cerr << "[Client] Type d'entité non supporté dans EntityData: "
+                      << static_cast<int>(typeVal) << std::endl;
+            return ecs::entity_t{0};
+    }
 }

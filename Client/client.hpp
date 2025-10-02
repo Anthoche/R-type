@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include "../../../Shared/protocol.hpp"
+#include "../Shared/protocol.hpp"
+#include "../Engine/Utils/Include/serializer.hpp"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -147,4 +148,6 @@ public:
      * @param buffer Raw message data.
      */
     void handleObstacleDespawn(const std::vector<uint8_t> &buffer);
+
+    ecs::entity_t handleEntityCreation(const nlohmann::json& j);
 };

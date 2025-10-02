@@ -11,7 +11,7 @@
 #include <thread>
 
 #include "GameStatus.hpp"
-#include "../Client/Network_client/Include/client.hpp"
+#include "../Client/client.hpp"
 #include "Rendering/scene/SceneHandler.hpp"
 
 /**

@@ -46,7 +46,7 @@ set(ENGINE_UTILS_DIR ${ENGINE_DIR}/Utils)
 add_library(ecs STATIC
     ${ENGINE_CORE_DIR}/entity.cpp
     ${ENGINE_CORE_DIR}/registry.cpp
-        Engine/Core/Entities/Include/button.hpp
+    Engine/Core/Entities/Include/button.hpp
 )
 
 target_include_directories(ecs PUBLIC
@@ -59,7 +59,9 @@ target_include_directories(ecs PUBLIC
 # -------------------------
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
-    ${CLIENT_DIR}/Network_client/client.cpp
+    ${CLIENT_DIR}/client.cpp
+    ${CLIENT_DIR}/Handler/client_handler.cpp
+    ${CLIENT_DIR}/Network_client/client_network.cpp
     ${ENGINE_DIR}/Game.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/enemy.cpp
@@ -71,17 +73,20 @@ add_executable(r-type_client
     ${ENGINE_ENTITIES_DIR}/random_element.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
+    ${ENGINE_UTILS_DIR}/serializer.cpp
     ${ENGINE_RENDERING_DIR}/Raylib.cpp
     ${ENGINE_SCENE_DIR}/AScene.cpp
     ${ENGINE_SCENE_DIR}/SceneHandler.cpp
     ${ENGINE_DIR}/Scene/GameScene.cpp
     ${ENGINE_DIR}/Scene/MenuScene.cpp
     ${ENGINE_PHYSICS_DIR}/Collision.cpp
-        Engine/Core/Entities/button.cpp
+    Engine/Core/Entities/button.cpp
 )
 
 target_include_directories(r-type_client PRIVATE
-    ${CLIENT_DIR}/Network_client/Include
+    ${CLIENT_DIR}
+    ${CLIENT_DIR}/Handler
+    ${CLIENT_DIR}/Network_client
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_RENDERING_DIR}
@@ -105,6 +110,7 @@ add_executable(r-type_server
     ${SERVER_DIR}/Game_logic/ServerGame.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
+    ${ENGINE_UTILS_DIR}/serializer.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/enemy.cpp
     ${ENGINE_ENTITIES_DIR}/obstacle.cpp

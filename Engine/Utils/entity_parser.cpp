@@ -18,10 +18,7 @@
 
 namespace game::parsing
 {
-    static void check_field(
-        const nlohmann::json &data,
-        const std::string &field,
-        nlohmann::json::value_t expected_type)
+    static void check_field(const nlohmann::json &data, const std::string &field, nlohmann::json::value_t expected_type)
     {
         if (!data.contains(field)) {
             throw std::runtime_error("Missing field: " + field);

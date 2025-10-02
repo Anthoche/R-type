@@ -10,12 +10,7 @@
 
 namespace game::entities
 {
-    ecs::entity_t create_player(
-        ecs::registry &reg,
-        float x,
-        float y,
-        const std::string &imagePath,
-        uint32_t clientId)
+    ecs::entity_t create_player(ecs::registry &reg, float x, float y, const std::string &imagePath, uint32_t clientId)
     {
         auto player = reg.spawn_entity();
 

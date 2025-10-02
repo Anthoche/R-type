@@ -5,6 +5,7 @@
 ** ServerGame
 */
 #include "Include/ServerGame.hpp"
+#include "../../Engine/Utils/Include/serializer.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>
@@ -15,18 +16,15 @@
 
 // === Couleurs pour les logs ===
 #define RESET   "\033[0m"
-#define RED     "\033[31m"      // Errors
-#define GREEN   "\033[32m"      // Info
-#define YELLOW  "\033[33m"      // Debug
-#define BLUE    "\033[34m"      // Affichage classique
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define BLUE    "\033[34m"
 
-// Macros pour les logs
 #define LOG_ERROR(msg)   std::cerr << RED << "[ERROR] " << msg << RESET << std::endl
 #define LOG_INFO(msg)    std::cout << GREEN << "[INFO] " << msg << RESET << std::endl
 #define LOG_DEBUG(msg)   std::cout << YELLOW << "[DEBUG] " << msg << RESET << std::endl
 #define LOG(msg)         std::cout << BLUE << msg << RESET << std::endl
-
-
 
 static nlohmann::json load_json_from_file(const std::string &path) {
     std::ifstream file(path);
@@ -58,6 +56,7 @@ void ServerGame::run() {
     //load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
     initialize_player_positions();
     initialize_obstacles();
+    broadcast_full_registry();
     const int tick_ms = 16;
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
@@ -66,6 +65,29 @@ void ServerGame::run() {
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
 }
+
+void ServerGame::broadcast_full_registry() {
+    auto &types = registry_server.get_components<component::type>();
+
+    for (std::size_t i = 0; i < types.size(); ++i) {
+        if (!types[i]) continue;
+
+        ecs::entity_t entity = registry_server.entity_from_index(i);
+        nlohmann::json j = game::serializer::serialize_entity(registry_server, entity);
+        if (j.empty()) continue;
+
+        std::string jsonStr = j.dump();
+
+        // Préparer un buffer : type + json
+        std::vector<uint8_t> buffer(sizeof(MessageType) + jsonStr.size());
+        *reinterpret_cast<MessageType*>(buffer.data()) = MessageType::EntityData;
+        std::memcpy(buffer.data() + sizeof(MessageType), jsonStr.data(), jsonStr.size());
+
+        socket.broadcast(buffer.data(), buffer.size());
+    }
+}
+
+
 
 void ServerGame::load_players(const std::string &path) {
     try {
