@@ -16,7 +16,6 @@ ecs::entity_t create_background(ecs::registry &reg, float x, float y, float widt
     component::drawable drw;
     drw.width = width;
     drw.height = height;
-    drw.r = 1.f; drw.g = 1.f; drw.b = 1.f; drw.a = 1.f;
     reg.add_component<component::drawable>(e, std::move(drw));
 
     reg.emplace_component<component::type>(e, component::entity_type::BACKGROUND);

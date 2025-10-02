@@ -46,7 +46,7 @@ set(ENGINE_UTILS_DIR ${ENGINE_DIR}/Utils)
 add_library(ecs STATIC
     ${ENGINE_CORE_DIR}/entity.cpp
     ${ENGINE_CORE_DIR}/registry.cpp
-        Engine/Core/Entities/Include/button.hpp
+    ${ENGINE_CORE_DIR}/Entities/Include/button.hpp
 )
 
 target_include_directories(ecs PUBLIC
@@ -68,16 +68,18 @@ add_executable(r-type_client
     ${ENGINE_ENTITIES_DIR}/background.cpp
     ${ENGINE_ENTITIES_DIR}/sound.cpp
     ${ENGINE_ENTITIES_DIR}/text.cpp
+    ${ENGINE_ENTITIES_DIR}/button.cpp
     ${ENGINE_ENTITIES_DIR}/random_element.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_RENDERING_DIR}/Raylib.cpp
+    ${ENGINE_RENDERING_DIR}/RenderUtils.cpp
     ${ENGINE_SCENE_DIR}/AScene.cpp
     ${ENGINE_SCENE_DIR}/SceneHandler.cpp
     ${ENGINE_DIR}/Scene/GameScene.cpp
     ${ENGINE_DIR}/Scene/MenuScene.cpp
+    ${ENGINE_DIR}/Scene/WaitingScene.cpp
     ${ENGINE_PHYSICS_DIR}/Collision.cpp
-        Engine/Core/Entities/button.cpp
 )
 
 target_include_directories(r-type_client PRIVATE
