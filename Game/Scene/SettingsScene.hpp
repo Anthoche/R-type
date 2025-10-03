@@ -10,11 +10,11 @@
 
     #include "../../Engine/Rendering/scene/AScene.hpp"
     #include "../Game.hpp"
+    #include "components.hpp"
 
 namespace scene {
 
 class SettingsScene: public AScene {
-    
 public:
     SettingsScene(Game &game);
     ~SettingsScene() override = default;
@@ -22,7 +22,7 @@ public:
     void init() override;
     void render() override;
     void handleEvents() override;
-    void onClose() override;
+    void onClose() ;
 
 private:
     Game &_game;
@@ -31,20 +31,24 @@ private:
     std::string _sceneTitle;
     int const _titleSize = 80;
 
-    std::vector<std::string> _buttons;
-    std::vector<std::string> _values;
     Color const _accentColor{26, 170, 177, 255};
     Vector2 const _buttonSize{300.f, 50.f};
     int const _buttonTextSize = 23;
     int const _buttonSpacing = 20;
 
     Vector2 _buttonPosition{};
+
+    void resetButtonStates();
+    void handleButtonClick(std::string const &id);
+    void drawButton(Vector2 position, Vector2 size, std::string const &content,
+                    int fontSize, float spacing, Color color, Color textColor,
+                    bool isHovered, bool isClicked);
+
     int getCenterY(int screenHeight, int elementHeight) const;
-    int getButtonsCenterY(int screenHeight, int numberOfButtons, 
-                        int buttonHeight, int buttonSpacing) const;
-
-
+    int getButtonsCenterY(int screenHeight, int numberOfButtons,
+                          int buttonHeight, int buttonSpacing) const;
 };
-}
+
+} // namespace scene
 
 #endif // SETTINGSSCENE_HPP

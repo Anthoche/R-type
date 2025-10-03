@@ -14,7 +14,14 @@
 #include "entity.hpp"
 
 namespace game::entities {
-	ecs::entity_t create_button(ecs::registry &reg, std::string const &id, std::string const &displayName, Vector2 pos, Vector2 size, Color color, Color textColor);
+	ecs::entity_t create_button(ecs::registry &reg,
+                            std::string const &id,
+                            std::string const &displayName,
+                            Vector2 pos,
+                            Vector2 size,
+                            Color color,
+                            Color textColor,
+                            int fontSize = 35);
 }
 
 #endif

@@ -17,31 +17,45 @@ namespace scene {
 		_buttonCenterY = static_cast<float>(getButtonsCenterY(_height, 3, _buttonSize.y, _buttonSpacing));
 		_buttonPosition = {600.f, _buttonCenterY};
 	}
+void MenuScene::init() {
+    _isOpen = true;
+    _raylib.enableCursor();
+    _raylib.setTargetFPS(60);
 
-	void MenuScene::init() {
-		_isOpen = true;
-		_raylib.enableCursor();
-		_raylib.setTargetFPS(60);
+    _registry = ecs::registry{};
 
-		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+    _font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
 
-		_registry.register_component<component::position>();
-		_registry.register_component<component::drawable>();
-		_registry.register_component<component::text>();
-		_registry.register_component<component::clickable>();
-		_registry.register_component<component::hoverable>();
-		_registry.register_component<component::type>();
+    _registry.register_component<component::position>();
+    _registry.register_component<component::drawable>();
+    _registry.register_component<component::text>();
+    _registry.register_component<component::clickable>();
+    _registry.register_component<component::hoverable>();
+    _registry.register_component<component::type>();
 
-		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
+    _buttonPosition = {600.f, _buttonCenterY};
 
-		game::entities::create_button(_registry, "button_play", "Play", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
-		game::entities::create_button(_registry, "button_settings", "Settings", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
-		game::entities::create_button(_registry, "button_quit", "Quit", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+    game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type",
+        RAYWHITE, -0.5f, _titleSize, _font);
 
-		_game.getGameClient().sendHello();
-	}
+    game::entities::create_button(_registry, "button_play", "Play",
+        _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+    _buttonPosition.y += _buttonSize.y + _buttonSpacing;
+
+    game::entities::create_button(_registry, "button_settings", "Settings",
+        _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+    _buttonPosition.y += _buttonSize.y + _buttonSpacing;
+
+    game::entities::create_button(_registry, "button_quit", "Quit",
+        _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+
+    static bool helloSent = false;
+    if (!helloSent) {
+        _game.getGameClient().sendHello();
+        helloSent = true;
+    }
+}
+
 
 	void MenuScene::render() {
 		_raylib.beginDrawing();
