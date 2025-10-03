@@ -147,15 +147,15 @@ void Raylib::drawRectangle(int posX, int posY, int width, int height, Color colo
 	DrawRectangle(posX, posY, width, height, color);
 }
 
-void Raylib::drawRectangleRec(Rectangle rec, Color color) {
+void Raylib::drawRectangleRec(RaylibRectangle rec, Color color) {
 	DrawRectangleRec(rec, color);
 }
 
-void Raylib::drawRectanglePro(Rectangle rec, Vector2 origin, float rotation, Color color) {
+void Raylib::drawRectanglePro(RaylibRectangle rec, Vector2 origin, float rotation, Color color) {
 	DrawRectanglePro(rec, origin, rotation, color);
 }
 
-bool Raylib::checkCollisionPointRec(Vector2 point, Rectangle rec) {
+bool Raylib::checkCollisionPointRec(Vector2 point, RaylibRectangle rec) {
 	return CheckCollisionPointRec(point, rec);
 }
 
