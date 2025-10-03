@@ -56,7 +56,7 @@ void SettingsScene::init() {
             _registry,
             {_buttonPosition.x, y},
             _buttons[i],
-            RAYWHITE,
+			_accentColor,
             -1.0f,
             _buttonTextSize,
             _font
@@ -136,8 +136,9 @@ void SettingsScene::handleEvents() {
     auto &clickable = _registry.get_components<component::clickable>();
     auto &hoverable = _registry.get_components<component::hoverable>();
 
-    for (std::size_t i = 0; i < positions.size(); ++i) {
-        if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) continue;
+	for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
+		if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) 
+			continue;
 
         if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
             mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
@@ -148,6 +149,9 @@ void SettingsScene::handleEvents() {
             }
         }
     }
+    // if (_raylib.isKeyPressed(KEY_ESCAPE)) {
+    //    _game.getSceneHandler().open("menu");
+    // }
 }
 
 void SettingsScene::handleButtonClick(std::string const &id) {
@@ -182,9 +186,11 @@ void SettingsScene::drawButton(Vector2 position, Vector2 size, std::string const
 void SettingsScene::resetButtonStates() {
     auto &clickable = _registry.get_components<component::clickable>();
     auto &hoverable = _registry.get_components<component::hoverable>();
+    auto &positions = _registry.get_components<component::position>();
 
-    for (std::size_t i = 0; i < clickable.size(); ++i) {
-        if (!clickable[i] || !hoverable[i]) continue;
+   for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
+        if (!positions[i] || !clickable[i] || !hoverable[i]) 
+			continue;
         clickable[i]->isClicked = false;
         hoverable[i]->isHovered = false;
     }
