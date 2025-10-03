@@ -29,7 +29,9 @@ private:
 
     Font _font{};
     std::string _sceneTitle;
-    int const _titleSize = 80;
+    int const _titleSize = 90;
+    std::vector<std::string> _buttons;
+    std::vector<std::string> _values;
 
     Color const _accentColor{26, 170, 177, 255};
     Vector2 const _buttonSize{300.f, 50.f};
