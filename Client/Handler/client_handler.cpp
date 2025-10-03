@@ -11,6 +11,18 @@
 #include "../../Engine/Scene/Include/GameScene.hpp"
 #include <nlohmann/json.hpp>
 
+// === Couleurs pour les logs ===
+#define RESET   "\033[0m"
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define BLUE    "\033[34m"
+
+#define LOG_ERROR(msg)   std::cerr << RED << "[ERROR] " << msg << RESET << std::endl
+#define LOG_INFO(msg)    std::cout << GREEN << "[INFO] " << msg << RESET << std::endl
+#define LOG_DEBUG(msg)   std::cout << YELLOW << "[DEBUG] " << msg << RESET << std::endl
+#define LOG(msg)         std::cout << BLUE << msg << RESET << std::endl
+
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
     switch (type) {
         case MessageType::ServerAssignId:
@@ -132,5 +144,18 @@ ecs::entity_t GameClient::handleEntityCreation(const nlohmann::json& j)
             std::cerr << "[Client] Type d'entité non supporté dans EntityData: "
                       << static_cast<int>(typeVal) << std::endl;
             return ecs::entity_t{0};
+    }
+    LOG_DEBUG("===== Loaded Players =====");
+    auto &positions = reg.get_components<component::position>();
+    auto &clientIds = reg.get_components<component::client_id>();
+    for (std::size_t i = 0; i < positions.size(); ++i) {
+        if (positions[i].has_value() && clientIds[i].has_value()) {
+            auto &pos = positions[i].value();
+            auto &cid = clientIds[i].value();
+            ecs::entity_t entity = reg.entity_from_index(i);
+            LOG("Player entity " << entity
+                    << " client_id=" << cid.id
+                    << " pos=(" << pos.x << ", " << pos.y << ")");
+        }
     }
 }
