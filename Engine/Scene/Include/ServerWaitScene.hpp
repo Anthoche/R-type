@@ -2,11 +2,11 @@
 ** EPITECH PROJECT, 2025
 ** rtype
 ** File description:
-** MenuScene
+** ServerWaitScene
 */
 
-#ifndef MENUSCENE_HPP
-    #define MENUSCENE_HPP
+#ifndef RTYPE_SERVERWAITSCENE_HPP
+	#define RTYPE_SERVERWAITSCENE_HPP
 
     #include "../../Rendering/scene/AScene.hpp"
     #include "../Game.hpp"
@@ -14,27 +14,25 @@
 namespace scene {
 
 /**
- * @class MenuScene
- * @brief Represents the main menu scene of the game.
+ * @class ServerWaitScene
+ * @brief Represents the waiting scene of the game.
  *
- * The menu scene handles:
- * - Initialization of menu UI and resources.
- * - Rendering menu elements.
- * - Handling user input/events (e.g., navigating the menu).
- * - Cleaning up when the scene is closed.
+ * The waiting scene handles:
+ * - Server await
+ * - Player connections await
  */
-class MenuScene: public AScene {
+class ServerWaitScene: public AScene {
     public:
         /**
-         * @brief Construct a MenuScene with a reference to the game.
+         * @brief Construct a ServerWaitScene with a reference to the game.
          * @param game The game instance.
          */
-        MenuScene(Game &game);
+        ServerWaitScene(Game &game);
 
         /**
          * @brief Default destructor.
          */
-        ~MenuScene() override = default;
+        ~ServerWaitScene() override = default;
 
         // --- Overridden lifecycle methods ---
 
@@ -63,17 +61,20 @@ class MenuScene: public AScene {
 
         Font _font{};
 
-        //Title
-        int const _titleSize = 90;
-        float _titleCenterY;
+		double _startTime; ///< Time when the waiting started.
+		double _endTime; ///< Time limit before timeout.
+		int _attemptsCount;  ///< Number of retry attempts.
 
-        //Buttons
-        Color const _accentColor{26, 170, 177, 255};
-        Vector2 const _buttonSize{280.f, 70.f};
-        int const _buttonTextSize = 35;
-        int const _buttonSpacing = 35;
-        float _buttonCenterY{};
-        Vector2 _buttonPosition{};
+		/**
+		* @brief Calculate how much time is remaining before timeout.
+		* @return Remaining time in seconds.
+		*/
+		double getRemainingTime();
+
+		/**
+		* @brief Reset the waiting timer and attempt counter.
+		*/
+		void resetTimer();
 
         void resetButtonStates();
         void handleButtonClick(std::string const &id);
@@ -81,4 +82,5 @@ class MenuScene: public AScene {
 
 } // namespace scene
 
-#endif //MENUSCENE_HPP
+
+#endif //RTYPE_SERVERWAITSCENE_HPP

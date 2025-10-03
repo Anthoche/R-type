@@ -63,7 +63,6 @@ class WaitingScene: public AScene {
 
         void resetButtonStates();
         void handleButtonClick(std::string const &id);
-        void drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize, float spacing, Color color, Color textColor, bool isHovered, bool isClicked, bool isEnabled);
 };
 
 } // namespace scene

@@ -38,8 +38,8 @@ namespace scene {
 				float spacing = text[i]->spacing;
 				Color color = drawables[i]->color;
 				Color textColor = text[i]->color;
-				drawButton(pos, size, content, fontSize, spacing, color, textColor, hoverable[i]->isHovered, clickable[i]->isClicked,
-							clickable[i]->enabled);
+				drawButton(_raylib, pos, size, content, _font, fontSize, spacing, color, textColor, hoverable[i]->isHovered,
+							clickable[i]->isClicked, clickable[i]->enabled);
 			}
 			if (types[i]->value == component::entity_type::TEXT) {
 				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
@@ -93,11 +93,11 @@ namespace scene {
 		std::string title = "Waiting for players...";
 		int titleFontSize = 38;
 		Vector2 titleSize = _raylib.measureTextEx(_font, title.c_str(), titleFontSize, -0.5f);
-		float titleCenterY = getCenterY(_height, titleSize.y) - 100;
+		float titleCenterY = getElementCenter(_height, titleSize.y) - 100;
 		float titleCenterX = _width / 2 - titleSize.x / 2;
 
 		Vector2 buttonSize = {180.f, 70.f};
-		Vector2 buttonBasePos = {_width / 2 - buttonSize.x / 2, static_cast<float>(getCenterY(_height, buttonSize.y) + 50)};
+		Vector2 buttonBasePos = {getElementCenter(_width, buttonSize.x), getElementCenter(_height, buttonSize.y) + 50};
 		Vector2 playButtonPos = buttonBasePos;
 		Vector2 quitButtonPos = buttonBasePos;
 		playButtonPos.x -= 110;
@@ -141,31 +141,5 @@ namespace scene {
 		} else if (id == "button_quit") {
 			close();
 		}
-	}
-
-	void WaitingScene::drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize,
-								float spacing, Color color, Color textColor, bool isHovered, bool isClicked, bool isEnabled) {
-		Vector2 textPos = {position.x + size.x / 2, position.y + size.y / 2};
-		Vector2 textSize = _raylib.measureTextEx(_font, content, fontSize, spacing);
-		textPos.x -= textSize.x / 2;
-		textPos.y -= textSize.y / 2;
-
-		Rectangle rect = {position.x, position.y, size.x, size.y};
-
-		if (isEnabled) {
-			if (isHovered) {
-				Color temp = textColor;
-				textColor = color;
-				color = temp;
-			}
-			if (isClicked) {
-				color.a -= 50;
-			}
-		} else {
-			color.a = 100;
-			textColor.a = 100;
-		}
-		_raylib.drawRectangleRounded(rect, 0.5, 10, color);
-		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, textColor);
 	}
 }
