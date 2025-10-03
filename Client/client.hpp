@@ -5,7 +5,6 @@
 ** client
 */
 
-
 #pragma once
 
 #include "../Shared/protocol.hpp"
@@ -44,6 +43,11 @@ private:
     std::thread rxThread; ///< Thread for receiving network messages.
     std::atomic<bool> running{false}; ///< Flag to control the client lifecycle.
     Game &_game; ///< Reference to the game instance.
+
+    /**
+     * @brief Scene state (menu, game, etc.).
+     */
+    std::atomic<SceneState> currentScene{SceneState::MENU};
 
 public:
     /**
@@ -97,18 +101,23 @@ public:
     void sendHello();
 
     /**
-     * @brief Network receive loop.
-     *
-     * Listens for incoming messages and dispatches them to the appropriate handler.
-     */
-    void recvLoop();
-
-    /**
      * @brief Sends player input to the server.
      * @param inputX Horizontal input (-1 to 1).
      * @param inputY Vertical input (-1 to 1).
      */
     void sendInput(float inputX, float inputY);
+
+    /**
+     * @brief Sends the current scene state to the server.
+     */
+    void sendSceneState();
+
+    /**
+     * @brief Network receive loop.
+     *
+     * Listens for incoming messages and dispatches them to the appropriate handler.
+     */
+    void recvLoop();
 
     /**
      * @brief Dispatches an incoming message to the appropriate handler.
@@ -118,36 +127,28 @@ public:
     void handleMessage(MessageType type, const std::vector<uint8_t> &buffer);
 
     // --- Player-related message handlers ---
-    /**
-     * @brief Handles a ServerAssignId message.
-     * @param buffer Raw message data.
-     */
     void handleServerAssignId(const std::vector<uint8_t> &buffer);
-
-    /**
-     * @brief Handles a GameStart message.
-     * @param buffer Raw message data.
-     */
     void handleGameStart(const std::vector<uint8_t> &buffer);
-
-    /**
-     * @brief Handles a StateUpdate message (player position update).
-     * @param buffer Raw message data.
-     */
     void handlePlayerUpdate(const std::vector<uint8_t> &buffer);
 
     // --- Obstacle-related message handlers ---
-    /**
-     * @brief Handles an ObstacleSpawn message.
-     * @param buffer Raw message data.
-     */
     void handleObstacleSpawn(const std::vector<uint8_t> &buffer);
-
-    /**
-     * @brief Handles an ObstacleDespawn message.
-     * @param buffer Raw message data.
-     */
     void handleObstacleDespawn(const std::vector<uint8_t> &buffer);
 
     ecs::entity_t handleEntityCreation(const nlohmann::json& j);
+
+    // --- Scene state accessors ---
+    void setSceneState(const std::string &sceneName) {
+        if (sceneName == "menu")
+            currentScene = SceneState::MENU;
+        else if (sceneName == "game")
+            currentScene = SceneState::GAME;
+        else
+            currentScene = SceneState::UNKNOWN;
+    }
+
+    SceneState getSceneState() const {
+        return currentScene.load();
+    }
 };
+

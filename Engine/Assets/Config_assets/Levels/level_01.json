@@ -2,56 +2,53 @@
   "level": {
     "backgrounds": [
       {
-        "x": 0.0,
-        "y": 0.0,
-        "width": 1920.0,
-        "height": 1080.0,
+        "x": 400.0,
+        "y": 300.0,
+        "width": 800.0,
+        "height": 600.0,
         "image_path": "assets/background.png",
         "scale": 1.0
       }
     ],
     "enemies": [
-      {
-        "x": 900.0,
-        "y": 200.0,
-        "image_path": "assets/enemy1.png"
-      }
+      {"x": 100.0, "y": 200.0, "image_path": "assets/enemy1.png"},
+      {"x": 200.0, "y": 200.0, "image_path": "assets/enemy1.png"},
+      {"x": 300.0, "y": 200.0, "image_path": "assets/enemy1.png"},
+      {"x": 400.0, "y": 200.0, "image_path": "assets/enemy1.png"},
+      {"x": 500.0, "y": 200.0, "image_path": "assets/enemy1.png"}
     ],
     "obstacles": [
-      {
-        "x": 400.0,
-        "y": 300.0,
-        "image_path": "assets/rock.png"
-      }
+      {"x": 200.0, "y": 400.0, "image_path": "assets/rock.png"},
+      {"x": 400.0, "y": 400.0, "image_path": "assets/rock.png"},
+      {"x": 600.0, "y": 400.0, "image_path": "assets/rock.png"}
     ],
     "random_elements": [
       {
-        "x": 500.0,
-        "y": 100.0,
+        "x": 600.0,
+        "y": 450.0,
         "width": 64.0,
         "height": 64.0,
-        "image_path": "assets/item.png",
-        "sound_path": "assets/item.wav",
+        "image_path": "assets/items/star.png",
+        "sound_path": "assets/sfx/pickup.wav",
         "volume": 0.8,
         "loop": false,
-        "autoplay": true
+        "autoplay": false
       }
     ],
     "sounds": [
       {
         "sound_path": "assets/music.ogg",
-        "volume": 1.0,
+        "volume": 0.5,
         "loop": true,
         "autoplay": true
       }
     ],
     "texts": [
       {
-        "x": 100.0,
-        "y": 50.0,
-        "content": "Welcome to R-Type!",
-        "font_size": 32,
-        "font_path": "assets/font.ttf"
+        "x": 20.0,
+        "y": 30.0,
+        "content": "R-Type",
+        "font_size": 32
       }
     ]
   }

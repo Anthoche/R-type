@@ -12,24 +12,31 @@
 #include <string>
 
 /**
- * @brief Types of messages exchanged between client and server
+ * @brief Enum for all network message types exchanged between client and server.
  */
 enum class MessageType : uint8_t {
-    ClientHello,        /**< Client greeting the server */
-    ServerAssignId,     /**< Server assigns an ID to the client */
-    GameStart,          /**< Server notifies clients that the game is starting */
-    ClientInput,        /**< Client sends input for the current frame */
-    StateUpdate,        /**< Server sends updated state for a client */
-    EnemySpawn,         /**< Server spawns a new enemy */
-    EnemyUpdate,        /**< Server updates an enemy's position */
-    EnemyDespawn,       /**< Server removes an enemy */
-    ObstacleSpawn,      /**< Server spawns a new obstacle */
-    ObstacleDespawn,    /**< Server removes an obstacle */
-    EntityBatchStart,   /**< Server starts sending entity batch */
-    EntityData,         /**< Server sends serialized entity data */
-    EntityBatchEnd      /**< Server finishes sending entity batch */
+    ClientHello,        /**< Client → Server: handshake initial */
+    ServerAssignId,     /**< Server → Client: attribution d’un ID unique */
+    GameStart,          /**< Server → Clients: lancement de la partie */
+    ClientInput,        /**< Client → Server: mouvement / action */
+    StateUpdate,        /**< Server → Clients: mise à jour de position */
+    EnemySpawn,         /**< Server → Clients: apparition d’un ennemi */
+    EnemyUpdate,        /**< Server → Clients: mise à jour ennemi */
+    EnemyDespawn,       /**< Server → Clients: suppression ennemi */
+    ObstacleSpawn,      /**< Server → Clients: apparition obstacle */
+    ObstacleDespawn,    /**< Server → Clients: suppression obstacle */
+    EntityData,         /**< Server → Clients: synchronisation entité ECS */
+    SceneState,         /**< Client → Server: indique la scène courante */
 };
 
+/**
+ * @brief Identifie les différentes scènes côté client.
+ */
+enum class SceneState : uint32_t {
+    MENU = 0,
+    GAME = 1,
+    UNKNOWN = 2
+};
 /**
  * @brief Message sent by client to introduce itself to the server
  */
@@ -130,4 +137,13 @@ struct EntityDataMessage {
     MessageType type;
     uint32_t dataLength;     /**< Length of JSON data */
     char jsonData[2048];     /**< JSON string (null-terminated) */
+};
+
+/**
+ * @brief Message envoyé par le client pour indiquer la scène courante (menu / jeu).
+ */
+struct SceneStateMessage {
+    MessageType type;
+    uint32_t clientId;
+    uint32_t scene; // correspond à SceneState
 };

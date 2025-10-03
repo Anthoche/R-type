@@ -58,6 +58,8 @@ public:
 private:
     UDP_socket &socket;
     ecs::registry registry_server;
+    std::unordered_map<uint32_t, SceneState> clientScenes;
+
     std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
     std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
 

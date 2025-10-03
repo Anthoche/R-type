@@ -56,7 +56,6 @@ void ServerGame::run() {
     //load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
     initialize_player_positions();
     initialize_obstacles();
-    broadcast_full_registry();
     const int tick_ms = 16;
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
@@ -143,6 +142,9 @@ void ServerGame::process_pending_messages() {
         sockaddr_in from = {};
         if (!socket.try_receive(data, from)) break;
         handle_client_message(data, from);
+        if (clientScenes[0] == SceneState::GAME)
+            broadcast_full_registry();
+            clientScenes[0] == SceneState::UNKNOWN;
     }
 }
 
@@ -180,34 +182,43 @@ bool is_position_blocked(float testX, float testY, float playerWidth, float play
 }
 
 void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from) {
-    if (data.size() < sizeof(MessageType)) return;
+    if (data.size() < sizeof(MessageType))
+        return;
     MessageType type = *reinterpret_cast<const MessageType*>(data.data());
-    if (type == MessageType::ClientInput) {
-        if (data.size() >= sizeof(ClientInputMessage)) {
-            const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
-            uint32_t id = ntohl(msg->clientId);
-            uint32_t xbits = ntohl(msg->inputXBits);
-            uint32_t ybits = ntohl(msg->inputYBits);
-            float inputX, inputY;
-            std::memcpy(&inputX, &xbits, sizeof(float));
-            std::memcpy(&inputY, &ybits, sizeof(float));
 
-            auto& pos = playerPositions[id];
-            float speed = 200.f / 60.f;
-            const float playerWidth = 30.f;
-            const float playerHeight = 30.f;
-            const float halfSize = 15.f;
-            float newX = pos.first + inputX * speed;
-            float newY = pos.second + inputY * speed;
-            if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, obstacles))
-                pos.first = newX;
-            if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, obstacles))
-                pos.second = newY;
-            const float maxX = 800.f - halfSize;
-            const float maxY = 600.f - halfSize;
-            pos.first = std::clamp(pos.first, halfSize, maxX);
-            pos.second = std::clamp(pos.second, halfSize, maxY);
-        }
+    switch(type) {
+        case MessageType::ClientInput:
+            if (data.size() >= sizeof(ClientInputMessage)) {
+                const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
+                uint32_t id = ntohl(msg->clientId);
+                float inputX, inputY;
+                uint32_t xbits = ntohl(msg->inputXBits);
+                uint32_t ybits = ntohl(msg->inputYBits);
+                std::memcpy(&inputX, &xbits, sizeof(float));
+                std::memcpy(&inputY, &ybits, sizeof(float));
+                auto& pos = playerPositions[id];
+                float speed = 200.f / 60.f;
+                const float playerWidth = 30.f;
+                const float playerHeight = 30.f;
+                float newX = pos.first + inputX * speed;
+                float newY = pos.second + inputY * speed;
+                if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, obstacles))
+                    pos.first = newX;
+                if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, obstacles))
+                    pos.second = newY;
+            }
+            break;
+        case MessageType::SceneState:
+            if (data.size() >= sizeof(SceneStateMessage)) {
+                const SceneStateMessage* msg = reinterpret_cast<const SceneStateMessage*>(data.data());
+                uint32_t id = ntohl(msg->clientId);
+                SceneState state = static_cast<SceneState>(msg->scene); // cast explicite
+                LOG_DEBUG("[Server] Received scene state " << static_cast<int>(state) << " from client " << id);
+                clientScenes[id] = state;
+            }
+            break;
+        default:
+            break;
     }
 }
 

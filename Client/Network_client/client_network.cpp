@@ -57,3 +57,18 @@ void GameClient::recvLoop() {
         handleMessage(type, buffer);
     }
 }
+
+void GameClient::sendSceneState() {
+    SceneStateMessage m{};
+    m.type = MessageType::SceneState;
+    m.clientId = htonl(clientId);
+    m.scene = htonl(static_cast<uint32_t>(currentScene.load()));
+
+    ssize_t sentBytes = sendto(
+        socketFd, &m, sizeof(m), 0,
+        (struct sockaddr *)&serverAddr, sizeof(serverAddr)
+    );
+    if (sentBytes < 0) {
+        std::cerr << "[ERREUR] Échec de l'envoi de SceneState" << std::endl;
+    }
+}

@@ -46,7 +46,7 @@ namespace game::scene {
          */
         ~GameScene() override = default;
 
-        // --- Overridden lifecycle methods ---
+        // ==================== LIFECYCLE METHODS ====================
         /**
          * @brief Initialize the scene (entities, systems, state).
          */
@@ -67,7 +67,7 @@ namespace game::scene {
          */
         void onClose() override;
 
-        // --- Event handling ---
+        // ==================== EVENT HANDLING ====================
         /**
          * @brief Handle player input.
          * @param input_x Horizontal input (movement).
@@ -75,33 +75,175 @@ namespace game::scene {
          */
         void handle_input(float input_x, float input_y);
 
-    // --- Accessors ---
-    /**
-     * @brief getter to send registry
-     * @return return the current registry.
-     */
-    ecs::registry &get_registry() { return _registry; }
+        // ==================== ACCESSORS ====================
+        /**
+         * @brief Get the ECS registry.
+         * @return Reference to the current registry.
+         */
+        ecs::registry &get_registry() { return _registry; }
 
-    /**
-     * @brief getter to send player
-     * @return return the current player.
-     */
-    ecs::entity_t get_player() const { return _player; }
+        /**
+         * @brief Get the player entity.
+         * @return The current player entity.
+         */
+        ecs::entity_t get_player() const { return _player; }
 
-    /**
-     * @brief getter to send obstacles
-     * @return return tje current obstacles.
-     */
-    const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
+        /**
+         * @brief Get the obstacles list.
+         * @return Reference to the current obstacles.
+         */
+        const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
 
     private:
-        // --- Game logic ---
+        // ==================== INITIALIZATION ====================
+        /**
+         * @brief Register all ECS components.
+         */
+        void register_components();
+
+        /**
+         * @brief Setup all game systems.
+         */
+        void setup_systems();
+
+        // ==================== GAME LOOP ====================
         /**
          * @brief Update the game state (called every frame).
          */
         void update();
 
-        // --- Game systems ---
+        /**
+         * @brief Synchronize network players with ECS.
+         */
+        void sync_network_players();
+
+        /**
+         * @brief Remove disconnected players from the scene.
+         * @param netPlayers Map of network players.
+         */
+        void remove_disconnected_players(const std::unordered_map<uint32_t, std::pair<float, float>> &netPlayers);
+
+        /**
+         * @brief Update player positions from network.
+         * @param netPlayers Map of network players.
+         */
+        void update_player_positions(const std::unordered_map<uint32_t, std::pair<float, float>> &netPlayers);
+
+        /**
+         * @brief Save current positions to previous_position component.
+         */
+        void save_previous_positions();
+
+        // ==================== RENDERING ====================
+        /**
+         * @brief Render all entities in the registry.
+         */
+        void render_all_entities();
+
+        /**
+         * @brief Render an entity with a type component.
+         * @param i Entity index.
+         * @param entity Entity handle.
+         * @param x X position.
+         * @param y Y position.
+         * @param type Entity type.
+         * @param drawables Drawable components array.
+         * @param sprites Sprite components array.
+         * @param texts Text components array.
+         */
+        void render_typed_entity(std::size_t i, ecs::entity_t entity, float x, float y,
+                                 component::entity_type type,
+                                 ecs::sparse_array<component::drawable> &drawables,
+                                 ecs::sparse_array<component::sprite> &sprites,
+                                 ecs::sparse_array<component::text> &texts);
+
+        /**
+         * @brief Render an entity without a type component.
+         * @param i Entity index.
+         * @param x X position.
+         * @param y Y position.
+         * @param drawables Drawable components array.
+         * @param sprites Sprite components array.
+         */
+        void render_untyped_entity(std::size_t i, float x, float y,
+                                   ecs::sparse_array<component::drawable> &drawables,
+                                   ecs::sparse_array<component::sprite> &sprites);
+
+        // ==================== RENDER BY TYPE ====================
+        /**
+         * @brief Render a text entity.
+         */
+        void render_text(std::size_t i, float x, float y, ecs::sparse_array<component::text> &texts);
+
+        /**
+         * @brief Render a player entity.
+         */
+        void render_player(std::size_t i, ecs::entity_t entity, float x, float y,
+                          ecs::sparse_array<component::drawable> &drawables,
+                          ecs::sparse_array<component::sprite> &sprites);
+
+        /**
+         * @brief Render an enemy entity.
+         */
+        void render_enemy(std::size_t i, float x, float y,
+                         ecs::sparse_array<component::drawable> &drawables,
+                         ecs::sparse_array<component::sprite> &sprites);
+
+        /**
+         * @brief Render an obstacle entity.
+         */
+        void render_obstacle(std::size_t i, float x, float y,
+                            ecs::sparse_array<component::drawable> &drawables,
+                            ecs::sparse_array<component::sprite> &sprites);
+
+        /**
+         * @brief Render a random element entity.
+         */
+        void render_random_element(std::size_t i, float x, float y,
+                                   ecs::sparse_array<component::drawable> &drawables,
+                                   ecs::sparse_array<component::sprite> &sprites);
+
+        /**
+         * @brief Render a background entity.
+         */
+        void render_background(std::size_t i, float x, float y,
+                              ecs::sparse_array<component::drawable> &drawables,
+                              ecs::sparse_array<component::sprite> &sprites);
+
+        /**
+         * @brief Render an entity with unknown type.
+         */
+        void render_default(std::size_t i, float x, float y,
+                           ecs::sparse_array<component::drawable> &drawables);
+
+        // ==================== RENDER PRIMITIVES ====================
+        /**
+         * @brief Render a sprite at given position.
+         */
+        void render_sprite(float x, float y, float width, float height,
+                          const Texture2D &texture, Color tint);
+
+        /**
+         * @brief Render a rectangle at given position.
+         */
+        void render_rectangle(float x, float y, float width, float height, Color color);
+
+        // ==================== UTILITIES ====================
+        /**
+         * @brief Get the network ID of a player entity.
+         * @param entity Player entity.
+         * @return Network player ID.
+         */
+        uint32_t get_player_network_id(ecs::entity_t entity) const;
+
+        /**
+         * @brief Get a color for a player ID.
+         * @param id Player network ID.
+         * @return Color for this player.
+         */
+        Color get_color_for_player_id(uint32_t id) const;
+
+        // ==================== SYSTEMS ====================
         /**
          * @brief Setup the movement system for entities.
          */
@@ -113,70 +255,46 @@ namespace game::scene {
         void setup_render_system();
 
         /**
-         * @brief Setup the collision detection system (custom).
-         */
-        void setup_collision_system();
-
-        /**
-         * @brief Setup the ECS collision system (engine-defined).
-         */
-        void setup_ecs_collision_system();
-
-        void setup_enemy_ai_system();
-
-        /**
          * @brief Setup the health system for entities.
          */
         void setup_health_system();
 
-        // --- Entity creation ---
         /**
-         * @brief Create enemy entities that move horizontally.
+         * @brief Setup the enemy AI system.
          */
-        void create_enemies();
+        void setup_enemy_ai_system();
 
+        // ==================== ENTITY CREATION ====================
         /**
-         * @brief Create the player entity and initialize components.
+         * @brief Create the player entity (currently unused).
          */
         void create_player();
 
         /**
-         * @brief Create obstacles in the scene.
+         * @brief Create obstacles (currently unused).
          */
         void create_obstacles();
 
-        // --- Collision management ---
+        /**
+         * @brief Create enemies (currently unused).
+         */
+        void create_enemies();
+
+        // ==================== COLLISION ====================
         /**
          * @brief Check and resolve collisions for all entities.
          */
         void check_collisions();
 
-        /**
-         * @brief Synchronize hitboxes with their parent entity immediately.
-         */
-        void sync_hitboxes_immediate();
-
-        // --- Entities ---
+        // ==================== MEMBER VARIABLES ====================
         ecs::entity_t _player; ///< Local player entity.
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
 
-        // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
         double _startTime; ///< Start time of the scene.
         Game &_game; ///< Reference to the game instance.
-
-        // --- Helpers ---
-        /**
-         * @brief Synchronize ECS state with network messages.
-         */
-        void sync_network_state();
-
-        /**
-         * @brief Render ECS entities organized by layer.
-         */
-        void draw_ecs_layers();
     };
 } // namespace game::scene
 
