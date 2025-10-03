@@ -60,8 +60,10 @@ target_include_directories(ecs PUBLIC
 # -------------------------
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
-    ${CLIENT_DIR}/Network_client/client.cpp
+    ${CLIENT_DIR}/client.cpp
     ${CLIENT_DIR}/Network_client/UDP_socket.cpp
+    ${CLIENT_DIR}/Network_client/TCP_socketClient.cpp
+    ${CLIENT_DIR}/Handler/client_handler.cpp
     ${ENGINE_DIR}/Game.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/enemy.cpp
@@ -111,6 +113,7 @@ add_executable(r-type_server
     ${SERVER_DIR}/server.cpp
     ${SERVER_DIR}/Network_handler/connexion.cpp
     ${SERVER_DIR}/Network_handler/UDP_socket.cpp
+    ${SERVER_DIR}/Network_handler/TCP_socketServer.cpp
     ${SERVER_DIR}/Game_logic/game_setup.cpp
     ${SERVER_DIR}/Game_logic/ServerGame.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp

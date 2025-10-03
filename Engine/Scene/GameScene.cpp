@@ -17,7 +17,6 @@ namespace game::scene {
         _raylib = Raylib();
         _game_running = true;
         _startTime = 0.f;
-        _game.getGameClient().sendSceneState();
     }
 
     void GameScene::init() {

@@ -8,12 +8,14 @@
 #pragma once
 
 #include "UDP_socket.hpp"
+#include "TCP_socketServer.hpp"
 #include "../../../Shared/protocol.hpp"
 #include <vector>
 #include <unordered_map>
 #include <asio.hpp>
 #include <functional>
 #include <iostream>
+#include <memory>
 
 /**
  * @brief High-level connection manager for UDP network operations.
@@ -22,59 +24,28 @@
  * sending, broadcasting messages, and client management.
  */
 class Connexion {
-public:
-    /**
-     * @brief Constructs a Connexion instance bound to the specified port.
-     * @param io Reference to the Asio io_context (shared by the app).
-     * @param port The UDP port to listen on.
-     */
-    Connexion(asio::io_context& io, uint16_t port);
+    public:
+        Connexion(asio::io_context& io, uint16_t port);
+        ~Connexion() = default;
 
-    ~Connexion() = default;
+        void asyncReceive(std::function<void(const asio::error_code&, std::vector<uint8_t>, asio::ip::udp::endpoint)> handler);
+        void sendTo(const void* msg, size_t size, const asio::ip::udp::endpoint& to);
+        void broadcast(const void* msg, size_t size);
 
-    /**
-     * @brief Starts asynchronous reception of UDP messages.
-     * @param handler Callback taking (error_code, data, sender_endpoint).
-     */
-    void asyncReceive(std::function<void(const asio::error_code&, std::vector<uint8_t>, asio::ip::udp::endpoint)> handler);
+        void addClient(const asio::ip::udp::endpoint& endpoint, uint32_t id);
+        void disconnectClient(uint32_t id);
 
-    /**
-     * @brief Sends a UDP message to a specific client.
-     * @param msg Pointer to the message data.
-     * @param size Size of the message in bytes.
-     * @param to Destination endpoint.
-     */
-    void sendTo(const void* msg, size_t size, const asio::ip::udp::endpoint& to);
-    /**
-     * @brief Broadcasts a UDP message to all connected clients.
-     * @param msg Pointer to the message data.
-     * @param size Size of the message in bytes.
-     */
-    void broadcast(const void* msg, size_t size);
+        size_t getClientCount() const;
+        const std::unordered_map<std::string, uint32_t>& getClients() const;
+        const std::unordered_map<std::string, asio::ip::udp::endpoint>& getEndpoints() const;
 
-    /**
-     * @brief Registers a new client with the connection manager.
-     * @param endpoint Address of the client to add.
-     * @param id Unique ID to assign to the client.
-     */
-    void addClient(const asio::ip::udp::endpoint& endpoint, uint32_t id);
-    /**
-     * @brief Gets the number of connected clients.
-     * @return Current client count.
-     */
-    size_t getClientCount() const;
+        bool acceptTcpClient(uint32_t id, uint16_t port);
+        void sendJsonToClient(uint32_t id, const nlohmann::json& j);
+        void broadcastJson(const nlohmann::json& j);
 
-    /**
-     * @brief Gets the map of connected clients (IP:port → ID).
-     */
-    const std::unordered_map<std::string, uint32_t>& getClients() const;
-
-    /**
-     * @brief Gets the map of endpoints (IP:port → udp::endpoint).
-     */
-    const std::unordered_map<std::string, asio::ip::udp::endpoint>& getEndpoints() const;
-private:
-    UDP_socket socket; ///< Underlying UDP socket for network operations.
-    std::unordered_map<std::string, uint32_t> clients; ///< Maps client address strings to their assigned IDs.
-    std::unordered_map<std::string, asio::ip::udp::endpoint> endpoints; ///< Maps address strings to actual endpoints for sending.
+    private:
+        UDP_socket socket;
+        std::unordered_map<std::string, uint32_t> clients;
+        std::unordered_map<std::string, asio::ip::udp::endpoint> endpoints;
+        std::unordered_map<uint32_t, std::shared_ptr<TCP_socketServer>> tcpClients;
 };
