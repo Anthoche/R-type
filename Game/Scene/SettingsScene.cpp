@@ -180,8 +180,8 @@ void SettingsScene::handleEvents() {
         if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
             mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
             hoverable[i]->isHovered = true;
-            if (_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                clickable[i]->isClicked = true;
+		if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+	            clickable[i]->isClicked = true;
                 handleButtonClick(clickable[i]->id);
             }
         }

@@ -570,6 +570,8 @@ class Raylib {
          */
         bool isMouseButtonReleased(int button);
 
+        bool isMouseButtonPressed(int button);
+
         // === keyboard input ===
 
         /**
