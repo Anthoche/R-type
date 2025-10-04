@@ -79,3 +79,12 @@ void GameClient::sendInput(float inputX, float inputY) {
 void GameClient::runRenderLoop() {
     /* ... (code commenté inchangé) ... */
 }
+
+void GameClient::sendSceneState(SceneState scene) {
+    SceneStateMessage msg{};
+    msg.type = MessageType::SceneState;
+    msg.clientId = htonl(clientId);
+    msg.scene = htonl(static_cast<uint32_t>(scene));
+
+    socket.sendTo(&msg, sizeof(msg), serverAddr);
+}

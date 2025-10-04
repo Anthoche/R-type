@@ -144,4 +144,10 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleObstacleDespawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Envoie l'état de la scène courante au serveur.
+         * @param scene SceneState (MENU, GAME, UNKNOWN)
+         */
+        void sendSceneState(SceneState scene);
 };

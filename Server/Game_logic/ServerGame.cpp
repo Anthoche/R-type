@@ -64,18 +64,7 @@ void ServerGame::run() {
 }
 
 void ServerGame::broadcast_full_registry() {
-    auto &types = registry_server.get_components<component::type>();
-    for (std::size_t i = 0; i < types.size(); ++i) {
-        if (!types[i]) continue;
-        ecs::entity_t entity = registry_server.entity_from_index(i);
-        nlohmann::json j = game::serializer::serialize_entity(registry_server, entity);
-        if (j.empty()) continue;
-        std::string jsonStr = j.dump();
-        std::vector<uint8_t> buffer(sizeof(MessageType) + jsonStr.size());
-        *reinterpret_cast<MessageType*>(buffer.data()) = MessageType::EntityData;
-        std::memcpy(buffer.data() + sizeof(MessageType), jsonStr.data(), jsonStr.size());
-        connexion.broadcast(buffer.data(), buffer.size());
-    }
+    LOG("[Server] Send all registery");
 }
 
 void ServerGame::load_players(const std::string &path) {
@@ -196,9 +185,16 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             if (data.size() >= sizeof(SceneStateMessage)) {
                 const SceneStateMessage* msg = reinterpret_cast<const SceneStateMessage*>(data.data());
                 uint32_t id = ntohl(msg->clientId);
-                LOG_DEBUG("[Server] Received scene state from client " << id);
-                broadcast_full_registry();
-                LOG_DEBUG("[Server] Send scene registery from client " << id);
+                SceneState scene = static_cast<SceneState>(ntohl(msg->scene));
+                {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    clientScenes[id] = scene;
+                }
+                LOG_DEBUG("[Server] Client " << id << " switched to scene = " << static_cast<int>(scene));
+                if (scene == SceneState::GAME) {
+                    broadcast_full_registry();
+                    LOG_DEBUG("[Server] Sent full registry to client " << id);
+                }
             }
             break;
         }

@@ -22,7 +22,7 @@ namespace scene {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
-		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont("../../Engine/Assets/fonts/PressStart2P.ttf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();

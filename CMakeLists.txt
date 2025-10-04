@@ -77,6 +77,7 @@ add_executable(r-type_client
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
     ${ENGINE_RENDERING_DIR}/Raylib.cpp
+    ${ENGINE_RENDERING_DIR}/RenderUtils.cpp
     ${ENGINE_SCENE_DIR}/AScene.cpp
     ${ENGINE_SCENE_DIR}/SceneHandler.cpp
     ${ENGINE_DIR}/Scene/GameScene.cpp
