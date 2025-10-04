@@ -35,8 +35,9 @@ namespace game::scene {
         _registry.register_component<component::sprite>();
         _registry.register_component<component::audio>();
         _registry.register_component<component::text>();
-        _registry.register_component<component::font>();
         _registry.register_component<component::previous_position>();
+        _registry.register_component<component::client_id>();
+
 
         setup_movement_system();
         setup_render_system();
