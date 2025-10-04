@@ -16,13 +16,6 @@ namespace scene {
 SettingsScene::SettingsScene(Game &game)
     : AScene(960, 540, "R-Type - Settings"), _game(game) {
     _sceneTitle = "R-Type";
-
-    _buttons = {"1. Difficulty", "2. Lives", "3. Sound"};
-    _values = {"Medium", "3", "On"};
-	//_levels = {"Easy", "Medium", "Hard"};
-	//_currentLevelIndex = 0; 
-
-	_buttonPosition = {230.f, 200.f};
 }
 
 void SettingsScene::init() {

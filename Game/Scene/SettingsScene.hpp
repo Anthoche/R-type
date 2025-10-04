@@ -6,15 +6,15 @@
 */
 
 #ifndef SETTINGSSCENE_HPP
-    #define SETTINGSSCENE_HPP
+#define SETTINGSSCENE_HPP
 
-    #include "../../Engine/Rendering/scene/AScene.hpp"
-    #include "../Game.hpp"
-    #include "components.hpp"
+#include "../../Engine/Rendering/scene/AScene.hpp"
+#include "../Game.hpp"
+#include "components.hpp"
 
 namespace scene {
 
-class SettingsScene: public AScene {
+class SettingsScene : public AScene {
 public:
     SettingsScene(Game &game);
     ~SettingsScene() override = default;
@@ -22,28 +22,32 @@ public:
     void init() override;
     void render() override;
     void handleEvents() override;
-    void onClose() ;
+    void onClose();
 
 private:
     Game &_game;
 
     Font _font{};
     std::string _sceneTitle;
-    int const _titleSize = 90;
-    std::vector<std::string> _buttons;
-    std::vector<std::string> _values;
-    bool _soundOn = true; 
-    std::vector<std::string> _levels{"Easy", "Medium", "Hard"};
-    std::size_t _currentLevelIndex{0};
-    std::vector<std::string> _lives{"1", "3", "5"};
-    std::size_t _currentLivesIndex{0};
 
+    int const _titleSize = 90;
     Color const _accentColor{26, 170, 177, 255};
     Vector2 const _buttonSize{300.f, 50.f};
     int const _buttonTextSize = 23;
     int const _buttonSpacing = 20;
 
-    Vector2 _buttonPosition{};
+    std::vector<std::string> _buttons{"1. Difficulty", "2. Lives", "3. Sound"};
+    std::vector<std::string> _values{"Medium", "3", "On"};
+
+    std::vector<std::string> _levels{"Easy", "Medium", "Hard"};
+    std::size_t _currentLevelIndex{0};
+
+    std::vector<std::string> _lives{"3", "5", "7"};
+    std::size_t _currentLivesIndex{0};
+
+    bool _soundOn = true;
+
+    Vector2 _buttonPosition{230.f, 200.f};
 
     void resetButtonStates();
     void handleButtonClick(std::string const &id);
