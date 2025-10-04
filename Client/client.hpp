@@ -10,6 +10,7 @@
 
 #include "../Shared/protocol.hpp"
 #include "Network_client/Include/UDP_socket.hpp"
+#include "Network_client/Include/TCP_socketClient.hpp"
 #include <asio.hpp>
 #include <cstring>
 #include <iostream>
@@ -40,6 +41,8 @@ class GameClient {
         std::thread rxThread; ///< Thread for receiving network messages.
         std::atomic<bool> running{false}; ///< Flag to control the client lifecycle.
         Game &_game; ///< Reference to the game instance.
+        std::unique_ptr<TCP_socketClient> tcpClient;  ///< TCP client for reliable messages.
+        std::string serverIpStr; ///< Server IP as string (for TCP connection).
 
     public:
         /**
@@ -119,6 +122,8 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleServerAssignId(const std::vector<uint8_t> &buffer);
+
+        void initTcpConnection();
 
         /**
          * @brief Handles a GameStart message.

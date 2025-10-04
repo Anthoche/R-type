@@ -19,6 +19,7 @@ namespace game::scene {
     }
 
     void GameScene::init() {
+        _game.getGameClient().sendSceneState(SceneState::GAME);
         _isOpen = true;
         _startTime = _raylib.getTime();
         _raylib.enableCursor();

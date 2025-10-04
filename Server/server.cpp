@@ -51,10 +51,18 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data, const asio:
 {
     if (gameStarted) return;
     if (data.size() < sizeof(ClientHelloMessage)) return;
-
     const ClientHelloMessage* msg = reinterpret_cast<const ClientHelloMessage*>(data.data());
+    
     uint32_t clientId = nextClientId++;
     connexion.addClient(clientEndpoint, clientId);
+    uint16_t tcpPort = 5000 + clientId;
+    std::thread([this, clientId, tcpPort]() {
+        if (!connexion.acceptTcpClient(clientId, tcpPort)) {
+            std::cerr << "[ERROR] TCP accept failed for client " << clientId << std::endl;
+        } else {
+            std::cout << "[INFO] TCP connection established for client " << clientId << std::endl;
+        }
+    }).detach();
     ServerAssignIdMessage assignMsg{};
     assignMsg.type = MessageType::ServerAssignId;
     assignMsg.clientId = htonl(clientId);
@@ -67,6 +75,7 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data, const asio:
         broadcastGameStart();
     }
 }
+
 
 void GameServer::broadcastGameStart()
 {

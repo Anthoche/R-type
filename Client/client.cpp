@@ -48,6 +48,18 @@ void GameClient::sendHello() {
     socket.sendTo(&msg, sizeof(msg), serverAddr);
 }
 
+void GameClient::initTcpConnection() {
+    if (clientId == 0) return;
+
+    uint16_t tcpPort = 5000 + clientId;
+    tcpClient = std::make_unique<TCP_socketClient>();
+
+    if (!tcpClient->connectToServer(serverIpStr, tcpPort)) {
+        std::cerr << "[Client] Impossible de se connecter en TCP" << std::endl;
+        return;
+    }
+}
+
 void GameClient::recvLoop() {
     while (running) {
         std::vector<uint8_t> buffer;
@@ -85,6 +97,7 @@ void GameClient::sendSceneState(SceneState scene) {
     msg.type = MessageType::SceneState;
     msg.clientId = htonl(clientId);
     msg.scene = htonl(static_cast<uint32_t>(scene));
-
+    std::cout << "Le jeu commence, envoie de la scene" << std::endl;
     socket.sendTo(&msg, sizeof(msg), serverAddr);
 }
+

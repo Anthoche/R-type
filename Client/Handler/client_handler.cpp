@@ -43,6 +43,7 @@ void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {
     const ServerAssignIdMessage *msg = reinterpret_cast<const ServerAssignIdMessage *>(buffer.data());
     clientId = ntohl(msg->clientId);
     std::cout << "[Client] Reçu clientId=" << clientId << std::endl;
+    initTcpConnection();
 }
 
 void GameClient::handleGameStart(const std::vector<uint8_t> &buffer) {
