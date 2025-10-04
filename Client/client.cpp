@@ -88,10 +88,6 @@ void GameClient::sendInput(float inputX, float inputY) {
     socket.sendTo(&m, sizeof(m), serverAddr);
 }
 
-void GameClient::runRenderLoop() {
-    /* ... (code commenté inchangé) ... */
-}
-
 void GameClient::sendSceneState(SceneState scene) {
     SceneStateMessage msg{};
     msg.type = MessageType::SceneState;
@@ -99,5 +95,22 @@ void GameClient::sendSceneState(SceneState scene) {
     msg.scene = htonl(static_cast<uint32_t>(scene));
     std::cout << "Le jeu commence, envoie de la scene" << std::endl;
     socket.sendTo(&msg, sizeof(msg), serverAddr);
+
+    if (scene == SceneState::GAME) {
+        if (!tcpClient) {
+            initTcpConnection();
+            if (!tcpClient) {
+                std::cerr << "[ERROR] Impossible de se connecter au serveur TCP pour récupérer le full registry" << std::endl;
+                return;
+            }
+        }
+        std::cout << "[INFO] En attente du full registry du serveur..." << std::endl;
+        nlohmann::json fullRegistry = tcpClient->receiveJson();
+        if (fullRegistry.is_null()) {
+            std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
+            return;
+        }
+        std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
+    }
 }
 

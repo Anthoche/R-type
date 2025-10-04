@@ -63,9 +63,22 @@ void ServerGame::run() {
     }
 }
 
-void ServerGame::broadcast_full_registry() {
-    LOG("[Server] Send all registery");
+void ServerGame::broadcast_full_registry_to(uint32_t clientId) {
+    nlohmann::json root;
+    root["type"] = "FullRegistry";
+    root["entities"] = nlohmann::json::array();
+
+    for (auto entity : registry_server.alive_entities()) {
+        auto j = game::serializer::serialize_entity(registry_server, entity);
+        if (!j.empty()) {
+            root["entities"].push_back(j);
+        }
+    }
+    connexion.sendJsonToClient(clientId, root);
+    LOG_DEBUG("[Server] Sent full registry to client " << clientId 
+              << " with " << root["entities"].size() << " entities");
 }
+
 
 void ServerGame::load_players(const std::string &path) {
     try {
@@ -192,8 +205,7 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 }
                 LOG_DEBUG("[Server] Client " << id << " switched to scene = " << static_cast<int>(scene));
                 if (scene == SceneState::GAME) {
-                    broadcast_full_registry();
-                    LOG_DEBUG("[Server] Sent full registry to client " << id);
+                    broadcast_full_registry_to(id);
                 }
             }
             break;

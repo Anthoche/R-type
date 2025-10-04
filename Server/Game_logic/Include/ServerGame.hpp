@@ -53,7 +53,7 @@ class ServerGame {
          *
          * Serializes all entities and sends them in batches.
          */
-        void broadcast_full_registry();
+        void broadcast_full_registry_to(uint32_t clientId);
 
     private:
         Connexion &connexion;
