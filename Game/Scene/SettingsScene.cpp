@@ -20,97 +20,116 @@ SettingsScene::SettingsScene(Game &game)
 
 void SettingsScene::init() {
     _isOpen = true;
+
+    setupScene();
+    registerComponents();
+    createTitle();
+    createButtons();
+    createBackButton();
+}
+
+void SettingsScene::setupScene() {
     _raylib.enableCursor();
     _raylib.setTargetFPS(60);
-
     _font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+}
 
+void SettingsScene::registerComponents() {
     _registry.register_component<component::position>();
     _registry.register_component<component::drawable>();
     _registry.register_component<component::text>();
     _registry.register_component<component::clickable>();
     _registry.register_component<component::hoverable>();
     _registry.register_component<component::type>();
-	Vector2 titleSize = _raylib.measureTextEx(_font, "R-Type", _titleSize, -0.5f);
-	Vector2 titlePos = { (_width - titleSize.x) / 2.0f, 50.0f };
+}
 
-	game::entities::create_text(
-    	_registry,
-    	titlePos,
-    	"R-Type",
-    	RAYWHITE,
-    	-0.5f,
-    	_titleSize,
-    	_font
-	);
+void SettingsScene::createTitle() {
+    Vector2 titleSize = _raylib.measureTextEx(_font, "R-Type", _titleSize, -0.5f);
+    Vector2 titlePos = { (_width - titleSize.x) / 2.0f, 50.0f };
 
-	float y = 220.f;
-	for (size_t i = 0; i < _buttons.size(); ++i) {
-    	game::entities::create_text(
-        	_registry,
-        	{_buttonPosition.x, y},
-        	_buttons[i],
-        	_accentColor,
-        	-1.0f,
-        	_buttonTextSize,
-        	_font
-    	);
-	if (i == 0) {
-    	Vector2 size = {120.f, 40.f};
-    	game::entities::create_button(
-        	_registry,
-        	"button_difficulty",
-        	_values[i],
-        	{_buttonPosition.x + 350.f, y - 10.f},
-        	size,
-        	DARKGRAY,
-        	RAYWHITE,
-        	_buttonTextSize - 4
-    	);
-		} else if (i == 1) {
-        	Vector2 size = {100.f, 40.f};
-        	game::entities::create_button(
-            	_registry,
-            	"button_lives",
-            	_values[i],
-            	{_buttonPosition.x + 350.f, y - 10.f},
-            	size,
-            	DARKGRAY,
-            	RAYWHITE,
-            	_buttonTextSize - 4
-        	);
-		}else if (i == 2) {
-        	Vector2 size = {100.f, 40.f};
-        	game::entities::create_button(
-            	_registry,
-            	"button_sound",
-            	_values[i],
-            	{_buttonPosition.x + 350.f, y - 10.f},
-            	size,
-            	DARKGRAY,
-            	RAYWHITE,
-            	_buttonTextSize - 4
-        	);
-    	} else {
-        	game::entities::create_text(
-            	_registry,
-            	{_buttonPosition.x + 350.f, y},
-            	_values[i],
-            	RAYWHITE,
-            	-1.0f,
-            	_buttonTextSize - 4,
-            	_font
-        	);
-    	}
-	    y += _buttonSize.y + _buttonSpacing;
-	}
+    game::entities::create_text(
+        _registry,
+        titlePos,
+        "R-Type",
+        RAYWHITE,
+        -0.5f,
+        _titleSize,
+        _font
+    );
+}
+void SettingsScene::createButtons() {
+    float y = 220.f;
 
+    std::vector<ButtonCreator> creators = {
+        &SettingsScene::createDifficultyButton,
+        &SettingsScene::createLivesButton,
+        &SettingsScene::createSoundButton
+    };
+
+    for (size_t i = 0; i < _buttons.size(); ++i) {
+        game::entities::create_text(
+            _registry,
+            {_buttonPosition.x, y},
+            _buttons[i],
+            _accentColor,
+            -1.0f,
+            _buttonTextSize,
+            _font
+        );
+
+        Vector2 pos = {_buttonPosition.x + 350.f, y - 10.f};
+
+        if (i < creators.size())
+            (this->*creators[i])(pos, i);
+        else
+            createDefaultText(pos, i);
+        y += _buttonSize.y + _buttonSpacing;
+    }
+}
+
+void SettingsScene::createDifficultyButton(Vector2 pos, std::size_t i) {
+    game::entities::create_button(
+        _registry, "button_difficulty", _values[i],
+        pos, {120.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+    );
+}
+
+void SettingsScene::createLivesButton(Vector2 pos, std::size_t i) {
+    game::entities::create_button(
+        _registry, "button_lives", _values[i],
+        pos, {100.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+    );
+}
+
+void SettingsScene::createSoundButton(Vector2 pos, std::size_t i) {
+    game::entities::create_button(
+        _registry, "button_sound", _values[i],
+        pos, {100.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+    );
+}
+
+void SettingsScene::createDefaultText(Vector2 pos, std::size_t i) {
+    game::entities::create_text(
+        _registry,
+        pos,
+        _values[i],
+        RAYWHITE,
+        -1.0f,
+        _buttonTextSize - 4,
+        _font
+    );
+}
+
+
+void SettingsScene::createBackButton() {
     Vector2 backPos = {40.f, static_cast<float>(_height - 80)};
     Vector2 backSize = {150.f, 50.f};
+
     game::entities::create_button(
         _registry, "button_back", "< Back", backPos, backSize, DARKGRAY, RAYWHITE, 23
     );
 }
+
 
 void SettingsScene::render() {
     _raylib.beginDrawing();
@@ -187,47 +206,46 @@ void SettingsScene::handleEvents() {
 void SettingsScene::handleButtonClick(std::string const &id) {
     if (id == "button_back") {
         _game.getSceneHandler().open("menu");
+        return;
     }
 
     if (id == "button_sound") {
-        _values[2] = (_values[2] == "On") ? "Off" : "On";
-
-        auto &texts = _registry.get_components<component::text>();
-        auto &clickable = _registry.get_components<component::clickable>();
-
-        for (std::size_t i = 0; i < clickable.size(); ++i) {
-            if (clickable[i] && clickable[i]->id == "button_sound" && texts[i]) {
-                texts[i]->content = _values[2];
-            }
-        }
+        toggleSound();
+    } else if (id == "button_lives") {
+        cycleLives();
+    } else if (id == "button_difficulty") {
+        cycleDifficulty();
     }
-  if (id == "button_lives") {
-        _currentLivesIndex = (_currentLivesIndex + 1) % _lives.size();
-        _values[1] = _lives[_currentLivesIndex];
+}
 
-        auto &texts = _registry.get_components<component::text>();
-        auto &clickable = _registry.get_components<component::clickable>();
+void SettingsScene::toggleSound() {
+    _values[2] = (_values[2] == "On") ? "Off" : "On";
+    updateButtonText("button_sound", _values[2]);
+}
 
-        for (std::size_t i = 0; i < clickable.size(); ++i) {
-            if (clickable[i] && clickable[i]->id == "button_lives" && texts[i]) {
-                texts[i]->content = _values[1];
-            }
-        }
-    }
-    if (id == "button_difficulty") {
-        _currentLevelIndex = (_currentLevelIndex + 1) % _levels.size();
-        _values[0] = _levels[_currentLevelIndex];
+void SettingsScene::cycleLives() {
+    _currentLivesIndex = (_currentLivesIndex + 1) % _lives.size();
+    _values[1] = _lives[_currentLivesIndex];
+    updateButtonText("button_lives", _values[1]);
+}
 
-        auto &texts = _registry.get_components<component::text>();
-        auto &clickable = _registry.get_components<component::clickable>();
+void SettingsScene::cycleDifficulty() {
+    _currentLevelIndex = (_currentLevelIndex + 1) % _levels.size();
+    _values[0] = _levels[_currentLevelIndex];
+    updateButtonText("button_difficulty", _values[0]);
+}
 
-        for (std::size_t i = 0; i < clickable.size(); ++i) {
-            if (clickable[i] && clickable[i]->id == "button_difficulty" && texts[i]) {
-                texts[i]->content = _values[0];
-            }
+void SettingsScene::updateButtonText(const std::string &buttonId, const std::string &newText) {
+    auto &texts = _registry.get_components<component::text>();
+    auto &clickable = _registry.get_components<component::clickable>();
+
+    for (std::size_t i = 0; i < clickable.size(); ++i) {
+        if (clickable[i] && clickable[i]->id == buttonId && texts[i]) {
+            texts[i]->content = newText;
         }
     }
 }
+
 
 
 
