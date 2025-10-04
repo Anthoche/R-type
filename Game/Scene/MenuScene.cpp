@@ -17,45 +17,42 @@ namespace scene {
 		_buttonCenterY = static_cast<float>(getButtonsCenterY(_height, 3, _buttonSize.y, _buttonSpacing));
 		_buttonPosition = {600.f, _buttonCenterY};
 	}
-void MenuScene::init() {
-    _isOpen = true;
-    _raylib.enableCursor();
-    _raylib.setTargetFPS(60);
 
-    _registry = ecs::registry{};
+	void MenuScene::init() {
+		_isOpen = true;
+		_raylib.enableCursor();
+		_raylib.setTargetFPS(60);
 
-    _font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+		_registry = ecs::registry{};
 
-    _registry.register_component<component::position>();
-    _registry.register_component<component::drawable>();
-    _registry.register_component<component::text>();
-    _registry.register_component<component::clickable>();
-    _registry.register_component<component::hoverable>();
-    _registry.register_component<component::type>();
+		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
 
-    _buttonPosition = {600.f, _buttonCenterY};
+		_registry.register_component<component::position>();
+		_registry.register_component<component::drawable>();
+		_registry.register_component<component::text>();
+		_registry.register_component<component::clickable>();
+		_registry.register_component<component::hoverable>();
+		_registry.register_component<component::type>();
 
-    game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type",
-        RAYWHITE, -0.5f, _titleSize, _font);
+		_buttonPosition = {600.f, _buttonCenterY};
 
-    game::entities::create_button(_registry, "button_play", "Play",
-        _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-    _buttonPosition.y += _buttonSize.y + _buttonSpacing;
+		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type",
+			RAYWHITE, -0.5f, _titleSize, _font);
+		game::entities::create_button(_registry, "button_play", "Play",
+			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
+		game::entities::create_button(_registry, "button_settings", "Settings",
+			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
+		game::entities::create_button(_registry, "button_quit", "Quit",
+			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
 
-    game::entities::create_button(_registry, "button_settings", "Settings",
-        _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-    _buttonPosition.y += _buttonSize.y + _buttonSpacing;
-
-    game::entities::create_button(_registry, "button_quit", "Quit",
-        _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-
-    static bool helloSent = false;
-    if (!helloSent) {
-        _game.getGameClient().sendHello();
-        helloSent = true;
-    }
-}
-
+		static bool helloSent = false;
+		if (!helloSent) {
+			_game.getGameClient().sendHello();
+			helloSent = true;
+		}
+	}
 
 	void MenuScene::render() {
 		_raylib.beginDrawing();
@@ -92,17 +89,17 @@ void MenuScene::init() {
 		resetButtonStates();
 
 		if (_game.getGameStatus() == GameStatus::RUNNING) {
-        _game.getSceneHandler().open("game");
-        return;
-    }
+        	_game.getSceneHandler().open("game");
+        	return;
+    	}
 
-    switch (_raylib.getKeyPressed()) {
-        case KEY_S:
-            _game.getSceneHandler().open("settings");
-            break;
-        default:
-            break;
-    }
+		switch (_raylib.getKeyPressed()) {
+			case KEY_S:
+				_game.getSceneHandler().open("settings");
+				break;
+			default:
+				break;
+		}
 
 		Vector2 mousePos = _raylib.getMousePosition();
 		auto &positions = _registry.get_components<component::position>();
@@ -111,8 +108,8 @@ void MenuScene::init() {
 		auto &hoverable = _registry.get_components<component::hoverable>();
 
 		for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
-			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) continue;
-
+			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) 
+				continue;
 			if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				hoverable[i]->isHovered = true;
