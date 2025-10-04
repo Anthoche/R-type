@@ -19,8 +19,10 @@ SettingsScene::SettingsScene(Game &game)
 
     _buttons = {"1. Difficulty", "2. Lives", "3. Sound"};
     _values = {"Medium", "3", "On"};
+	//_levels = {"Easy", "Medium", "Hard"};
+	//_currentLevelIndex = 0; 
 
-    _buttonPosition = {230.f, 200.f};
+	_buttonPosition = {230.f, 200.f};
 }
 
 void SettingsScene::init() {
@@ -49,31 +51,66 @@ void SettingsScene::init() {
     	_font
 	);
 
-
-    float y = 200.f;
-    for (size_t i = 0; i < _buttons.size(); ++i) {
-        game::entities::create_text(
-            _registry,
-            {_buttonPosition.x, y},
-            _buttons[i],
-			_accentColor,
-            -1.0f,
-            _buttonTextSize,
-            _font
-        );
-
-        game::entities::create_text(
-            _registry,
-            {_buttonPosition.x + 350.f, y},
-            _values[i],
-            RAYWHITE,
-            -1.0f,
-            _buttonTextSize - 4,
-            _font
-        );
-
-        y += _buttonSize.y + _buttonSpacing;
-    }
+	float y = 220.f;
+	for (size_t i = 0; i < _buttons.size(); ++i) {
+    	game::entities::create_text(
+        	_registry,
+        	{_buttonPosition.x, y},
+        	_buttons[i],
+        	_accentColor,
+        	-1.0f,
+        	_buttonTextSize,
+        	_font
+    	);
+	if (i == 0) {
+    	Vector2 size = {120.f, 40.f};
+    	game::entities::create_button(
+        	_registry,
+        	"button_difficulty",
+        	_values[i],
+        	{_buttonPosition.x + 350.f, y - 10.f},
+        	size,
+        	DARKGRAY,
+        	RAYWHITE,
+        	_buttonTextSize - 4
+    	);
+		} else if (i == 1) {
+        	Vector2 size = {100.f, 40.f};
+        	game::entities::create_button(
+            	_registry,
+            	"button_lives",
+            	_values[i],
+            	{_buttonPosition.x + 350.f, y - 10.f},
+            	size,
+            	DARKGRAY,
+            	RAYWHITE,
+            	_buttonTextSize - 4
+        	);
+		}else if (i == 2) {
+        	Vector2 size = {100.f, 40.f};
+        	game::entities::create_button(
+            	_registry,
+            	"button_sound",
+            	_values[i],
+            	{_buttonPosition.x + 350.f, y - 10.f},
+            	size,
+            	DARKGRAY,
+            	RAYWHITE,
+            	_buttonTextSize - 4
+        	);
+    	} else {
+        	game::entities::create_text(
+            	_registry,
+            	{_buttonPosition.x + 350.f, y},
+            	_values[i],
+            	RAYWHITE,
+            	-1.0f,
+            	_buttonTextSize - 4,
+            	_font
+        	);
+    	}
+	    y += _buttonSize.y + _buttonSpacing;
+	}
 
     Vector2 backPos = {40.f, static_cast<float>(_height - 80)};
     Vector2 backSize = {150.f, 50.f};
@@ -158,7 +195,48 @@ void SettingsScene::handleButtonClick(std::string const &id) {
     if (id == "button_back") {
         _game.getSceneHandler().open("menu");
     }
+
+    if (id == "button_sound") {
+        _values[2] = (_values[2] == "On") ? "Off" : "On";
+
+        auto &texts = _registry.get_components<component::text>();
+        auto &clickable = _registry.get_components<component::clickable>();
+
+        for (std::size_t i = 0; i < clickable.size(); ++i) {
+            if (clickable[i] && clickable[i]->id == "button_sound" && texts[i]) {
+                texts[i]->content = _values[2];
+            }
+        }
+    }
+  if (id == "button_lives") {
+        _currentLivesIndex = (_currentLivesIndex + 1) % _lives.size();
+        _values[1] = _lives[_currentLivesIndex];
+
+        auto &texts = _registry.get_components<component::text>();
+        auto &clickable = _registry.get_components<component::clickable>();
+
+        for (std::size_t i = 0; i < clickable.size(); ++i) {
+            if (clickable[i] && clickable[i]->id == "button_lives" && texts[i]) {
+                texts[i]->content = _values[1];
+            }
+        }
+    }
+    if (id == "button_difficulty") {
+        _currentLevelIndex = (_currentLevelIndex + 1) % _levels.size();
+        _values[0] = _levels[_currentLevelIndex];
+
+        auto &texts = _registry.get_components<component::text>();
+        auto &clickable = _registry.get_components<component::clickable>();
+
+        for (std::size_t i = 0; i < clickable.size(); ++i) {
+            if (clickable[i] && clickable[i]->id == "button_difficulty" && texts[i]) {
+                texts[i]->content = _values[0];
+            }
+        }
+    }
 }
+
+
 
 void SettingsScene::drawButton(Vector2 position, Vector2 size, std::string const &content,
                                int fontSize, float spacing, Color color, Color textColor,

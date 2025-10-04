@@ -32,6 +32,11 @@ private:
     int const _titleSize = 90;
     std::vector<std::string> _buttons;
     std::vector<std::string> _values;
+    bool _soundOn = true; 
+    std::vector<std::string> _levels{"Easy", "Medium", "Hard"};
+    std::size_t _currentLevelIndex{0};
+    std::vector<std::string> _lives{"1", "3", "5"};
+    std::size_t _currentLivesIndex{0};
 
     Color const _accentColor{26, 170, 177, 255};
     Vector2 const _buttonSize{300.f, 50.f};
