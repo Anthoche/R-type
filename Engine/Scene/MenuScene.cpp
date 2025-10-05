@@ -23,6 +23,8 @@ namespace scene {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
+		_registry = ecs::registry{};
+
 		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
 
 		_registry.register_component<component::position>();
@@ -32,13 +34,25 @@ namespace scene {
 		_registry.register_component<component::hoverable>();
 		_registry.register_component<component::type>();
 
-		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
+		_buttonPosition = {600.f, _buttonCenterY};
 
-		game::entities::create_button(_registry, "button_play", "Play", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type",
+			RAYWHITE, -0.5f, _titleSize, _font);
+		game::entities::create_button(_registry, "button_play", "Play",
+			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
-		game::entities::create_button(_registry, "button_settings", "Settings", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+		game::entities::create_button(_registry, "button_settings", "Settings",
+			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
-		game::entities::create_button(_registry, "button_quit", "Quit", _buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+
+		game::entities::create_button(_registry, "button_quit", "Quit",
+			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+
+		static bool helloSent = false;
+		if (!helloSent) {
+			_game.getGameClient().sendHello();
+			helloSent = true;
+		}
 	}
 
 	void MenuScene::render() {
@@ -78,6 +92,9 @@ namespace scene {
 		resetButtonStates();
 
 		switch (_raylib.getKeyPressed()) {
+			case KEY_S:
+				_game.getSceneHandler().open("settings");
+				break;
 			default:
 				break;
 		}
@@ -89,8 +106,8 @@ namespace scene {
 		auto &hoverable = _registry.get_components<component::hoverable>();
 
 		for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
-			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) continue;
-
+			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) 
+				continue;
 			if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				hoverable[i]->isHovered = true;
@@ -141,7 +158,7 @@ namespace scene {
 					break;
 			}
 		} else if (id == "button_settings") {
-			// Open settings menu
+			 _game.getSceneHandler().open("settings");
 		} else if (id == "button_quit") {
 			close();
 		}

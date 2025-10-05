@@ -319,6 +319,10 @@ bool Raylib::isMouseButtonReleased(int button) {
 	return IsMouseButtonReleased(button);
 }
 
+bool Raylib::isMouseButtonPressed(int button) {
+    return ::IsMouseButtonPressed(button);
+}
+
 // Keyboard input
 
 bool Raylib::isKeyDown(int key) {

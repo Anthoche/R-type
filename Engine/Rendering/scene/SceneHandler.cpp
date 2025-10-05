@@ -10,6 +10,8 @@
 #include "Include/GameScene.hpp"
 #include "Include/ServerWaitScene.hpp"
 #include "Include/WaitingScene.hpp"
+#include "Include/SettingsScene.hpp"
+
 
 SceneHandler::SceneHandler(Game &game) : _game(game) {
 	_raylib = Raylib();
@@ -25,6 +27,7 @@ void SceneHandler::setupScenes() {
 	addScene("waiting", std::make_shared<scene::WaitingScene>(_game));
 	addScene("server_wait", std::make_shared<scene::ServerWaitScene>(_game));
 	addScene("game", std::make_shared<game::scene::GameScene>(_game));
+	addScene("settings", std::make_shared<scene::SettingsScene>(_game));
 }
 
 void SceneHandler::openMenu() {

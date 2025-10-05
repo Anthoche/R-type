@@ -570,6 +570,13 @@ class Raylib {
          */
         bool isMouseButtonReleased(int button);
 
+        /**
+         * @brief Check if a mouse button was pressed.
+         * @param button Mouse button code.
+         * @return True if the button was pressed.
+         */
+        bool isMouseButtonPressed(int button);
+
         // === keyboard input ===
 
         /**
