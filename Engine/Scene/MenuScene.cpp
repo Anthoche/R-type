@@ -77,9 +77,7 @@ namespace scene {
 				int fontSize = text[i]->font_size;
 				float spacing = text[i]->spacing;
 				Color textColor = text[i]->color;
-				Color color = drawables[i]->color;
-				drawButton(_raylib, pos, size, content, _font, fontSize, spacing, color, textColor, hoverable[i]->isHovered,
-							clickable[i]->isClicked, clickable[i]->enabled);
+				drawButton(pos, size, content, fontSize, spacing, _accentColor, textColor, hoverable[i]->isHovered, clickable[i]->isClicked);
 			}
 			if (types[i]->value == component::entity_type::TEXT) {
 				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);

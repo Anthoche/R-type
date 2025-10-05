@@ -5,7 +5,7 @@
 ** SettingsScene
 */
 
-#include "SettingsScene.hpp"
+#include "Include/SettingsScene.hpp"
 #include "components.hpp"
 #include "background.hpp"
 #include "button.hpp"
