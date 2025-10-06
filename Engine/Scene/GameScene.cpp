@@ -143,11 +143,11 @@ namespace game::scene {
                 );
             }
         }
- /*        for (auto &kv : _game.getGameClient().projectiles) {
+        for (auto &kv : _game.getGameClient().projectiles) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
             _raylib.drawRectangle((int)(x - 5), (int)(y - 2), 10, 5, WHITE);
-        } */
+        }
         _raylib.endDrawing();
     }
 
@@ -177,7 +177,7 @@ namespace game::scene {
     }
 
     void GameScene::handle_shoot() {
-        /* _game.getGameClient().sendShoot(); */
+        _game.getGameClient().sendShoot();
     }
     
     void GameScene::handle_input(float input_x, float input_y) {
@@ -300,7 +300,7 @@ namespace game::scene {
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> localProjs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
-            //localProjs = _game.getGameClient().projectiles;
+            localProjs = _game.getGameClient().projectiles;
         }
         
         auto &positions = _registry.get_components<component::position>();

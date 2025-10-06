@@ -61,6 +61,11 @@ class GameClient {
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
 
         /**
+         * @brief Maps projectiles IDs to their (x,y,width,height).
+         */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
+
+        /**
          * @brief Constructs a GameClient and connects to the server.
          * @param game The game instance.
          * @param serverIp IP address of the game server.
@@ -155,4 +160,27 @@ class GameClient {
          * @param scene SceneState (MENU, GAME, UNKNOWN)
          */
         void sendSceneState(SceneState scene);
+
+        /**
+         * @brief Handles an shoot message.
+         */
+        void sendShoot();
+
+        /**
+         * @brief Handles an projectiles spwan message.
+         * @param buffer Raw message data.
+         */
+        void handleProjectileSpawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an projectiles despwan message.
+         * @param buffer Raw message data.
+         */
+        void handleProjectileDespawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an projectiles update message.
+         * @param buffer Raw message data.
+         */
+        void handleProjectileUpdate(const std::vector<uint8_t> &buffer);
 };

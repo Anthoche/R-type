@@ -114,3 +114,11 @@ void GameClient::sendSceneState(SceneState scene) {
     }
 }
 
+void GameClient::sendShoot() {
+    if (clientId == 0)
+        return;
+    ClientShootMessage msg;
+    msg.type = MessageType::ClientShoot;
+    msg.clientId = htonl(clientId);
+    socket.sendTo( &msg, sizeof(msg) ,serverAddr);
+}
