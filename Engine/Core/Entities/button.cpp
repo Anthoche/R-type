@@ -28,10 +28,7 @@ namespace game::entities {
     component::drawable drawable;
     drawable.width = size.x;
     drawable.height = size.y;
-    drawable.r = 0.f;
-    drawable.g = 1.f;
-    drawable.b = 1.f;
-    drawable.a = 1.f;
+    drawable.color = color;
     reg.add_component<component::drawable>(button, std::move(drawable));
 
     component::text text;

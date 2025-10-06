@@ -22,7 +22,7 @@ ecs::entity_t create_projectile(ecs::registry &reg, float x, float y,
     component::drawable drawable;
     drawable.width = 10.f;
     drawable.height = 5.f;
-    drawable.r = 1.f; drawable.g = 1.f; drawable.b = 1.f; drawable.a = 1.f;
+    drawable.color = YELLOW;
     reg.add_component<component::drawable>(projectile, std::move(drawable));    
     reg.emplace_component<component::collision_box>(projectile, 10.f, 5.f);
     

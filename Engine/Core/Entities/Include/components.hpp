@@ -48,11 +48,11 @@ namespace component {
 	* @struct drawable
 	* @brief Represents a renderable entity with size and color.
 	*/
-	struct drawable {
-		float width{32.f}; ///< Width of the entity
-		float height{32.f}; ///< Height of the entity
-		float r{1.f}, g{1.f}, b{1.f}, a{1.f}; ///< Color in RGBA
-	};
+    struct drawable {
+        float width{32.f};  ///< Width of the entity
+        float height{32.f}; ///< Height of the entity
+        Color color{WHITE}; ///< Color in RGBA
+    };
 
     /**
      * @struct sprite

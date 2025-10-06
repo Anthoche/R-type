@@ -117,6 +117,29 @@ namespace scene {
 		}
 	}
 
+	void MenuScene::drawButton(Vector2 position, Vector2 size, std::string const &content,
+							int fontSize, float spacing, Color color, Color textColor,
+							bool isHovered, bool isClicked) {
+		Vector2 textPos = {position.x + size.x / 2, position.y + size.y / 2};
+		Vector2 textSize = _raylib.measureTextEx(_font, content, fontSize, spacing);
+		textPos.x -= textSize.x / 2;
+		textPos.y -= textSize.y / 2;
+
+		Rectangle rect = {position.x, position.y, size.x, size.y};
+
+		if (isHovered) {
+			Color temp = textColor;
+			textColor = color;
+			color = temp;
+		}
+		if (isClicked) {
+			color.a -= 50;
+		}
+
+		_raylib.drawRectangleRounded(rect, 0.5, 10, color);
+		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, textColor);
+	}
+
 	void MenuScene::onClose() {
 		_raylib.unloadFont(_font);
 	}
