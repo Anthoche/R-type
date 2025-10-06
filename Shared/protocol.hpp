@@ -12,7 +12,7 @@
 #include <string>
 
 /**
- * @brief Types of messages exchanged between client and server
+ * @brief Enum for all network message types exchanged between client and server.
  */
 enum class MessageType : uint8_t {
     ClientHello,      /**< Client greeting the server */
@@ -28,92 +28,102 @@ enum class MessageType : uint8_t {
     ClientShoot,        /**< CLient send a shoot */
     ProjectileSpawn,      /**< Server create an projectile */
     ProjectileUpdate,     /**< Server update an projectile */
-    ProjectileDespawn     /**< Server delete an projectile */
+    ProjectileDespawn     /**< Server delete an projectile */   /**< Server → Clients: suppression obstacle */
+    EntityData,         /**< Server → Clients: synchronisation entité ECS */
+    SceneState,         /**< Client → Server: indique la scène courante */
 };
 
+/**
+ * @brief Identifie les différentes scènes côté client.
+ */
+enum class SceneState : uint32_t {
+    MENU = 0,
+    GAME = 1,
+    UNKNOWN = 2
+};
 /**
  * @brief Message sent by client to introduce itself to the server
  */
 struct ClientHelloMessage {
-    MessageType type;          /**< Message type (ClientHello) */
-    uint32_t clientId;         /**< ID of the client */
-    char clientName[32];       /**< Name of the client (C-string, max 31 chars + null) */
+    MessageType type;
+    uint32_t clientId;
+    char clientName[32];
 };
 
 /**
  * @brief Message sent by server to notify the start of the game
  */
 struct GameStartMessage {
-    MessageType type;          /**< Message type (GameStart) */
-    uint32_t clientCount;      /**< Number of connected clients */
+    MessageType type;
+    uint32_t clientCount;
 };
 
 /**
  * @brief Message sent by server to assign an ID to a client
  */
 struct ServerAssignIdMessage {
-    MessageType type;          /**< Message type (ServerAssignId) */
-    uint32_t clientId;         /**< Assigned client ID (network byte order) */
+    MessageType type;
+    uint32_t clientId;
 };
 
 /**
  * @brief Message sent by client with input for the current frame
  */
 struct ClientInputMessage {
-    MessageType type;          /**< Message type (ClientInput) */
-    uint32_t clientId;         /**< Client ID (network byte order) */
-    uint32_t inputXBits;       /**< X input as float bits (network byte order) */
-    uint32_t inputYBits;       /**< Y input as float bits (network byte order) */
+    MessageType type;
+    uint32_t clientId;
+    uint32_t inputXBits;
+    uint32_t inputYBits;
 };
 
 /**
  * @brief Message sent by server to update client state
  */
 struct StateUpdateMessage {
-    MessageType type;          /**< Message type (StateUpdate) */
-    uint32_t clientId;         /**< Recipient client ID (network byte order) */
-    uint32_t posXBits;         /**< X position as float bits (network byte order) */
-    uint32_t posYBits;         /**< Y position as float bits (network byte order) */
+    MessageType type;
+    uint32_t clientId;
+    uint32_t posXBits;
+    uint32_t posYBits;
 };
 
 /**
  * @brief Message sent by server to spawn a new enemy
  */
 struct EnemySpawnMessage {
-    MessageType type;          /**< Message type (EnemySpawn) */
-    uint32_t enemyId;          /**< Enemy ID (network byte order) */
-    uint32_t posXBits;         /**< X position as float bits (network byte order) */
-    uint32_t posYBits;         /**< Y position as float bits (network byte order) */
+    MessageType type;
+    uint32_t enemyId;
+    uint32_t posXBits;
+    uint32_t posYBits;
 };
 
 /**
  * @brief Message sent by server to update an enemy's position
  */
 struct EnemyUpdateMessage {
-    MessageType type;          /**< Message type (EnemyUpdate) */
-    uint32_t enemyId;          /**< Enemy ID (network byte order) */
-    uint32_t posXBits;         /**< X position as float bits (network byte order) */
-    uint32_t posYBits;         /**< Y position as float bits (network byte order) */
+    MessageType type;
+    uint32_t enemyId;
+    uint32_t posXBits;
+    uint32_t posYBits;
 };
 
 /**
  * @brief Message sent by server to remove an enemy
  */
 struct EnemyDespawnMessage {
-    MessageType type;          /**< Message type (EnemyDespawn) */
-    uint32_t enemyId;          /**< Enemy ID to remove (network byte order) */
+    MessageType type;
+    uint32_t enemyId;
 };
 
 /**
  * @brief Message sent by server to spawn a static obstacle
  */
 struct ObstacleSpawnMessage {
-    MessageType type;          /**< Message type (ObstacleSpawn) */
-    uint32_t obstacleId;       /**< Obstacle ID (network byte order) */
-    uint32_t posXBits;         /**< X position as float bits (network byte order) */
-    uint32_t posYBits;         /**< Y position as float bits (network byte order) */
-    uint32_t widthBits;        /**< Width as float bits (network byte order) */
-    uint32_t heightBits;       /**< Height as float bits (network byte order) */
+    MessageType type;
+    uint32_t obstacleId;
+    uint32_t posXBits;
+    uint32_t posYBits;
+    uint32_t widthBits;
+    uint32_t heightBits;
 };
 
 /**
@@ -162,3 +172,22 @@ struct ProjectileDespawnMessage {
     MessageType type;       // ProjectileDeSpawn
     uint32_t projectileId;  // ID unique du projectile
 };
+
+/**
+ * @brief Message sent by server with serialized entity JSON data
+ */
+struct EntityDataMessage {
+    MessageType type;
+    uint32_t dataLength;     /**< Length of JSON data */
+    char jsonData[2048];     /**< JSON string (null-terminated) */
+};
+
+/**
+ * @brief Message envoyé par le client pour indiquer la scène courante (menu / jeu).
+ */
+struct SceneStateMessage {
+    MessageType type;
+    uint32_t clientId;
+    uint32_t scene; // correspond à SceneState
+};
+

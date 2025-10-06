@@ -8,16 +8,11 @@
 #include "../Engine/Game.hpp"
 
 int main(int argc, char *argv[]) {
-	std::string serverIp;
-
 	if (argc < 3) {
 		std::cerr << "Usage: " << argv[0] << " <server_ip> <client_name>" << std::endl;
 		return 1;
 	}
-	serverIp = argv[1];
-	if (serverIp == "localhost")
-		serverIp = "127.0.0.1";
-	Game game(serverIp, argv[2]);
+	Game game(argv[1], argv[2]);
 	game.run();
 	return 0;
 }

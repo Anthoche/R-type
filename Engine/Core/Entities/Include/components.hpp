@@ -10,6 +10,7 @@
 #include <raylib.h>
 #include "../../Include/entity.hpp"
 #include <string>
+#include <cstdint>
 
 /**
  * @namespace component
@@ -183,7 +184,7 @@ namespace component {
         float offsetY{0.f};     ///< Y offset relative to owner position
     };
 
-    struct ClientId {
-        std::size_t id;
+    struct client_id {
+        uint32_t id;
     };
 }

@@ -10,8 +10,8 @@
 #include "components.hpp"
 #include "../../Include/registry.hpp"
 
-namespace game::entities {
-
+namespace game::entities
+{
     /**
      * @brief Factory function to create a player entity with all necessary components.
      *
@@ -22,7 +22,7 @@ namespace game::entities {
      * @param y Initial Y position (default: 300.f).
      * @return The created player entity.
      */
-    ecs::entity_t create_player(ecs::registry &reg, float x = 100.f, float y = 300.f, const std::string &imagePath = "");
+    ecs::entity_t create_player(ecs::registry &reg, float x = 100.f, float y = 300.f, const std::string &imagePath = "", uint32_t clientId = 0);
 
     /**
      * @brief Sets up the player control system.
@@ -43,5 +43,4 @@ namespace game::entities {
      * @param screen_height Height of the game screen.
      */
     void setup_player_bounds_system(ecs::registry &reg, float screen_width, float screen_height);
-
 } // namespace game::entities

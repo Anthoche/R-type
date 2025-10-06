@@ -6,13 +6,11 @@
 */
 #include "server.hpp"
 #include "Game_logic/Include/ServerGame.hpp"
-#include <iostream>
 #include <chrono>
 #include <thread>
 #include <cstring>
-#include <algorithm>
 
-GameServer::GameServer(uint16_t port) : socket(port) {}
+GameServer::GameServer(uint16_t port) : connexion(ioContext, port) {}
 
 void GameServer::run()
 {
@@ -20,92 +18,100 @@ void GameServer::run()
     // accept clients until game start
     while (!gameStarted) {
         std::vector<uint8_t> data;
-        sockaddr_in clientAddr = {};
-        if (!socket.try_receive(data, clientAddr)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        asio::ip::udp::endpoint clientEndpoint;
+        
+        // Utilisation d'asyncReceive avec un handler synchrone
+        bool received = false;
+        connexion.asyncReceive([&](const asio::error_code& error, std::vector<uint8_t> receivedData, asio::ip::udp::endpoint sender) {
+            if (!error) {
+                data = std::move(receivedData);
+                clientEndpoint = sender;
+                received = true;
+            }
+        });
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        if (!received) {
             continue;
         }
-        if (data.size() < sizeof(MessageType)) {
+        if (data.size() < sizeof(MessageType))
             continue;
-        }
         MessageType type = *reinterpret_cast<MessageType*>(data.data());
         if (type == MessageType::ClientHello) {
-            handleClientHello(data, clientAddr);
+            handleClientHello(data, clientEndpoint);
         }
     }
     std::cout << "Tous les clients sont connectés. Le jeu commence !" << std::endl;
     // Delegate to Game module
-    ServerGame game(socket);
+    ServerGame game(connexion);
     game.run();
 }
 
-void GameServer::handleClientHello(const std::vector<uint8_t>& data, const sockaddr_in& clientAddr)
+void GameServer::handleClientHello(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& clientEndpoint)
 {
-    if (gameStarted) {
-        return;
-    }
-    if (data.size() < sizeof(ClientHelloMessage)) {
-        return;
-    }
+    if (gameStarted) return;
+    if (data.size() < sizeof(ClientHelloMessage)) return;
     const ClientHelloMessage* msg = reinterpret_cast<const ClientHelloMessage*>(data.data());
+    
     uint32_t clientId = nextClientId++;
-    socket.addClient(clientAddr, clientId);
-    ServerAssignIdMessage assignMsg;
+    connexion.addClient(clientEndpoint, clientId);
+    uint16_t tcpPort = 5000 + clientId;
+    std::thread([this, clientId, tcpPort]() {
+        if (!connexion.acceptTcpClient(clientId, tcpPort)) {
+            std::cerr << "[ERROR] TCP accept failed for client " << clientId << std::endl;
+        } else {
+            std::cout << "[INFO] TCP connection established for client " << clientId << std::endl;
+        }
+    }).detach();
+    ServerAssignIdMessage assignMsg{};
     assignMsg.type = MessageType::ServerAssignId;
     assignMsg.clientId = htonl(clientId);
-    socket.sendTo(&assignMsg, sizeof(assignMsg), clientAddr);
+    connexion.sendTo(&assignMsg, sizeof(assignMsg), clientEndpoint);
     std::cout << "Client connecté : " << msg->clientName
               << " (ID: " << clientId << ")"
-              << " [" << socket.getClientCount() << "/4]" << std::endl;
-    if (socket.getClientCount() == 4) {
+              << " [" << connexion.getClientCount() << "/4]" << std::endl;
+    if (connexion.getClientCount() == 4) {
         gameStarted = true;
         broadcastGameStart();
     }
 }
 
+
 void GameServer::broadcastGameStart()
 {
-    GameStartMessage msg;
+    GameStartMessage msg{};
     msg.type = MessageType::GameStart;
     msg.clientCount = htonl(4);
-    socket.broadcast(&msg, sizeof(msg));
+    connexion.broadcast(&msg, sizeof(msg));
     std::cout << "[DEBUG] Message GameStart envoyé à tous les clients." << std::endl;
 }
 
-void GameServer::handle_client_message(const std::vector<uint8_t>& data, const sockaddr_in& from)
+void GameServer::handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from)
 {
     if (data.size() < sizeof(MessageType)) return;
     MessageType type = *reinterpret_cast<const MessageType*>(data.data());
-    if (type == MessageType::ClientInput) {
-        if (data.size() >= sizeof(ClientInputMessage)) {
-            const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
-            uint32_t id = ntohl(msg->clientId);
-            // decode floats from network order bits
-            uint32_t xbits = ntohl(msg->inputXBits);
-            uint32_t ybits = ntohl(msg->inputYBits);
-            float inputX, inputY;
-            std::memcpy(&inputX, &xbits, sizeof(float));
-            std::memcpy(&inputY, &ybits, sizeof(float));
-            auto& pos = playerPositions[id];
-            // simple integration
-            float speed = 200.f / 60.f; // units per tick at 60Hz
-            pos.first += inputX * speed;
-            pos.second += inputY * speed;
-            // clamp to window bounds (800x600), player size 30 => half-size 15
-            const float halfSize = 15.f;
-            const float maxX = 800.f - halfSize;
-            const float maxY = 600.f - halfSize;
-            pos.first = std::clamp(pos.first, halfSize, maxX);
-            pos.second = std::clamp(pos.second, halfSize, maxY);
-        }
-    }
+    if (type != MessageType::ClientInput) return;
+    if (data.size() < sizeof(ClientInputMessage)) return;
+    const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
+    uint32_t id = ntohl(msg->clientId);
+    uint32_t xbits = ntohl(msg->inputXBits);
+    uint32_t ybits = ntohl(msg->inputYBits);
+    float inputX, inputY;
+    std::memcpy(&inputX, &xbits, sizeof(float));
+    std::memcpy(&inputY, &ybits, sizeof(float));
+    auto& pos = playerPositions[id];
+    float speed = 200.f / 60.f; // units per tick
+    pos.first += inputX * speed;
+    pos.second += inputY * speed;
+    const float halfSize = 15.f;
+    pos.first = std::clamp(pos.first, halfSize, 800.f - halfSize);
+    pos.second = std::clamp(pos.second, halfSize, 600.f - halfSize);
 }
 
 void GameServer::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms)
 {
     auto tick_end = std::chrono::high_resolution_clock::now();
     auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(tick_end - start).count();
-    if (elapsed_ms < tick_ms) {
+    if (elapsed_ms < tick_ms)
         std::this_thread::sleep_for(std::chrono::milliseconds(tick_ms - elapsed_ms));
-    }
 }

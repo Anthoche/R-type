@@ -1,73 +1,18 @@
 /*
 ** EPITECH PROJECT, 2025
-** G-CPP-500-PAR-5-1-rtype-1
+** R-type
 ** File description:
-** client
+** client_handler
 */
 
-#include "Include/client.hpp"
+#include "../client.hpp"
 #include "../../Engine/Game.hpp"
-
-GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
-	: clientName(name), _game(game) {
-	_isConnected = false;
-	_serverIp = serverIp;
-	_serverPort = serverPort;
-}
-
-GameClient::~GameClient() {
-	running = false;
-	if (rxThread.joinable()) rxThread.join();
-	close(socketFd);
-}
-
-void GameClient::run() {
-	std::cout << "Client démarré. En attente du début du jeu..." << std::endl;
-	running = true;
-	rxThread = std::thread(&GameClient::recvLoop, this);
-	while (_game.getGameStatus() != GameStatus::RUNNING && running) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	}
-	std::cout << "Le jeu commence, ouverture de la fenêtre client..." << std::endl;
-}
-
-bool GameClient::isConnected() const {
-	return _isConnected;
-}
-
-void GameClient::connect() {
-	std::cout << "[DEBUG] Connecting to server..." << std::endl;
-	socketFd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (socketFd < 0) {
-		throw std::runtime_error("Failed to create socket");
-	}
-	serverAddr = {};
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(_serverPort);
-	if (inet_pton(AF_INET, _serverIp.c_str(), &serverAddr.sin_addr) <= 0) {
-		throw std::runtime_error("Invalid server IP");
-	}
-	std::cout << "[DEBUG] Initialized connection." << std::endl;
-	std::cout << "[DEBUG] Sending packet..." << std::endl;
-	sendHello();
-	_isConnected = true; // Does not work here, for testing only!
-	std::cout << "[DEBUG] Connected successfully to the server!" << std::endl;
-}
-
-void GameClient::sendHello() {
-	ClientHelloMessage msg;
-	msg.type = MessageType::ClientHello;
-	msg.clientId = htonl(0);
-	strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
-	msg.clientName[sizeof(msg.clientName) - 1] = '\0';
-	ssize_t sentBytes = sendto(
-		socketFd, &msg, sizeof(msg), 0,
-		(struct sockaddr *) &serverAddr, sizeof(serverAddr)
-	);
-	if (sentBytes < 0) {
-		throw std::runtime_error("Failed to send hello packet");
-	}
-}
+#if defined(_WIN32)
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+#else
+    #include <arpa/inet.h>
+#endif
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
     switch (type) {
@@ -100,32 +45,12 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
     }
 }
 
-void GameClient::recvLoop() {
-	while (running) {
-		std::vector<uint8_t> buffer(1024);
-		sockaddr_in fromAddr = {};
-		socklen_t fromAddrLen = sizeof(fromAddr);
-		ssize_t bytesReceived = recvfrom(
-			socketFd, buffer.data(), buffer.size(), MSG_DONTWAIT,
-			(struct sockaddr *) &fromAddr, &fromAddrLen
-		);
-		if (bytesReceived <= 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(2));
-			continue;
-		}
-		if (bytesReceived < (ssize_t) sizeof(MessageType)) {
-			continue;
-		}
-		MessageType type = *reinterpret_cast<MessageType *>(buffer.data());
-		handleMessage(type, buffer);
-	}
-}
-
 void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {
-	if (buffer.size() < sizeof(ServerAssignIdMessage)) return;
-	const ServerAssignIdMessage *msg = reinterpret_cast<const ServerAssignIdMessage *>(buffer.data());
-	clientId = ntohl(msg->clientId);
-	std::cout << "[Client] Reçu clientId=" << clientId << std::endl;
+    if (buffer.size() < sizeof(ServerAssignIdMessage)) return;
+    const ServerAssignIdMessage *msg = reinterpret_cast<const ServerAssignIdMessage *>(buffer.data());
+    clientId = ntohl(msg->clientId);
+    std::cout << "[Client] Reçu clientId=" << clientId << std::endl;
+    initTcpConnection();
 }
 
 void GameClient::handleGameStart(const std::vector<uint8_t> &buffer) {

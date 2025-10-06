@@ -4,6 +4,7 @@
   "dependencies": [
     "raylib",
     "glfw3",
-    "nlohmann-json"
+    "nlohmann-json",
+    "asio"
   ]
 }

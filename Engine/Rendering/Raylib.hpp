@@ -11,6 +11,9 @@
 #include <string>
 #include <raylib.h>
 
+// Type alias pour Rectangle de raylib
+using RaylibRectangle = Rectangle;
+
 /**
  * @class Raylib
  * @brief A C++ wrapper around selected functions from the raylib library.
@@ -241,7 +244,7 @@ class Raylib {
 		 * @param rec The rectangle to draw
 		 * @param color The color of the rectangle
 		 */
-		void drawRectangleRec(Rectangle rec, Color color);
+		void drawRectangleRec(RaylibRectangle rec, Color color);
 
         /**
          * @brief Draw a rotated rectangle using pro parameters.
@@ -250,7 +253,7 @@ class Raylib {
          * @param rotation Rotation angle.
          * @param color Rectangle color.
          */
-        void drawRectanglePro(Rectangle rec, Vector2 origin, float rotation, Color color);
+        void drawRectanglePro(RaylibRectangle rec, Vector2 origin, float rotation, Color color);
 
         /**
          * @brief Draw the outline of a rectangle.
@@ -268,7 +271,7 @@ class Raylib {
          * @param rec Rectangle to test against.
          * @return True if collision detected.
          */
-        bool checkCollisionPointRec(Vector2 point, Rectangle rec);
+        bool checkCollisionPointRec(Vector2 point, RaylibRectangle rec);
 
 		/**
 		 * @brief Draw rectangle with rounded edges
@@ -628,6 +631,13 @@ class Raylib {
 		 * @brief Pop latest inserted matrix from stack
 		 */
 		void popMatrix();
+
+
+        Texture2D loadTexture(const std::string &fileName);
+        void unloadTexture(Texture2D texture);
+        void drawTexture(Texture2D texture, int posX, int posY, Color tint);
+        void drawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);
+
 };
 
 #endif /* !RAYLIB_HPP */

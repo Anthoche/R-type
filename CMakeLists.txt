@@ -25,6 +25,7 @@ endif()
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(asio CONFIG REQUIRED)
 
 # -------------------------
 # Directories
@@ -59,7 +60,10 @@ target_include_directories(ecs PUBLIC
 # -------------------------
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
-    ${CLIENT_DIR}/Network_client/client.cpp
+    ${CLIENT_DIR}/client.cpp
+    ${CLIENT_DIR}/Network_client/UDP_socket.cpp
+    ${CLIENT_DIR}/Network_client/TCP_socketClient.cpp
+    ${CLIENT_DIR}/Handler/client_handler.cpp
     ${ENGINE_DIR}/Game.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/enemy.cpp
@@ -73,6 +77,7 @@ add_executable(r-type_client
     ${ENGINE_ENTITIES_DIR}/random_element.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
+    ${ENGINE_UTILS_DIR}/serializer.cpp
     ${ENGINE_RENDERING_DIR}/Raylib.cpp
     ${ENGINE_RENDERING_DIR}/RenderUtils.cpp
     ${ENGINE_SCENE_DIR}/AScene.cpp
@@ -86,7 +91,9 @@ add_executable(r-type_client
 )
 
 target_include_directories(r-type_client PRIVATE
-    ${CLIENT_DIR}/Network_client/Include
+    ${CLIENT_DIR}
+    ${CLIENT_DIR}/Handler
+    ${CLIENT_DIR}/Network_client
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_RENDERING_DIR}
@@ -94,9 +101,14 @@ target_include_directories(r-type_client PRIVATE
     ${ENGINE_DIR}/Scene
     ${ENGINE_UTILS_DIR}/Include
     ${SHARED_DIR}
+    ${ASIO_INCLUDE_DIR}
 )
 
-target_link_libraries(r-type_client PRIVATE ecs raylib glfw nlohmann_json)
+target_link_libraries(r-type_client PRIVATE ecs raylib glfw nlohmann_json asio)
+
+if (WIN32)
+    target_compile_definitions(r-type_client PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
+endif()
 
 # -------------------------
 # r-type_server (no Raylib)
@@ -106,10 +118,12 @@ add_executable(r-type_server
     ${SERVER_DIR}/server.cpp
     ${SERVER_DIR}/Network_handler/connexion.cpp
     ${SERVER_DIR}/Network_handler/UDP_socket.cpp
+    ${SERVER_DIR}/Network_handler/TCP_socketServer.cpp
     ${SERVER_DIR}/Game_logic/game_setup.cpp
     ${SERVER_DIR}/Game_logic/ServerGame.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
+    ${ENGINE_UTILS_DIR}/serializer.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/enemy.cpp
     ${ENGINE_ENTITIES_DIR}/obstacle.cpp
@@ -127,6 +141,7 @@ target_include_directories(r-type_server PRIVATE
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_UTILS_DIR}/Include
     ${SHARED_DIR}
+    ${ASIO_INCLUDE_DIR}
 )
 target_link_libraries(r-type_server PRIVATE ecs nlohmann_json)
 

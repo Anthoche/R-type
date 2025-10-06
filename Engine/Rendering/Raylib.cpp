@@ -147,15 +147,15 @@ void Raylib::drawRectangle(int posX, int posY, int width, int height, Color colo
 	DrawRectangle(posX, posY, width, height, color);
 }
 
-void Raylib::drawRectangleRec(Rectangle rec, Color color) {
+void Raylib::drawRectangleRec(RaylibRectangle rec, Color color) {
 	DrawRectangleRec(rec, color);
 }
 
-void Raylib::drawRectanglePro(Rectangle rec, Vector2 origin, float rotation, Color color) {
+void Raylib::drawRectanglePro(RaylibRectangle rec, Vector2 origin, float rotation, Color color) {
 	DrawRectanglePro(rec, origin, rotation, color);
 }
 
-bool Raylib::checkCollisionPointRec(Vector2 point, Rectangle rec) {
+bool Raylib::checkCollisionPointRec(Vector2 point, RaylibRectangle rec) {
 	return CheckCollisionPointRec(point, rec);
 }
 
@@ -353,4 +353,22 @@ void Raylib::rotatef(float angle, float x, float y, float z) {
 
 void Raylib::popMatrix() {
 	rlPopMatrix();
+}
+
+
+//rtextures
+Texture2D Raylib::loadTexture(const std::string &fileName) {
+    return LoadTexture(fileName.c_str());
+}
+
+void Raylib::unloadTexture(Texture2D texture) {
+    UnloadTexture(texture);
+}
+
+void Raylib::drawTexture(Texture2D texture, int posX, int posY, Color tint) {
+    DrawTexture(texture, posX, posY, tint);
+}
+
+void Raylib::drawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint) {
+    DrawTextureEx(texture, position, rotation, scale, tint);
 }
