@@ -47,12 +47,6 @@ namespace scene {
 
 		game::entities::create_button(_registry, "button_quit", "Quit",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-
-		static bool helloSent = false;
-		if (!helloSent) {
-			_game.getGameClient().sendHello();
-			helloSent = true;
-		}
 	}
 
 	void MenuScene::render() {
