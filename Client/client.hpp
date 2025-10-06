@@ -35,7 +35,7 @@ class Game;
 class GameClient {
     private:
         UDP_socket socket; ///< UDP socket for network communication.
-        sockaddr_in serverAddr{}; ///< Server address structure.
+        asio::ip::udp::endpoint serverEndpoint; ///< Server asio endpoint.
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         std::string clientName; ///< Name of this client.
         std::thread rxThread; ///< Thread for receiving network messages.
