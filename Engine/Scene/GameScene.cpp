@@ -74,7 +74,22 @@ namespace game::scene {
                 ecs::entity_t e = game::entities::create_player(_registry, x, y);
                 _playerEntities.emplace(id, e);
             } else {
-                ecs::entity_t e = f->second; if (e.value() < positions.size() && positions[e.value()]) { positions[e.value()]->x = x; positions[e.value()]->y = y; }
+                ecs::entity_t e = f->second; 
+                if (e.value() < positions.size() && positions[e.value()]) { 
+                    float currentX = positions[e.value()]->x;
+                    float currentY = positions[e.value()]->y;
+                    float diffX = x - currentX;
+                    float diffY = y - currentY;
+                    const float threshold = 0.5f;
+                    if (std::abs(diffX) > threshold || std::abs(diffY) > threshold) {
+                        float lerpFactor = 0.3f;
+                        positions[e.value()]->x = currentX + diffX * lerpFactor;
+                        positions[e.value()]->y = currentY + diffY * lerpFactor;
+                    } else {
+                        positions[e.value()]->x = x;
+                        positions[e.value()]->y = y;
+                    }
+                }
             }
         }
         if (!_player.value() && !_playerEntities.empty()) _player = _playerEntities.begin()->second;
@@ -206,6 +221,11 @@ namespace game::scene {
                     ix = 0.f;
                 if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
                     iy = 0.f;
+
+                if (ix != 0.f || iy != 0.f) {
+                    playerPos.x += ix * speed * dt;
+                    playerPos.y += iy * speed * dt;
+                }
 
                 _game.getGameClient().sendInput(ix, iy);
             }

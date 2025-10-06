@@ -14,15 +14,15 @@
 #include <iostream>
 #include <cmath>
 // === Couleurs pour les logs ===
-#define RESET   "\033[0m"
-#define RED     "\033[31m"
-#define GREEN   "\033[32m"
-#define YELLOW  "\033[33m"
-#define BLUE    "\033[34m"
-#define LOG_ERROR(msg)   std::cerr << RED << "[ERROR] " << msg << RESET << std::endl
-#define LOG_INFO(msg)    std::cout << GREEN << "[INFO] " << msg << RESET << std::endl
-#define LOG_DEBUG(msg)   std::cout << YELLOW << "[DEBUG] " << msg << RESET << std::endl
-#define LOG(msg)         std::cout << BLUE << msg << RESET << std::endl
+#define RESET_COLOR   "\033[0m"
+#define RED_COLOR     "\033[31m"
+#define GREEN_COLOR   "\033[32m"
+#define YELLOW_COLOR  "\033[33m"
+#define BLUE_COLOR    "\033[34m"
+#define LOG_ERROR(msg)   std::cerr << RED_COLOR << "[ERROR] " << msg << RESET_COLOR << std::endl
+#define LOG_INFO(msg)    std::cout << GREEN_COLOR << "[INFO] " << msg << RESET_COLOR << std::endl
+#define LOG_DEBUG(msg)   std::cout << YELLOW_COLOR << "[DEBUG] " << msg << RESET_COLOR << std::endl
+#define LOG(msg)         std::cout << BLUE_COLOR << msg << RESET_COLOR << std::endl
 
 static nlohmann::json load_json_from_file(const std::string &path) {
     std::ifstream file(path);
@@ -54,7 +54,7 @@ void ServerGame::run() {
     //load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
     initialize_player_positions();
     initialize_obstacles();
-    const int tick_ms = 16;
+    const int tick_ms = 8;
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
         process_pending_messages();
@@ -129,12 +129,17 @@ void ServerGame::initialize_player_positions() {
 }
 
 void ServerGame::process_pending_messages() {
-    connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
-        if (ec)
-            return;
-        handle_client_message(data, endpoint);
-    });
-    // Note: asyncReceive appelle le handler plus tard, donc pas de boucle while ici.
+    int messagesProcessed = 0;
+    const int maxMessagesPerTick = 5;
+    while (messagesProcessed < maxMessagesPerTick) {
+        connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
+            if (ec)
+                return;
+            handle_client_message(data, endpoint);
+        });
+        messagesProcessed++;
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
 }
 
 bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,

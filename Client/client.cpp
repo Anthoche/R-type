@@ -71,7 +71,7 @@ void GameClient::recvLoop() {
             MessageType type = *reinterpret_cast<MessageType *>(buffer.data());
             handleMessage(type, buffer);
         } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 }
