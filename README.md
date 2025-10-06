@@ -46,28 +46,24 @@ The project is divided into several modules:
 ```
 r-type/
 ├── engine/               # Generic engine (independent from R-Type)
+│   |── assets/           # Sprites, sounds
 │   ├── core/             # Core (ECS, Event Bus, Time Management)
+|   |     └─entities/     # Prefabs (Player, Enemy, Bullet...)
 │   ├── rendering/        # Rendering (Raylib wrapper)
 │   ├── physics/          # Collisions, hitboxes
-│   └── utils/            # Math, logging, serialization
-│
-├── game/                 # R-Type game (built on top of the engine)
-│   ├── entities/         # Prefabs (Player, Enemy, Bullet...)
-│   ├── systems/          # Game logic (MovementSystem, CombatSystem...)
-│   ├── scenes/           # Levels, menus
-│   └── assets/           # Sprites, sounds
+│   └── scenes/           # Levels, menus
 │
 ├── server/               # Authoritative server
 │   ├── game_logic/       # Game rules (spawn, score...)
 │   └── network_handler/  # Client management
 │
 ├── client/               # Graphical client
-│   ├── input/            # Input handling
+│   ├── Hander/            # Input handling
 │   └── network_client/   # Communication with the server
 │
 ├── shared/               # Shared code (protocol, common structures)
 │
-└── tests/                # Unit tests (catch2, doctest)
+└── Unit_test/                # Unit tests (catch2, doctest)
 
 ```
 
