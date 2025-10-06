@@ -47,6 +47,8 @@ namespace scene {
 
 		game::entities::create_button(_registry, "button_quit", "Quit",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+		
+		_game.getGameClient().sendHello();
 	}
 
 	void MenuScene::render() {
@@ -152,7 +154,7 @@ namespace scene {
 
 	void MenuScene::handleButtonClick(std::string const &id) {
 		if (id == "button_play") {
-			try {
+/* 			try {
 				_game.getGameClient().connect();
 			} catch (std::exception const &e) {
 				std::cerr << "Error: " << e.what() << std::endl;
@@ -160,7 +162,7 @@ namespace scene {
 			if (!_game.getGameClient().isConnected()) {
 				_game.getSceneHandler().open("server_wait");
 				return;
-			}
+			} */
 			switch (_game.getGameStatus()) {
 				case GameStatus::WAITING_PLAYERS:
 					_game.getSceneHandler().open("waiting");

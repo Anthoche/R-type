@@ -28,9 +28,9 @@ enum class MessageType : uint8_t {
     ClientShoot,        /**< CLient send a shoot */
     ProjectileSpawn,      /**< Server create an projectile */
     ProjectileUpdate,     /**< Server update an projectile */
-    ProjectileDespawn     /**< Server delete an projectile */   /**< Server → Clients: suppression obstacle */
+    ProjectileDespawn,     /**< Server delete an projectile */   /**< Server → Clients: suppression obstacle */
     EntityData,         /**< Server → Clients: synchronisation entité ECS */
-    SceneState,         /**< Client → Server: indique la scène courante */
+    SceneState         /**< Client → Server: indique la scène courante */
 };
 
 /**

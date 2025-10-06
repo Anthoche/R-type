@@ -10,7 +10,7 @@
 
 Game::Game(const std::string &serverIp, const std::string &clientName) : _sceneHandler(*this),
 																		_client(*this, serverIp, 4141, clientName) {
-	_status = GameStatus::WAITING_PLAYERS;
+	_status = GameStatus::WAITING;
 }
 
 void Game::run() {

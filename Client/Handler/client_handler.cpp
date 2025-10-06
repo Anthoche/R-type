@@ -14,6 +14,7 @@
     #include <arpa/inet.h>
 #endif
 
+
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
     switch (type) {
         case MessageType::ServerAssignId:
@@ -31,19 +32,11 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::ObstacleDespawn:
             handleObstacleDespawn(buffer);
             break;
-        case MessageType::ProjectileSpawn:
-            handleProjectileSpawn(buffer);
-            break;
-        case MessageType::ProjectileDespawn:
-            handleProjectileDespawn(buffer);
-            break;
-        case MessageType::ProjectileUpdate:
-            handleProjectileUpdate(buffer);
-            break;
         default:
             break;
     }
 }
+
 
 void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {
     if (buffer.size() < sizeof(ServerAssignIdMessage)) return;
@@ -54,127 +47,43 @@ void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {
 }
 
 void GameClient::handleGameStart(const std::vector<uint8_t> &buffer) {
-	if (buffer.size() < sizeof(GameStartMessage)) return;
-	const GameStartMessage *msg = reinterpret_cast<const GameStartMessage *>(buffer.data());
-	std::cout << "Le jeu commence ! Nombre de joueurs : " << ntohl(msg->clientCount) << std::endl;
-	_game.setGameStatus(GameStatus::RUNNING);
+    if (buffer.size() < sizeof(GameStartMessage)) return;
+    const GameStartMessage *msg = reinterpret_cast<const GameStartMessage *>(buffer.data());
+    std::cout << "Le jeu commence ! Nombre de joueurs : " << ntohl(msg->clientCount) << std::endl;
+    _game.setGameStatus(GameStatus::RUNNING);
 }
 
 void GameClient::handlePlayerUpdate(const std::vector<uint8_t> &buffer) {
-	if (buffer.size() < sizeof(StateUpdateMessage)) return;
-
-	const StateUpdateMessage *msg = reinterpret_cast<const StateUpdateMessage *>(buffer.data());
-	uint32_t id = ntohl(msg->clientId);
-	uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
-	float x, y;
-
-	std::memcpy(&x, &xb, sizeof(float));
-	std::memcpy(&y, &yb, sizeof(float));
-	std::lock_guard<std::mutex> g(stateMutex);
-	players[id] = {x, y};
-}
-
-void GameClient::handleObstacleSpawn(const std::vector<uint8_t> &buffer) {
-	if (buffer.size() < sizeof(ObstacleSpawnMessage)) return;
-
-	const ObstacleSpawnMessage *msg = reinterpret_cast<const ObstacleSpawnMessage *>(buffer.data());
-	uint32_t id = ntohl(msg->obstacleId);
-	uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
-	uint32_t wb = ntohl(msg->widthBits), hb = ntohl(msg->heightBits);
-	float x, y, w, h;
-
-	std::memcpy(&x, &xb, 4);
-	std::memcpy(&y, &yb, 4);
-	std::memcpy(&w, &wb, 4);
-	std::memcpy(&h, &hb, 4);
-	std::lock_guard<std::mutex> g(stateMutex);
-	obstacles[id] = std::make_tuple(x, y, w, h);
-}
-
-void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
-	if (buffer.size() < sizeof(ObstacleDespawnMessage)) return;
-
-	const ObstacleDespawnMessage *msg = reinterpret_cast<const ObstacleDespawnMessage *>(buffer.data());
-
-	uint32_t id = ntohl(msg->obstacleId);
-
-	std::lock_guard<std::mutex> g(stateMutex);
-	obstacles.erase(id);
-}
-
-void GameClient::sendShoot() {
-    if (clientId == 0)
-        return;
-    ClientShootMessage msg;
-    msg.type = MessageType::ClientShoot;
-    msg.clientId = htonl(clientId);
-    sendto(
-        socketFd, &msg, sizeof(msg), 0,
-        (struct sockaddr *)&serverAddr, sizeof(serverAddr)
-    );
-}
-
-void GameClient::handleProjectileSpawn(const std::vector<uint8_t> &buffer) {
-    if (buffer.size() < sizeof(ProjectileSpawnMessage)) return;
-    const ProjectileSpawnMessage *msg = reinterpret_cast<const ProjectileSpawnMessage *>(buffer.data());
-    
-    uint32_t projId = ntohl(msg->projectileId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
-    uint32_t vxb = ntohl(msg->velXBits);
-    uint32_t vyb = ntohl(msg->velYBits);
-    
-    float x, y, vx, vy;
-    std::memcpy(&x, &xb, sizeof(float));
-    std::memcpy(&y, &yb, sizeof(float));
-    std::memcpy(&vx, &vxb, sizeof(float));
-    std::memcpy(&vy, &vyb, sizeof(float));
-    
-    std::lock_guard<std::mutex> g(stateMutex);
-    projectiles[projId] = std::make_tuple(x, y, vx, vy);
-}
-
-void GameClient::handleProjectileDespawn(const std::vector<uint8_t> &buffer) {
-    if (buffer.size() < sizeof(ProjectileDespawnMessage)) return;
-    const ProjectileDespawnMessage *msg = reinterpret_cast<const ProjectileDespawnMessage *>(buffer.data());
-    uint32_t projId = ntohl(msg->projectileId);
-    
-    std::lock_guard<std::mutex> g(stateMutex);
-    projectiles.erase(projId);
-}
-
-void GameClient::handleProjectileUpdate(const std::vector<uint8_t> &buffer) {
-    if (buffer.size() < sizeof(ProjectileUpdateMessage)) return;
-    const ProjectileUpdateMessage *msg = 
-        reinterpret_cast<const ProjectileUpdateMessage *>(buffer.data());
-    
-    uint32_t projId = ntohl(msg->projectileId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
-    
+    if (buffer.size() < sizeof(StateUpdateMessage)) return;
+    const StateUpdateMessage *msg = reinterpret_cast<const StateUpdateMessage *>(buffer.data());
+    uint32_t id = ntohl(msg->clientId);
+    uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
     float x, y;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
-    
     std::lock_guard<std::mutex> g(stateMutex);
-    auto it = projectiles.find(projId);
-    if (it != projectiles.end()) {
-        std::get<0>(it->second) = x;
-        std::get<1>(it->second) = y;
-    }
+    players[id] = {x, y};
 }
 
-void GameClient::sendInput(float inputX, float inputY) {
-	ClientInputMessage m{};
-	m.type = MessageType::ClientInput;
-	m.clientId = htonl(clientId);
-	uint32_t xbits, ybits;
-	std::memcpy(&xbits, &inputX, sizeof(float));
-	std::memcpy(&ybits, &inputY, sizeof(float));
-	m.inputXBits = htonl(xbits);
-	m.inputYBits = htonl(ybits);
-	sendto(
-		socketFd, &m, sizeof(m), 0,
-		(struct sockaddr *) &serverAddr, sizeof(serverAddr)
-	);
+void GameClient::handleObstacleSpawn(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ObstacleSpawnMessage)) return;
+    const ObstacleSpawnMessage *msg = reinterpret_cast<const ObstacleSpawnMessage *>(buffer.data());
+    uint32_t id = ntohl(msg->obstacleId);
+    uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
+    uint32_t wb = ntohl(msg->widthBits), hb = ntohl(msg->heightBits);
+    float x, y, w, h;
+    std::memcpy(&x, &xb, 4);
+    std::memcpy(&y, &yb, 4);
+    std::memcpy(&w, &wb, 4);
+    std::memcpy(&h, &hb, 4);
+    std::lock_guard<std::mutex> g(stateMutex);
+    obstacles[id] = std::make_tuple(x, y, w, h);
+}
+
+void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ObstacleDespawnMessage)) return;
+    const ObstacleDespawnMessage *msg = reinterpret_cast<const ObstacleDespawnMessage *>(buffer.data());
+    uint32_t id = ntohl(msg->obstacleId);
+    std::lock_guard<std::mutex> g(stateMutex);
+    obstacles.erase(id);
 }

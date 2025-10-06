@@ -55,85 +55,11 @@ void ServerGame::run() {
     initialize_player_positions();
     initialize_obstacles();
     const int tick_ms = 16;
-    float dt = 0.016f;
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
         process_pending_messages();
-        update_projectiles_server_only(dt);
-        check_projectile_collisions();
-        broadcast_projectile_positions();
         broadcast_states_to_clients();
         sleep_to_maintain_tick(tick_start, tick_ms);
-    }
-}
-
-bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
-                        float left2, float right2, float top2, float bottom2) {
-    return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
-}
-
-void ServerGame::check_projectile_collisions() {
-    std::vector<uint32_t> projectilesToRemove;
-    std::vector<uint32_t> obstaclesToRemove;
-    
-    for (const auto& proj : projectiles) {
-        uint32_t projId = proj.first;
-        float projX = std::get<0>(proj.second);
-        float projY = std::get<1>(proj.second);        
-        float projLeft = projX - 5.f;
-        float projRight = projX + 5.f;
-        float projTop = projY - 2.5f;
-        float projBottom = projY + 2.5f;
-        
-        for (const auto& obs : obstacles) {
-            uint32_t obsId = obs.first;
-            float obsX = std::get<0>(obs.second);
-            float obsY = std::get<1>(obs.second);
-            float obsW = std::get<2>(obs.second);
-            float obsH = std::get<3>(obs.second);
-        
-            float obsLeft = obsX - obsW * 0.5f;
-            float obsRight = obsX + obsW * 0.5f;
-            float obsTop = obsY - obsH * 0.5f;
-            float obsBottom = obsY + obsH * 0.5f;
-            
-            if (check_aabb_overlap(projLeft, projRight, projTop, projBottom,
-                                  obsLeft, obsRight, obsTop, obsBottom)) {
-                projectilesToRemove.push_back(projId);
-                break;
-            }
-        }
-    }
-    
-    for (uint32_t projId : projectilesToRemove) {
-        projectiles.erase(projId);
-        broadcast_projectile_despawn(projId);
-    }
-    
-    for (uint32_t obsId : obstaclesToRemove) {
-        obstacles.erase(obsId);
-        broadcast_obstacle_despawn(obsId);
-    }
-}
-
-void ServerGame::broadcast_projectile_positions() {
-    for (const auto& kv : projectiles) {
-        uint32_t id = kv.first;
-        float x = std::get<0>(kv.second);
-        float y = std::get<1>(kv.second);
-        
-        ProjectileUpdateMessage msg;
-        msg.type = MessageType::ProjectileUpdate;
-        msg.projectileId = htonl(id);
-        
-        uint32_t xb, yb;
-        std::memcpy(&xb, &x, sizeof(float));
-        std::memcpy(&yb, &y, sizeof(float));
-        
-        msg.posXBits = htonl(xb);
-        msg.posYBits = htonl(yb);
-        
-        socket.broadcast(&msg, sizeof(msg));
     }
 }
 
@@ -211,6 +137,11 @@ void ServerGame::process_pending_messages() {
     // Note: asyncReceive appelle le handler plus tard, donc pas de boucle while ici.
 }
 
+bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
+                        float left2, float right2, float top2, float bottom2) {
+    return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
+}
+
 bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
                         const std::unordered_map<uint32_t, std::tuple<float, float, float, float>>& obstacles) {
     float halfW = playerWidth * 0.5f;
@@ -282,46 +213,6 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
         default:
             break;
     }
-    else if (type == MessageType::ClientShoot) {
-        if (data.size() >= sizeof(ClientShootMessage)) {
-            const ClientShootMessage* msg = reinterpret_cast<const ClientShootMessage*>(data.data());
-            uint32_t clientId = ntohl(msg->clientId);
-            auto it = playerPositions.find(clientId);
-            if (it != playerPositions.end()) {
-                float playerX = it->second.first;
-                float playerY = it->second.second;
-                uint32_t projId = nextProjectileId++;
-                float projX = playerX + 20.f;
-                float projY = playerY;
-                float projVelX = 400.f;
-                float projVelY = 0.f;
-                projectiles[projId] = std::make_tuple(projX, projY, projVelX, projVelY);
-                broadcast_projectile_spawn(projId, clientId, projX, projY, projVelX, projVelY);
-            }
-        }
-    }
-}
-
-void ServerGame::update_projectiles_server_only(float dt) {
-    std::vector<uint32_t> toRemove;
-    
-    for (auto& kv : projectiles) {
-        uint32_t id = kv.first;
-        float& x = std::get<0>(kv.second);
-        float& y = std::get<1>(kv.second);
-        float vx = std::get<2>(kv.second);
-        float vy = std::get<3>(kv.second);
-        x += vx * dt;
-        y += vy * dt;
-
-        if (x < -50.f || x > 850.f || y < -50.f || y > 650.f) {
-            toRemove.push_back(id);
-        }
-    }
-    for (uint32_t id : toRemove) {
-        projectiles.erase(id);
-        broadcast_projectile_despawn(id);
-    }
 }
 
 void ServerGame::broadcast_states_to_clients() {
@@ -377,34 +268,6 @@ void ServerGame::broadcast_obstacle_despawn(uint32_t obstacleId) {
     m.type = MessageType::ObstacleDespawn;
     m.obstacleId = htonl(obstacleId);
     connexion.broadcast(&m, sizeof(m));
-}
-
-void ServerGame::broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId, 
-                                    float x, float y, float vx, float vy) {
-    ProjectileSpawnMessage msg;
-    msg.type = MessageType::ProjectileSpawn;
-    msg.projectileId = htonl(projId);
-    msg.ownerId = htonl(ownerId);
-    
-    uint32_t xb, yb, vxb, vyb;
-    std::memcpy(&xb, &x, sizeof(float));
-    std::memcpy(&yb, &y, sizeof(float));
-    std::memcpy(&vxb, &vx, sizeof(float));
-    std::memcpy(&vyb, &vy, sizeof(float));
-    
-    msg.posXBits = htonl(xb);
-    msg.posYBits = htonl(yb);
-    msg.velXBits = htonl(vxb);
-    msg.velYBits = htonl(vyb);
-    
-    socket.broadcast(&msg, sizeof(msg));
-}
-
-void ServerGame::broadcast_projectile_despawn(uint32_t projId) {
-    ProjectileDespawnMessage msg;
-    msg.type = MessageType::ProjectileDespawn;
-    msg.projectileId = htonl(projId);
-    socket.broadcast(&msg, sizeof(msg));
 }
 
 void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {

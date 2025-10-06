@@ -22,14 +22,6 @@
  * Manages the game loop, player states, ECS registry, and network broadcasting.
  */
 class ServerGame {
-    UDP_socket &socket; ///< Reference to the UDP socket used for communication.
-    std::unordered_map<uint32_t, std::pair<float, float>> playerPositions; ///< Player positions keyed by player ID.
-    std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles; ///< Obstacles keyed by ID (x,y,w,h).
-    ecs::registry registry_server; ///< ECS registry for managing entities and components.
-    std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles; // id -> (x,y,vx,vy)
-    uint32_t nextProjectileId = 1;
-
-
     public:
         /**
          * @brief Constructs a ServerGame instance.
@@ -120,37 +112,4 @@ class ServerGame {
          * @param tick_ms Target tick duration in milliseconds.
          */
         void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
-
-        /**
-         * @brief Updates all active projectiles on the server side.
-         * @param dt Delta time in seconds since the last update.
-         */
-        void update_projectiles_server_only(float dt);
-
-        /**
-         * @brief Broadcasts the current positions of all active projectiles to all clients.
-         */
-        void broadcast_projectile_positions();
-
-        /**
-         * @brief Checks for collisions between projectiles and other game entities.
-         */
-        void check_projectile_collisions();
-
-        /**
-         * @brief Notifies all clients of a newly spawned projectile.
-         * @param projId Unique ID of the projectile.
-         * @param ownerId ID of the entity (player or enemy) that fired it.
-         * @param x Initial X coordinate.
-         * @param y Initial Y coordinate.
-         * @param vx Horizontal velocity.
-         * @param vy Vertical velocity.
-         */
-        void broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float vx, float vy);
-
-        /**
-         * @brief Notifies all clients that a projectile has been removed from the game.
-         * @param projId Unique ID of the projectile to despawn.
-         */
-        void broadcast_projectile_despawn(uint32_t projId);
 };

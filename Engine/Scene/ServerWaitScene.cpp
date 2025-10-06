@@ -66,12 +66,12 @@ namespace scene {
 
 		if (_attemptsCount < 3 && remainingTime <= 0.1) {
 			_attemptsCount += 1;
-			try {
+/* 			try {
 				_game.getGameClient().connect();
 				std::cout << "Connected to server." << std::endl;
 			} catch (std::exception const &e) {
 				std::cerr << "Error: " << e.what() << std::endl;
-			}
+			} */
 			resetTimer();
 		}
 
@@ -170,13 +170,14 @@ namespace scene {
 			clickable[i]->isClicked = false;
 			hoverable[i]->isHovered = false;
 
-			if (clickable[i]->id == "button_play") {
+			clickable[i]->enabled = true;
+/* 			if (clickable[i]->id == "button_play") {
 				if (_game.getGameClient().isConnected()) {
 					clickable[i]->enabled = true;
 				} else {
 					clickable[i]->enabled = false;
 				}
-			}
+			} */
 		}
 	}
 
