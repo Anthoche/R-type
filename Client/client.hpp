@@ -38,7 +38,6 @@ class GameClient {
     private:
         UDP_socket socket; ///< UDP socket used for communication with the server.
         asio::ip::udp::endpoint serverEndpoint; ///< Server endpoint for UDP messages.
-        uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         std::string clientName; ///< Name of the current client.
         std::thread rxThread; ///< Thread used for receiving messages.
         std::atomic<bool> running{false}; ///< Flag to control client activity.

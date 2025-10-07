@@ -116,5 +116,5 @@ void GameClient::sendShoot() {
     ClientShootMessage msg;
     msg.type = MessageType::ClientShoot;
     msg.clientId = htonl(clientId);
-    socket.sendTo( &msg, sizeof(msg) ,serverAddr);
+    socket.sendTo( &msg, sizeof(msg) ,serverEndpoint);
 }
