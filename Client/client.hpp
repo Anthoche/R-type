@@ -63,13 +63,16 @@ class GameClient {
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
 
         /**
-         * @brief Constructs a GameClient and initializes network endpoints.
-         *
-         * @param game Reference to the main Game instance.
-         * @param serverIp IP address of the server.
-         * @param serverPort UDP port of the server.
-         * @param name Name of the client.
-         *
+         * @brief Maps projectiles IDs to their (x,y,width,height).
+         */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
+
+        /**
+         * @brief Constructs a GameClient and connects to the server.
+         * @param game The game instance.
+         * @param serverIp IP address of the game server.
+         * @param serverPort UDP port of the game server.
+         * @param name Name of this client.
          * @throws std::runtime_error if socket creation or server address resolution fails.
          */
         GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name);
@@ -168,4 +171,27 @@ class GameClient {
          * @param scene The current SceneState (MENU, GAME, UNKNOWN).
          */
         void sendSceneState(SceneState scene);
+
+        /**
+         * @brief Handles an shoot message.
+         */
+        void sendShoot();
+
+        /**
+         * @brief Handles an projectiles spwan message.
+         * @param buffer Raw message data.
+         */
+        void handleProjectileSpawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an projectiles despwan message.
+         * @param buffer Raw message data.
+         */
+        void handleProjectileDespawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an projectiles update message.
+         * @param buffer Raw message data.
+         */
+        void handleProjectileUpdate(const std::vector<uint8_t> &buffer);
 };

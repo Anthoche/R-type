@@ -109,3 +109,12 @@ void GameClient::sendSceneState(SceneState scene) {
         std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
     }
 }
+
+void GameClient::sendShoot() {
+    if (clientId == 0)
+        return;
+    ClientShootMessage msg;
+    msg.type = MessageType::ClientShoot;
+    msg.clientId = htonl(clientId);
+    socket.sendTo( &msg, sizeof(msg) ,serverAddr);
+}

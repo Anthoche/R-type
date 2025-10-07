@@ -26,6 +26,15 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::ObstacleDespawn:
             handleObstacleDespawn(buffer);
             break;
+        case MessageType::ProjectileSpawn:
+            handleProjectileSpawn(buffer);
+            break;
+        case MessageType::ProjectileDespawn:
+            handleProjectileDespawn(buffer);
+            break;
+        case MessageType::ProjectileUpdate:
+            handleProjectileUpdate(buffer);
+            break;
         default:
             break;
     }
@@ -80,4 +89,54 @@ void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
     uint32_t id = ntohl(msg->obstacleId);
     std::lock_guard<std::mutex> g(stateMutex);
     obstacles.erase(id);
+}
+
+void GameClient::handleProjectileSpawn(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ProjectileSpawnMessage)) return;
+    const ProjectileSpawnMessage *msg = reinterpret_cast<const ProjectileSpawnMessage *>(buffer.data());
+    
+    uint32_t projId = ntohl(msg->projectileId);
+    uint32_t xb = ntohl(msg->posXBits);
+    uint32_t yb = ntohl(msg->posYBits);
+    uint32_t vxb = ntohl(msg->velXBits);
+    uint32_t vyb = ntohl(msg->velYBits);
+    
+    float x, y, vx, vy;
+    std::memcpy(&x, &xb, sizeof(float));
+    std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&vx, &vxb, sizeof(float));
+    std::memcpy(&vy, &vyb, sizeof(float));
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    projectiles[projId] = std::make_tuple(x, y, vx, vy);
+}
+
+void GameClient::handleProjectileDespawn(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ProjectileDespawnMessage)) return;
+    const ProjectileDespawnMessage *msg = reinterpret_cast<const ProjectileDespawnMessage *>(buffer.data());
+    uint32_t projId = ntohl(msg->projectileId);
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    projectiles.erase(projId);
+}
+
+void GameClient::handleProjectileUpdate(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ProjectileUpdateMessage)) return;
+    const ProjectileUpdateMessage *msg = 
+        reinterpret_cast<const ProjectileUpdateMessage *>(buffer.data());
+    
+    uint32_t projId = ntohl(msg->projectileId);
+    uint32_t xb = ntohl(msg->posXBits);
+    uint32_t yb = ntohl(msg->posYBits);
+    
+    float x, y;
+    std::memcpy(&x, &xb, sizeof(float));
+    std::memcpy(&y, &yb, sizeof(float));
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    auto it = projectiles.find(projId);
+    if (it != projectiles.end()) {
+        std::get<0>(it->second) = x;
+        std::get<1>(it->second) = y;
+    }
 }
