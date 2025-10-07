@@ -5,7 +5,6 @@
 ** client
 */
 
-
 #pragma once
 
 #include "../Shared/protocol.hpp"
@@ -21,123 +20,134 @@
 #include <atomic>
 #include <utility>
 
-
 class Game;
 
 /**
- * @brief UDP client for the R-Type multiplayer game.
+ * @class GameClient
+ * @brief UDP and TCP client for the R-Type multiplayer game.
  *
- * Manages network communication with the server, handles game state updates,
- * and runs two main loops:
- * - A network thread for receiving messages.
- * - A render thread for user input and display.
+ * This class manages communication with the game server using both UDP and TCP.
+ * It handles:
+ * - Game state synchronization.
+ * - Player input transmission.
+ * - Scene changes and registry updates.
+ *
+ * The client runs a dedicated thread for receiving server messages asynchronously.
  */
 class GameClient {
     private:
-        UDP_socket socket; ///< UDP socket for network communication.
-        asio::ip::udp::endpoint serverEndpoint; ///< Server asio endpoint.
+        UDP_socket socket; ///< UDP socket used for communication with the server.
+        asio::ip::udp::endpoint serverEndpoint; ///< Server endpoint for UDP messages.
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
-        std::string clientName; ///< Name of this client.
-        std::thread rxThread; ///< Thread for receiving network messages.
-        std::atomic<bool> running{false}; ///< Flag to control the client lifecycle.
-        Game &_game; ///< Reference to the game instance.
-        std::unique_ptr<TCP_socketClient> tcpClient;  ///< TCP client for reliable messages.
-        std::string serverIpStr; ///< Server IP as string (for TCP connection).
+        std::string clientName; ///< Name of the current client.
+        std::thread rxThread; ///< Thread used for receiving messages.
+        std::atomic<bool> running{false}; ///< Flag to control client activity.
+        Game &_game; ///< Reference to the associated Game instance.
+        std::unique_ptr<TCP_socketClient> tcpClient; ///< TCP client for reliable data transfer.
+        std::string serverIpStr; ///< Server IP address as a string.
 
     public:
         /**
-         * @brief Temporarily exposed for state access.
+         * @brief Mutex used to protect shared game state access.
          */
-        std::mutex stateMutex; ///< Mutex to protect shared game state.
+        std::mutex stateMutex;
 
         /**
-         * @brief Maps client IDs to their (x,y) positions.
+         * @brief Maps client IDs to their (x, y) positions in the game world.
          */
         std::unordered_map<uint32_t, std::pair<float, float>> players;
 
         /**
-         * @brief Maps obstacle IDs to their (x,y,width,height).
+         * @brief Maps obstacle IDs to their (x, y, width, height) values.
          */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
 
         /**
-         * @brief Constructs a GameClient and connects to the server.
-         * @param game The game instance.
-         * @param serverIp IP address of the game server.
-         * @param serverPort UDP port of the game server.
-         * @param name Name of this client.
+         * @brief Constructs a GameClient and initializes network endpoints.
+         *
+         * @param game Reference to the main Game instance.
+         * @param serverIp IP address of the server.
+         * @param serverPort UDP port of the server.
+         * @param name Name of the client.
+         *
          * @throws std::runtime_error if socket creation or server address resolution fails.
          */
         GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name);
 
         /**
-         * @brief Destroys the GameClient, cleans up resources, and stops all threads.
+         * @brief Destroys the GameClient and stops background threads.
          */
         ~GameClient();
 
         /**
-         * @brief Starts the client main loop.
+         * @brief Starts the client logic.
          *
-         * Launches the network receive thread and waits for the game to start.
+         * Launches the network receive loop and waits for the game to start.
          */
         void run();
 
         /**
-         * @brief Runs the main render and input loop.
+         * @brief Main rendering and input loop (executed after game start).
          *
-         * Handles user input, sends movement updates to the server,
-         * and renders the game state (players, obstacles).
+         * Handles user input, sends commands to the server, and updates visuals.
          */
         void runRenderLoop();
 
         /**
-         * @brief Sends a ClientHello message to the server to initiate connection.
+         * @brief Sends a "hello" message to the server to initiate connection.
          */
         void sendHello();
 
         /**
-         * @brief Network receive loop.
+         * @brief Initializes a TCP connection to the server.
          *
-         * Listens for incoming messages and dispatches them to the appropriate handler.
+         * Uses the client’s assigned ID to compute a unique TCP port.
+         */
+        void initTcpConnection();
+
+        /**
+         * @brief Main UDP receive loop.
+         *
+         * Continuously listens for incoming UDP packets and dispatches them
+         * to the appropriate handler based on message type.
          */
         void recvLoop();
 
         /**
-         * @brief Sends player input to the server.
-         * @param inputX Horizontal input (-1 to 1).
-         * @param inputY Vertical input (-1 to 1).
+         * @brief Sends player movement input to the server.
+         *
+         * @param inputX Horizontal input (-1.0 to 1.0).
+         * @param inputY Vertical input (-1.0 to 1.0).
          */
         void sendInput(float inputX, float inputY);
 
         /**
-         * @brief Dispatches an incoming message to the appropriate handler.
-         * @param type Type of the message.
-         * @param buffer Raw message data.
+         * @brief Handles an incoming message from the server.
+         *
+         * @param type The type of the message.
+         * @param buffer The raw message buffer.
          */
         void handleMessage(MessageType type, const std::vector<uint8_t> &buffer);
 
-        // --- Player-related message handlers ---
         /**
-         * @brief Handles a ServerAssignId message.
+         * @brief Handles a ServerAssignId message from the server.
          * @param buffer Raw message data.
          */
         void handleServerAssignId(const std::vector<uint8_t> &buffer);
 
-        void initTcpConnection();
-
         /**
-         * @brief Handles a GameStart message.
+         * @brief Handles a GameStart message, signaling the start of gameplay.
          * @param buffer Raw message data.
          */
         void handleGameStart(const std::vector<uint8_t> &buffer);
 
         /**
-         * @brief Handles a StateUpdate message (player position update).
+         * @brief Handles a StateUpdate message (updates player positions).
          * @param buffer Raw message data.
          */
         void handlePlayerUpdate(const std::vector<uint8_t> &buffer);
 
-        // --- Obstacle-related message handlers ---
+
         /**
          * @brief Handles an ObstacleSpawn message.
          * @param buffer Raw message data.
@@ -151,8 +161,11 @@ class GameClient {
         void handleObstacleDespawn(const std::vector<uint8_t> &buffer);
 
         /**
-         * @brief Envoie l'état de la scène courante au serveur.
-         * @param scene SceneState (MENU, GAME, UNKNOWN)
+         * @brief Sends the current scene state to the server.
+         *
+         * Used to inform the server whether the client is in MENU or GAME state.
+         *
+         * @param scene The current SceneState (MENU, GAME, UNKNOWN).
          */
         void sendSceneState(SceneState scene);
 };
