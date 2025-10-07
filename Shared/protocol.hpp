@@ -30,7 +30,8 @@ enum class MessageType : uint8_t {
     ProjectileUpdate,     /**< Server update an projectile */
     ProjectileDespawn,     /**< Server delete an projectile */   /**< Server → Clients: suppression obstacle */
     EntityData,         /**< Server → Clients: synchronisation entité ECS */
-    SceneState         /**< Client → Server: indique la scène courante */
+    SceneState,        /**< Client → Server: indique la scène courante */
+    PlayerDeath
 };
 
 /**
@@ -94,6 +95,16 @@ struct EnemySpawnMessage {
     uint32_t enemyId;
     uint32_t posXBits;
     uint32_t posYBits;
+    uint32_t velXBits;        // Vélocité X (float bits)
+    uint32_t velYBits;        // Vélocité Y (float bits)
+};
+
+/**
+ * @brief Message sent by server to notify that a player has died
+ */
+struct PlayerDeathMessage {
+    MessageType type;
+    uint32_t clientId;  // ID du joueur qui est mort
 };
 
 /**

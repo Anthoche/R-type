@@ -11,6 +11,7 @@
 #include "../../Network_handler/Include/connexion.hpp"
 #include <asio/ip/udp.hpp>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <chrono>
 #include <mutex>
@@ -64,12 +65,15 @@ class ServerGame {
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
         uint32_t nextProjectileId = 1;
         std::mutex mtx;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
+        std::unordered_set<uint32_t> deadPlayers;
+        uint32_t nextEnemyId = 1;
 
         /**
          * @brief Initializes player positions based on connected clients.
          */
         void initialize_player_positions();
-
+        
         /**
          * @brief Processes pending network messages from clients.
          */
@@ -81,17 +85,28 @@ class ServerGame {
          * @param from Client endpoint.
          */
         void handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);  // <-- Changement ici
-
+        
         /**
          * @brief Broadcasts player state updates to all clients.
          */
         void broadcast_states_to_clients();
 
         /**
+         * @brief Checks for collisions between players and enemies.
+         */
+        void check_player_enemy_collisions();
+
+        /**
+         * @brief Notifies all clients that a player has died.
+         * @param clientId ID of the player who died.
+         */
+        void broadcast_player_death(uint32_t clientId);
+
+        /**
          * @brief Initializes obstacles in the game world.
          */
         void initialize_obstacles();
-
+        
         /**
          * @brief Broadcasts an obstacle spawn message.
          * @param obstacleId Unique obstacle ID.
@@ -147,4 +162,50 @@ class ServerGame {
          * @param projId Unique ID of the projectile to despawn.
          */
         void broadcast_projectile_despawn(uint32_t projId);
+
+
+        /**
+         * @brief Initializes enemies in the game world.
+         */
+        void initialize_enemies(); 
+
+        /**
+         * @brief Broadcasts an enemy spawn message.
+         * @param enemyId Unique enemy ID.
+         * @param x X position.
+         * @param y Y position.
+         * @param vx Velocity in X direction.
+         * @param vy Velocity in Y direction.
+         */
+        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float vx, float vy); 
+
+        /**
+         * @brief Broadcasts the current positions of all active enemies to all clients.
+         */
+        void broadcast_enemy_positions();
+
+        /**
+         * @brief Updates all active enemies on the server side.
+         * @param dt Delta time in seconds since the last update.
+         */
+        void update_enemies(float dt);
+
+        /**
+         * @brief Checks for collisions between projectiles and enemies.
+         */
+        void check_projectile_enemy_collisions();
+
+        /**
+         * @brief Notifies all clients that an enemy has been removed from the game.
+         * @param enemyId Unique ID of the enemy to despawn.
+         */
+        void broadcast_enemy_despawn(uint32_t enemyId);
+        
+        /**
+         * @brief Notifies all clients of an enemy's updated position.
+         * @param enemyId Unique ID of the enemy.
+         * @param x New X coordinate.
+         * @param y New Y coordinate.
+         */
+        void broadcast_enemy_update(uint32_t enemyId, float x, float y);
 };
