@@ -6,21 +6,17 @@
 */
 #include "client.hpp"
 #include "../Engine/Game.hpp"
-#if defined(_WIN32)
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-#else
-    #include <arpa/inet.h>
-#endif
-
+#include <asio.hpp>
 
 GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
-    : clientName(name), _game(game) {
-    serverAddr = {};
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(serverPort);
-    if (inet_pton(AF_INET, serverIp.c_str(), &serverAddr.sin_addr) <= 0) {
-        throw std::runtime_error("Invalid server IP");
+    : clientName(name), _game(game), serverIpStr(serverIp) {
+    try {
+        serverEndpoint = asio::ip::udp::endpoint(
+            asio::ip::address::from_string(serverIp), 
+            serverPort
+        );
+    } catch (const std::exception& e) {
+        throw std::runtime_error("Invalid server IP: " + std::string(e.what()));
     }
 }
 
@@ -45,7 +41,7 @@ void GameClient::sendHello() {
     msg.clientId = htonl(0);
     strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
     msg.clientName[sizeof(msg.clientName) - 1] = '\0';
-    socket.sendTo(&msg, sizeof(msg), serverAddr);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
 void GameClient::initTcpConnection() {
@@ -63,15 +59,15 @@ void GameClient::initTcpConnection() {
 void GameClient::recvLoop() {
     while (running) {
         std::vector<uint8_t> buffer;
-        sockaddr_in fromAddr = {};
-        if (socket.try_receive(buffer, fromAddr)) {
+        asio::ip::udp::endpoint fromEndpoint;
+        if (socket.try_receive(buffer, fromEndpoint)) {
             if (buffer.size() < sizeof(MessageType)) {
                 continue;
             }
             MessageType type = *reinterpret_cast<MessageType *>(buffer.data());
             handleMessage(type, buffer);
         } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 }
@@ -85,7 +81,7 @@ void GameClient::sendInput(float inputX, float inputY) {
     std::memcpy(&ybits, &inputY, sizeof(float));
     m.inputXBits = htonl(xbits);
     m.inputYBits = htonl(ybits);
-    socket.sendTo(&m, sizeof(m), serverAddr);
+    socket.sendTo(&m, sizeof(m), serverEndpoint);
 }
 
 void GameClient::sendSceneState(SceneState scene) {
@@ -94,7 +90,7 @@ void GameClient::sendSceneState(SceneState scene) {
     msg.clientId = htonl(clientId);
     msg.scene = htonl(static_cast<uint32_t>(scene));
     std::cout << "Le jeu commence, envoie de la scene" << std::endl;
-    socket.sendTo(&msg, sizeof(msg), serverAddr);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 
     if (scene == SceneState::GAME) {
         if (!tcpClient) {
