@@ -14,15 +14,15 @@
 #include <iostream>
 #include <cmath>
 // === Couleurs pour les logs ===
-#define RESET   "\033[0m"
-#define RED     "\033[31m"
-#define GREEN   "\033[32m"
-#define YELLOW  "\033[33m"
-#define BLUE    "\033[34m"
-#define LOG_ERROR(msg)   std::cerr << RED << "[ERROR] " << msg << RESET << std::endl
-#define LOG_INFO(msg)    std::cout << GREEN << "[INFO] " << msg << RESET << std::endl
-#define LOG_DEBUG(msg)   std::cout << YELLOW << "[DEBUG] " << msg << RESET << std::endl
-#define LOG(msg)         std::cout << BLUE << msg << RESET << std::endl
+#define RESET_COLOR   "\033[0m"
+#define RED_COLOR     "\033[31m"
+#define GREEN_COLOR   "\033[32m"
+#define YELLOW_COLOR  "\033[33m"
+#define BLUE_COLOR    "\033[34m"
+#define LOG_ERROR(msg)   std::cerr << RED_COLOR << "[ERROR] " << msg << RESET_COLOR << std::endl
+#define LOG_INFO(msg)    std::cout << GREEN_COLOR << "[INFO] " << msg << RESET_COLOR << std::endl
+#define LOG_DEBUG(msg)   std::cout << YELLOW_COLOR << "[DEBUG] " << msg << RESET_COLOR << std::endl
+#define LOG(msg)         std::cout << BLUE_COLOR << msg << RESET_COLOR << std::endl
 
 static nlohmann::json load_json_from_file(const std::string &path) {
     std::ifstream file(path);
@@ -54,15 +54,26 @@ void ServerGame::run() {
     //load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
     initialize_player_positions();
     initialize_obstacles();
+    initialize_enemies();
+    
     const int tick_ms = 16;
     float dt = 0.016f;
+    
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
+        
         update_projectiles_server_only(dt);
+        update_enemies(dt);
         check_projectile_collisions();
+        check_projectile_enemy_collisions();
+        check_player_enemy_collisions();
+        
         broadcast_projectile_positions();
+        broadcast_enemy_positions();
+        
         process_pending_messages();
         broadcast_states_to_clients();
+        
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
 }
@@ -116,6 +127,104 @@ void ServerGame::check_projectile_collisions() {
     }
 }
 
+void ServerGame::check_player_enemy_collisions() {
+    const float PLAYER_WIDTH = 30.f;
+    const float PLAYER_HEIGHT = 30.f;
+    const float ENEMY_WIDTH = 30.f;
+    const float ENEMY_HEIGHT = 30.f;
+    
+    std::vector<uint32_t> playersToKill;
+    
+    for (const auto& playerKv : playerPositions) {
+        uint32_t playerId = playerKv.first;
+        
+        if (deadPlayers.find(playerId) != deadPlayers.end())
+            continue;
+        
+        float playerX = playerKv.second.first;
+        float playerY = playerKv.second.second;
+        
+        float playerLeft = playerX - PLAYER_WIDTH * 0.5f;
+        float playerRight = playerX + PLAYER_WIDTH * 0.5f;
+        float playerTop = playerY - PLAYER_HEIGHT * 0.5f;
+        float playerBottom = playerY + PLAYER_HEIGHT * 0.5f;
+        
+        for (const auto& enemy : enemies) {
+            float enemyX = std::get<0>(enemy.second);
+            float enemyY = std::get<1>(enemy.second);
+            
+            float enemyLeft = enemyX - ENEMY_WIDTH * 0.5f;
+            float enemyRight = enemyX + ENEMY_WIDTH * 0.5f;
+            float enemyTop = enemyY - ENEMY_HEIGHT * 0.5f;
+            float enemyBottom = enemyY + ENEMY_HEIGHT * 0.5f;
+            
+            if (check_aabb_overlap(playerLeft, playerRight, playerTop, playerBottom,
+                                  enemyLeft, enemyRight, enemyTop, enemyBottom)) {
+                playersToKill.push_back(playerId);
+                LOG_DEBUG("[Server] Player " << playerId << " hit by enemy " << enemy.first);
+                break;
+            }
+        }
+    }
+    
+    for (uint32_t playerId : playersToKill) {
+        deadPlayers.insert(playerId);
+        broadcast_player_death(playerId);
+    }
+}
+
+void ServerGame::check_projectile_enemy_collisions() {
+    std::vector<uint32_t> projectilesToRemove;
+    std::vector<uint32_t> enemiesToRemove;
+    
+    const float ENEMY_WIDTH = 30.f;
+    const float ENEMY_HEIGHT = 30.f;
+    const float PROJ_WIDTH = 10.f;
+    const float PROJ_HEIGHT = 5.f;
+    
+    for (const auto& proj : projectiles) {
+        uint32_t projId = proj.first;
+        float projX = std::get<0>(proj.second);
+        float projY = std::get<1>(proj.second);
+        
+        float projLeft = projX - PROJ_WIDTH * 0.5f;
+        float projRight = projX + PROJ_WIDTH * 0.5f;
+        float projTop = projY - PROJ_HEIGHT * 0.5f;
+        float projBottom = projY + PROJ_HEIGHT * 0.5f;
+        
+        for (const auto& enemy : enemies) {
+            uint32_t enemyId = enemy.first;
+            float enemyX = std::get<0>(enemy.second);
+            float enemyY = std::get<1>(enemy.second);
+            
+            float enemyLeft = enemyX - ENEMY_WIDTH * 0.5f;
+            float enemyRight = enemyX + ENEMY_WIDTH * 0.5f;
+            float enemyTop = enemyY - ENEMY_HEIGHT * 0.5f;
+            float enemyBottom = enemyY + ENEMY_HEIGHT * 0.5f;
+            
+            if (check_aabb_overlap(projLeft, projRight, projTop, projBottom,
+                                  enemyLeft, enemyRight, enemyTop, enemyBottom)) {
+                projectilesToRemove.push_back(projId);
+                enemiesToRemove.push_back(enemyId);
+                LOG_DEBUG("[Server] Projectile " << projId << " hit enemy " << enemyId);
+                break;
+            }
+        }
+    }
+    
+    // Supprimer les projectiles touchés
+    for (uint32_t projId : projectilesToRemove) {
+        projectiles.erase(projId);
+        broadcast_projectile_despawn(projId);
+    }
+    
+    // Supprimer les ennemis touchés
+    for (uint32_t enemyId : enemiesToRemove) {
+        enemies.erase(enemyId);
+        broadcast_enemy_despawn(enemyId);
+    }
+}
+
 void ServerGame::broadcast_projectile_positions() {
     for (const auto& kv : projectiles) {
         uint32_t id = kv.first;
@@ -134,6 +243,15 @@ void ServerGame::broadcast_projectile_positions() {
         msg.posYBits = htonl(yb);
         
         connexion.broadcast(&msg, sizeof(msg));
+    }
+}
+
+void ServerGame::broadcast_enemy_positions() {
+    for (const auto& kv : enemies) {
+        uint32_t id = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        broadcast_enemy_update(id, x, y);
     }
 }
 
@@ -156,6 +274,24 @@ void ServerGame::update_projectiles_server_only(float dt) {
     for (uint32_t id : toRemove) {
         projectiles.erase(id);
         broadcast_projectile_despawn(id);
+    }
+}
+
+void ServerGame::update_enemies(float dt) {
+    const float SCREEN_WIDTH = 800.f;
+    const float ENEMY_MARGIN = 20.f;
+    
+    for (auto& kv : enemies) {
+        uint32_t id = kv.first;
+        float& x = std::get<0>(kv.second);
+        float& y = std::get<1>(kv.second);
+        float& vx = std::get<2>(kv.second);
+        float vy = std::get<3>(kv.second);
+        x += vx * dt;
+        y += vy * dt;
+        if (x < ENEMY_MARGIN || x > SCREEN_WIDTH - ENEMY_MARGIN) {
+            vx *= -1.f;
+        }
     }
 }
 
@@ -185,6 +321,69 @@ void ServerGame::broadcast_projectile_despawn(uint32_t projId) {
     msg.type = MessageType::ProjectileDespawn;
     msg.projectileId = htonl(projId);
     connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::initialize_enemies() {
+    LOG_DEBUG("Initializing enemies...");    
+    for (int i = 0; i < 5; ++i) {
+        uint32_t enemyId = nextEnemyId++;
+        float x = 100.f + i * 100.f;
+        float y = 200.f;
+        float vx = 50.f;
+        float vy = 0.f;
+        enemies[enemyId] = std::make_tuple(x, y, vx, vy);
+        broadcast_enemy_spawn(enemyId, x, y, vx, vy);
+        LOG_DEBUG("[Server] Enemy spawned: id=" << enemyId << " pos=(" << x << ", " << y << ")");
+    }
+}
+
+void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float vx, float vy) {
+    EnemySpawnMessage msg;
+    msg.type = MessageType::EnemySpawn;
+    msg.enemyId = htonl(enemyId);
+    
+    uint32_t xb, yb, vxb, vyb;
+    std::memcpy(&xb, &x, sizeof(float));
+    std::memcpy(&yb, &y, sizeof(float));
+    std::memcpy(&vxb, &vx, sizeof(float));
+    std::memcpy(&vyb, &vy, sizeof(float));
+    
+    msg.posXBits = htonl(xb);
+    msg.posYBits = htonl(yb);
+    msg.velXBits = htonl(vxb);
+    msg.velYBits = htonl(vyb);
+    
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::broadcast_enemy_despawn(uint32_t enemyId) {
+    EnemyDespawnMessage msg;
+    msg.type = MessageType::EnemyDespawn;
+    msg.enemyId = htonl(enemyId);
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y) {
+    EnemyUpdateMessage msg;
+    msg.type = MessageType::EnemyUpdate;
+    msg.enemyId = htonl(enemyId);
+    
+    uint32_t xb, yb;
+    std::memcpy(&xb, &x, sizeof(float));
+    std::memcpy(&yb, &y, sizeof(float));
+    
+    msg.posXBits = htonl(xb);
+    msg.posYBits = htonl(yb);
+    
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::broadcast_player_death(uint32_t clientId) {
+    PlayerDeathMessage msg;
+    msg.type = MessageType::PlayerDeath;
+    msg.clientId = htonl(clientId);
+    connexion.broadcast(&msg, sizeof(msg));
+    LOG_INFO("[Server] Player " << clientId << " died!");
 }
 
 void ServerGame::broadcast_full_registry_to(uint32_t clientId) {
@@ -253,12 +452,17 @@ void ServerGame::initialize_player_positions() {
 }
 
 void ServerGame::process_pending_messages() {
-    connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
-        if (ec)
-            return;
-        handle_client_message(data, endpoint);
-    });
-    // Note: asyncReceive appelle le handler plus tard, donc pas de boucle while ici.
+    int messagesProcessed = 0;
+    const int maxMessagesPerTick = 5;
+    while (messagesProcessed < maxMessagesPerTick) {
+        connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
+            if (ec)
+                return;
+            handle_client_message(data, endpoint);
+        });
+        messagesProcessed++;
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
 }
 
 bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
@@ -295,6 +499,8 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             if (data.size() >= sizeof(ClientInputMessage)) {
                 const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
                 uint32_t id = ntohl(msg->clientId);
+                if (deadPlayers.find(id) != deadPlayers.end())
+                    break;
                 float inputX, inputY;
                 uint32_t xbits = ntohl(msg->inputXBits);
                 uint32_t ybits = ntohl(msg->inputYBits);
@@ -333,6 +539,9 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             if (data.size() >= sizeof(ClientShootMessage)) {
                 const ClientShootMessage* msg = reinterpret_cast<const ClientShootMessage*>(data.data());
                 uint32_t clientId = ntohl(msg->clientId);
+
+                if (deadPlayers.find(clientId) != deadPlayers.end())
+                    break;
                 
                 auto it = playerPositions.find(clientId);
                 if (it != playerPositions.end()) {
@@ -361,6 +570,8 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
 void ServerGame::broadcast_states_to_clients() {
     for (const auto& kv : connexion.getClients()) {
         uint32_t id = kv.second;
+        if (deadPlayers.find(id) != deadPlayers.end())
+            continue;
         auto it = playerPositions.find(id);
         if (it == playerPositions.end()) continue;
         StateUpdateMessage m;

@@ -7,13 +7,7 @@
 
 #include "../client.hpp"
 #include "../../Engine/Game.hpp"
-#if defined(_WIN32)
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-#else
-    #include <arpa/inet.h>
-#endif
-
+#include <asio.hpp>
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
     switch (type) {
@@ -40,6 +34,18 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
             break;
         case MessageType::ProjectileUpdate:
             handleProjectileUpdate(buffer);
+            break;
+        case MessageType::EnemySpawn:
+            handleEnemySpawn(buffer);
+            break;
+        case MessageType::EnemyDespawn:
+            handleEnemyDespawn(buffer);
+            break;
+        case MessageType::EnemyUpdate:
+            handleEnemyUpdate(buffer);
+            break;
+        case MessageType::PlayerDeath:
+            handlePlayerDeath(buffer);
             break;
         default:
             break;
@@ -144,5 +150,75 @@ void GameClient::handleProjectileUpdate(const std::vector<uint8_t> &buffer) {
     if (it != projectiles.end()) {
         std::get<0>(it->second) = x;
         std::get<1>(it->second) = y;
+    }
+}
+
+void GameClient::handleEnemySpawn(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(EnemySpawnMessage)) return;
+    const EnemySpawnMessage *msg = reinterpret_cast<const EnemySpawnMessage *>(buffer.data());
+    
+    uint32_t enemyId = ntohl(msg->enemyId);
+    uint32_t xb = ntohl(msg->posXBits);
+    uint32_t yb = ntohl(msg->posYBits);
+    uint32_t vxb = ntohl(msg->velXBits);
+    uint32_t vyb = ntohl(msg->velYBits);
+    
+    float x, y, vx, vy;
+    std::memcpy(&x, &xb, sizeof(float));
+    std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&vx, &vxb, sizeof(float));
+    std::memcpy(&vy, &vyb, sizeof(float));
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    enemies[enemyId] = std::make_tuple(x, y, vx, vy);
+    
+    std::cout << "[Client] Enemy spawned: id=" << enemyId 
+              << " pos=(" << x << ", " << y << ")" << std::endl;
+}
+
+void GameClient::handleEnemyDespawn(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(EnemyDespawnMessage)) return;
+    const EnemyDespawnMessage *msg = reinterpret_cast<const EnemyDespawnMessage *>(buffer.data());
+    uint32_t enemyId = ntohl(msg->enemyId);
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    enemies.erase(enemyId);
+    
+    std::cout << "[Client] Enemy despawned: id=" << enemyId << std::endl;
+}
+
+void GameClient::handleEnemyUpdate(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(EnemyUpdateMessage)) return;
+    const EnemyUpdateMessage *msg = 
+        reinterpret_cast<const EnemyUpdateMessage *>(buffer.data());
+    
+    uint32_t enemyId = ntohl(msg->enemyId);
+    uint32_t xb = ntohl(msg->posXBits);
+    uint32_t yb = ntohl(msg->posYBits);
+    
+    float x, y;
+    std::memcpy(&x, &xb, sizeof(float));
+    std::memcpy(&y, &yb, sizeof(float));
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    auto it = enemies.find(enemyId);
+    if (it != enemies.end()) {
+        std::get<0>(it->second) = x;
+        std::get<1>(it->second) = y;
+    }
+}
+
+void GameClient::handlePlayerDeath(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(PlayerDeathMessage)) return;
+    const PlayerDeathMessage *msg = reinterpret_cast<const PlayerDeathMessage *>(buffer.data());
+    uint32_t deadPlayerId = ntohl(msg->clientId);
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    players.erase(deadPlayerId);
+    
+    std::cout << "[Client] Player " << deadPlayerId << " died!" << std::endl;
+    
+    if (deadPlayerId == clientId) {
+        std::cout << "[Client] YOU DIED!" << std::endl;
     }
 }

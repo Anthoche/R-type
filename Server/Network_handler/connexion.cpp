@@ -6,23 +6,17 @@
 */
 
 #include "Include/connexion.hpp"
-#if defined(_WIN32) || defined(_WIN64)
-    #include <WinSock2.h>
-    #include <ws2tcpip.h>
-#else
-    #include <arpa/inet.h>
-#endif
+#include <asio.hpp>
 
 Connexion::Connexion(asio::io_context& io, uint16_t port) : socket(port) {}
 
 void Connexion::asyncReceive(std::function<void(const asio::error_code&, std::vector<uint8_t>, asio::ip::udp::endpoint)> handler) {
     try {
         std::vector<uint8_t> data;
-        sockaddr_in clientAddr;
-        if (socket.try_receive(data, clientAddr)) {
-            asio::ip::udp::endpoint endpoint = UDP_socket::sockaddrToEndpoint(clientAddr);
+        asio::ip::udp::endpoint clientEndpoint;
+        if (socket.try_receive(data, clientEndpoint)) {
             asio::error_code ec; 
-            handler(ec, std::move(data), endpoint);
+            handler(ec, std::move(data), clientEndpoint);
         }
     } catch (const std::exception& e) {
         std::cerr << "[ERROR] asyncReceive(): " << e.what() << std::endl;
@@ -31,8 +25,7 @@ void Connexion::asyncReceive(std::function<void(const asio::error_code&, std::ve
 
 void Connexion::sendTo(const void* msg, size_t size, const asio::ip::udp::endpoint& to) {
     try {
-        sockaddr_in clientAddr = UDP_socket::endpointToSockaddr(to);
-        socket.sendTo(msg, size, clientAddr);
+        socket.sendTo(msg, size, to);
     } catch (const std::exception& e) {
         std::cerr << "[ERROR] Connexion::sendTo(): " << e.what() << std::endl;
     }
@@ -52,8 +45,7 @@ void Connexion::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t id) 
         clients[addrStr] = id;
         endpoints[addrStr] = endpoint;
 
-        sockaddr_in clientAddr = UDP_socket::endpointToSockaddr(endpoint);
-        socket.addClient(clientAddr, id);
+        socket.addClient(endpoint, id);
 
     } catch (const std::exception& e) {
         std::cerr << "[ERROR] Connexion::addClient(): " << e.what() << std::endl;
