@@ -9,72 +9,70 @@
 
 #include <asio.hpp>
 #include <vector>
-#include <string>
-#include <cstdint>
-#include <iostream>
-#if defined(_WIN32) || defined(_WIN64)
-    #include <WinSock2.h>
-    #include <ws2tcpip.h>
-#else
-    #include <netinet/in.h>
-#endif
+#include <array>
+#include <utility>
 
 /**
- * @brief UDP socket wrapper for cross-platform client network communication.
+ * @class UDP_socket
+ * @brief Cross-platform UDP socket wrapper for client-side communication.
  *
- * Manages a UDP socket for client-side network operations.
- * Provides a unified interface for both Windows and Linux.
+ * This class provides a simple and robust wrapper around ASIO’s UDP socket.
+ * It supports both blocking and non-blocking operations, with built-in error handling.
+ * Designed for lightweight client network communication in real-time applications.
  */
 class UDP_socket {
     public:
         /**
-         * @brief Constructs a UDP_socket.
-         * @throws std::runtime_error if socket creation fails.
+         * @brief Constructs a UDP_socket instance.
+         *
+         * Opens a UDP socket in non-blocking mode using IPv4.
+         * @throws std::runtime_error if socket initialization fails.
          */
         UDP_socket();
 
         /**
-         * @brief Destroys the UDP_socket and closes the socket.
+         * @brief Destroys the UDP_socket and closes its socket safely.
          */
         ~UDP_socket();
 
         /**
-         * @brief Attempts to receive a UDP message (non-blocking).
-         * @param outData Output parameter for the received data.
-         * @param outAddr Output parameter for the sender's address.
-         * @return true if a message was received, false otherwise.
+         * @brief Attempts to receive data from the socket without blocking.
+         *
+         * If no data is available, the function returns false instead of blocking.
+         *
+         * @param outData A vector that will contain the received bytes.
+         * @param outEndpoint The endpoint of the sender (output parameter).
+         * @return true if data was successfully received, false if no data is available.
+         *
+         * @warning This method does not wait for incoming data.
          */
-        bool try_receive(std::vector<uint8_t>& outData, sockaddr_in& outAddr);
+        bool try_receive(std::vector<uint8_t>& outData, asio::ip::udp::endpoint& outEndpoint);
 
         /**
-         * @brief Blocking receive (waits until a message arrives).
-         * @return pair: data buffer and sender address.
+         * @brief Receives data from the socket (blocking).
+         *
+         * Waits until data is available, then returns the received bytes and sender’s endpoint.
+         *
+         * @return A pair containing:
+         *  - A vector with the received bytes.
+         *  - The sender's UDP endpoint.
+         *
+         * @throws std::runtime_error if receiving data fails.
          */
-        std::pair<std::vector<uint8_t>, sockaddr_in> receive();
+        std::pair<std::vector<uint8_t>, asio::ip::udp::endpoint> receive();
 
         /**
-         * @brief Sends a UDP message to a specific address.
-         * @param data Pointer to the data to send.
-         * @param size Size of the data in bytes.
-         * @param clientAddr Destination address.
+         * @brief Sends data to a specific remote endpoint.
+         *
+         * @param data Pointer to the data buffer to send.
+         * @param size Size of the data buffer in bytes.
+         * @param endpoint The destination UDP endpoint.
+         *
+         * @throws std::runtime_error if the send operation fails.
          */
-        void sendTo(const void* data, size_t size, const sockaddr_in& clientAddr);
-
-        /**
-         * @brief Converts a sockaddr_in to an asio UDP endpoint.
-         * @param in The sockaddr_in structure.
-         * @return The corresponding asio::ip::udp::endpoint.
-         */
-        static asio::ip::udp::endpoint sockaddrToEndpoint(const sockaddr_in& in);
-        
-        /**
-         * @brief Converts an asio UDP endpoint to a sockaddr_in.
-         * @param ep The asio::ip::udp::endpoint.
-         * @return The corresponding sockaddr_in structure.
-         */
-        static sockaddr_in endpointToSockaddr(const asio::ip::udp::endpoint& ep);
+        void sendTo(const void* data, size_t size, const asio::ip::udp::endpoint& endpoint);
 
     private:
-        asio::io_context ioContext;
-        asio::ip::udp::socket socket;
+        asio::io_context ioContext;   /**< Internal ASIO I/O context used by the socket. */
+        asio::ip::udp::socket socket; /**< UDP socket instance for data transmission. */
 };

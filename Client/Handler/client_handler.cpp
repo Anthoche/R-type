@@ -7,13 +7,7 @@
 
 #include "../client.hpp"
 #include "../../Engine/Game.hpp"
-#if defined(_WIN32)
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-#else
-    #include <arpa/inet.h>
-#endif
-
+#include <asio.hpp>
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
     switch (type) {

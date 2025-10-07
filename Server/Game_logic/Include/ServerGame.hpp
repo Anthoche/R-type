@@ -63,7 +63,7 @@ class ServerGame {
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
         uint32_t nextProjectileId = 1;
-        std::mutex mtx;  // <-- Ajout pour thread safety
+        std::mutex mtx;
 
         /**
          * @brief Initializes player positions based on connected clients.
