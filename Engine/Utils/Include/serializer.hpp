@@ -15,6 +15,6 @@ namespace game::serializer {
 
     nlohmann::json serialize_entity(ecs::registry &reg, ecs::entity_t entity);
 
-    ecs::entity_t deserialize_entity(ecs::registry &reg, const nlohmann::json &j);
+    void deserialize_entities(ecs::registry &reg, const nlohmann::json &j)
 
 } // namespace game::net::serializer

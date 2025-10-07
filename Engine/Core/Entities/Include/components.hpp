@@ -8,6 +8,7 @@
 #pragma once
 
 #include <raylib.h>
+
 #include "../../Include/entity.hpp"
 #include <string>
 #include <cstdint>

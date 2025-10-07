@@ -49,3 +49,55 @@ nlohmann::json serialize_entity(ecs::registry &reg, ecs::entity_t entity) {
         return j;
     }
 }
+
+void deserialize_entities(ecs::registry &reg, const nlohmann::json &j)
+{
+    try {
+        if (!j.is_array())
+            throw std::runtime_error("deserialize_entities: expected JSON array");
+
+        for (const auto &entity_data : j) {
+            if (!entity_data.contains("type")) {
+                throw std::runtime_error("deserialize_entity: missing 'type' field");
+            }
+
+            int type_value = entity_data["type"];
+            component::entity_type type_enum = static_cast<component::entity_type>(type_value);
+
+            ecs::entity_t new_entity;
+
+            switch (type_enum) {
+                case component::entity_type::PLAYER:
+                    new_entity = game::parsing::parse_player(reg, entity_data);
+                    break;
+                case component::entity_type::ENEMY:
+                    new_entity = game::parsing::parse_enemy(reg, entity_data);
+                    break;
+                case component::entity_type::BACKGROUND:
+                    new_entity = game::parsing::parse_background(reg, entity_data);
+                    break;
+                case component::entity_type::OBSTACLE:
+                    new_entity = game::parsing::parse_obstacle(reg, entity_data);
+                    break;
+                case component::entity_type::RANDOM_ELEMENT:
+                    new_entity = game::parsing::parse_random_element(reg, entity_data);
+                    break;
+                case component::entity_type::SOUND:
+                    new_entity = game::parsing::parse_sound(reg, entity_data);
+                    break;
+                case component::entity_type::TEXT:
+                    new_entity = game::parsing::parse_text(reg, entity_data);
+                    break;
+                default:
+                    std::cerr << "[WARNING] Unknown entity type: " << type_value << std::endl;
+                    continue;
+            }
+
+            std::cout << "[INFO] Deserialized entity of type " << type_value
+                      << " (id=" << static_cast<std::size_t>(new_entity) << ")\n";
+        }
+    }
+    catch (const std::exception &e) {
+        std::cerr << "[ERROR] Failed to deserialize entities: " << e.what() << std::endl;
+    }
+}
