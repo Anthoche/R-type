@@ -61,7 +61,7 @@ class ServerGame {
         std::unordered_map<uint32_t, SceneState> clientScenes;
         std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
-        std::mutex mtx;  // <-- Ajout pour thread safety
+        std::mutex mtx;
 
         /**
          * @brief Initializes player positions based on connected clients.
