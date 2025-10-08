@@ -61,34 +61,61 @@ namespace game::scene {
     }
 
     void GameScene::index_existing_entities() {
+        _player = ecs::entity_t{0}; // Reset le joueur local
+        _obstacles.clear();
+        _enemys.clear();
+        _playerEntities.clear();
+
         auto &types = _registry.get_components<component::type>();
+        auto &clientIds = _registry.get_components<component::client_id>();
+
         for (std::size_t i = 0; i < types.size(); ++i) {
             if (!types[i]) continue;
+
             ecs::entity_t entity = _registry.entity_from_index(i);
-            
+
             switch (types[i]->value) {
                 case component::entity_type::PLAYER:
+                    if (clientIds.size() > i && clientIds[i]) {
+                        uint32_t clientId = clientIds[i]->id;
+                        _playerEntities.insert_or_assign(clientId, entity);
+                        if (clientId == _game.getGameClient().clientId) {
+                            _player = entity;
+                        }
+                    }
                     break;
+
                 case component::entity_type::ENEMY:
                     _enemys.push_back(entity);
                     break;
+
                 case component::entity_type::OBSTACLE:
                     _obstacles.push_back(entity);
                     break;
+
                 default:
                     break;
             }
         }
+
+        std::cout << "[DEBUG] Indexed entities: "
+                << "Players=" << _playerEntities.size()
+                << ", Enemies=" << _enemys.size()
+                << ", Obstacles=" << _obstacles.size() << std::endl;
     }
+
+
 
     void GameScene::update() {
         if (!_game_running) return;
-        
+
         std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             netPlayers = _game.getGameClient().players;
         }
+
+        // Supprimer les joueurs disparus
         for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
             if (netPlayers.find(it->first) == netPlayers.end()) { 
                 _registry.kill_entity(it->second); 
@@ -97,19 +124,16 @@ namespace game::scene {
                 ++it;
             }
         }
-        
-        // Synchroniser les positions des joueurs
+
+        // Synchroniser les positions des joueurs existants uniquement (pas de création)
         auto &positions = _registry.get_components<component::position>();
         for (auto const &kv : netPlayers) {
             uint32_t id = kv.first;
             float x = kv.second.first;
             float y = kv.second.second;
             auto f = _playerEntities.find(id);
-            
-            if (f == _playerEntities.end()) {
-                ecs::entity_t e = game::entities::create_player(_registry, x, y);
-                _playerEntities.emplace(id, e);
-            } else {
+
+            if (f != _playerEntities.end()) {
                 ecs::entity_t e = f->second; 
                 if (e.value() < positions.size() && positions[e.value()]) { 
                     float currentX = positions[e.value()]->x;
@@ -129,18 +153,7 @@ namespace game::scene {
                 }
             }
         }
-        
-        uint32_t myClientId = _game.getGameClient().clientId;
-        auto myPlayerIt = _playerEntities.find(myClientId);
-        if (myPlayerIt != _playerEntities.end())
-            _player = myPlayerIt->second;
-        auto &pp = _registry.get_components<component::previous_position>();
-        for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) { 
-            if (positions[i] && pp[i]) { 
-                pp[i]->x = positions[i]->x;
-                pp[i]->y = positions[i]->y; 
-            } 
-        }
+
         _registry.run_systems();
         check_collisions();
     }
@@ -158,12 +171,10 @@ namespace game::scene {
         render_network_enemies();
         
         render_network_projectiles();
-        
-        // Écran de mort
+
         if (_isDead) {
             render_death_screen();
         }
-        
         _raylib.endDrawing();
     }
 
@@ -467,10 +478,6 @@ namespace game::scene {
                 }
             });
     }
-
-    void GameScene::create_player() {}
-
-    void GameScene::create_obstacles() {}
 
     void GameScene::check_collisions() {
         for (auto const &kvPlayer : _playerEntities) {
