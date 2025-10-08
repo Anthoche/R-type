@@ -172,6 +172,7 @@ namespace game::scene {
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
+        bool _isDead = false; ///< Flag indicating if the local player is dead.
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.

@@ -38,15 +38,15 @@ class GameClient {
     private:
         UDP_socket socket; ///< UDP socket used for communication with the server.
         asio::ip::udp::endpoint serverEndpoint; ///< Server endpoint for UDP messages.
-        uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         std::string clientName; ///< Name of the current client.
         std::thread rxThread; ///< Thread used for receiving messages.
         std::atomic<bool> running{false}; ///< Flag to control client activity.
         Game &_game; ///< Reference to the associated Game instance.
         std::unique_ptr<TCP_socketClient> tcpClient; ///< TCP client for reliable data transfer.
         std::string serverIpStr; ///< Server IP address as a string.
-
     public:
+        uint32_t clientId{0}; ///< Unique client ID assigned by the server.
+        
         /**
          * @brief Mutex used to protect shared game state access.
          */
@@ -66,6 +66,11 @@ class GameClient {
          * @brief Maps projectiles IDs to their (x,y,width,height).
          */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
+
+        /**
+         * @brief Maps enemy IDs to their (x,y,velX,velY).
+         */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
 
         /**
          * @brief Constructs a GameClient and connects to the server.
@@ -194,4 +199,25 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleProjectileUpdate(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an enemy despwan message.
+         * @param buffer Raw message data.
+         */
+        void handleEnemyDespawn(const std::vector<uint8_t> &buffer);
+        /**
+         * @brief Handles an enemy update message.
+         * @param buffer Raw message data.
+         */
+        void handleEnemyUpdate(const std::vector<uint8_t> &buffer);
+        /**
+         * @brief Handles an enemy spwan message.
+         * @param buffer Raw message data.
+         */
+        void handleEnemySpawn(const std::vector<uint8_t> &buffer);
+        /**
+         * @brief Handles a player death message.
+         * @param buffer Raw message data.
+         */
+        void handlePlayerDeath(const std::vector<uint8_t> &buffer);
 };
