@@ -34,22 +34,6 @@
         "loop": false,
         "autoplay": false
       }
-    ],
-    "sounds": [
-      {
-        "sound_path": "assets/music.ogg",
-        "volume": 0.5,
-        "loop": true,
-        "autoplay": true
-      }
-    ],
-    "texts": [
-      {
-        "x": 20.0,
-        "y": 30.0,
-        "content": "R-Type",
-        "font_size": 32
-      }
     ]
   }
 }

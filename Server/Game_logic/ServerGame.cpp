@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+
 // === Couleurs pour les logs ===
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"

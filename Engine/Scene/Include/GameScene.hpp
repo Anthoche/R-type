@@ -189,6 +189,28 @@ namespace game::scene {
          * @brief Render ECS entities organized by layer.
          */
         void draw_ecs_layers();
+
+        // --- Indexation des entités ---
+        void index_existing_entities();
+
+        // --- Rendu générique ---
+        void render_entities();
+        void render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_obstacle(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_background(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_text(ecs::entity_t entity, const component::position &pos);
+        void render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+
+        // --- Rendu des entités réseau ---
+        void render_network_obstacles();
+        void render_network_enemies();
+        void render_network_projectiles();
+        void render_death_screen();
+
+        // --- Utilitaires ---
+        Color get_color_for_id(uint32_t id);
     };
 } // namespace game::scene
 
