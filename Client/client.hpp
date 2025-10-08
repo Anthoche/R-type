@@ -43,6 +43,7 @@ class GameClient {
         std::atomic<bool> running{false}; ///< Flag to control client activity.
         Game &_game; ///< Reference to the associated Game instance.
         std::unique_ptr<TCP_socketClient> tcpClient; ///< TCP client for reliable data transfer.
+        std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.

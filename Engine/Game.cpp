@@ -8,8 +8,8 @@
 #include "Game.hpp"
 
 
-Game::Game(const std::string &serverIp, const std::string &clientName) : _sceneHandler(*this),
-																		_client(*this, serverIp, 4141, clientName) {
+Game::Game(const std::string &serverIp, const std::string &serverPort, const std::string &clientName) : _sceneHandler(*this),
+																		_client(*this, serverIp, static_cast<uint16_t>(std::stoi(serverPort)), clientName) {
 	_status = GameStatus::WAITING_PLAYERS;
 }
 

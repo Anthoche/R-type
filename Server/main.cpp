@@ -7,8 +7,12 @@
 
 #include "server.hpp"
 
-int main() {
-    GameServer server(4141);
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+		std::cerr << "Usage: " << argv[0] << " <server_port> " << std::endl;
+		return 1;
+	}
+    GameServer server(static_cast<uint16_t>(std::stoi(argv[1])));
     server.run();
     return 0;
 }

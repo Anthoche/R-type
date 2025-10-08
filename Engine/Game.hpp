@@ -28,9 +28,10 @@ class Game {
 		* Initializes the client and scene handler, prepares the networking thread.
 		*
 		* @param serverIp IP address of the game server.
+		* @param serverPort Port of the game server.
 		* @param clientName Name of the player/client.
 		*/
-		Game(const std::string &serverIp, const std::string &clientName);
+		Game(const std::string &serverIp, const std::string &serverPort, const std::string &clientName);
 
 		/**
 		* @brief Destructor for Game.

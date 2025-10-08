@@ -10,14 +10,14 @@
 int main(int argc, char *argv[]) {
 	std::string serverIp;
 
-	if (argc < 3) {
-		std::cerr << "Usage: " << argv[0] << " <server_ip> <client_name>" << std::endl;
+	if (argc < 4) {
+		std::cerr << "Usage: " << argv[0] << " <server_ip> <server_port> <client_name>" << std::endl;
 		return 1;
 	}
 	serverIp = argv[1];
 	if (serverIp == "localhost")
 		serverIp = "127.0.0.1";
-	Game game(serverIp, argv[2]);
+	Game game(serverIp, argv[2], argv[3]);
 	game.run();
 	return 0;
 }
