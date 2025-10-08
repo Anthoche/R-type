@@ -12,7 +12,7 @@
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
-        : AScene(800, 600, "R-Type"), _player(ecs::entity_t{0}), _game(game) {
+        : AScene(800, 600, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(game, _registry, _raylib) {
         _raylib = Raylib();
         _game_running = true;
         _startTime = 0.f;
@@ -25,6 +25,7 @@ namespace game::scene {
         _raylib.enableCursor();
         _raylib.setTargetFPS(60);
         _registry.register_component<component::position>();
+        _registry.register_component<component::dynamic_position>();
         _registry.register_component<component::velocity>();
         _registry.register_component<component::drawable>();
         _registry.register_component<component::controllable>();
@@ -39,7 +40,7 @@ namespace game::scene {
         _registry.register_component<component::previous_position>();
         _registry.register_component<component::client_id>();
 
-
+        _ui.init();
         setup_movement_system();
         setup_render_system();
         setup_health_system();
@@ -54,17 +55,19 @@ namespace game::scene {
     }
 
     void GameScene::update() {
+        _ui.update();
         if (!_game_running) return;
+
         std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             netPlayers = _game.getGameClient().players;
         }
         for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
-            if (netPlayers.find(it->first) == netPlayers.end()) { 
-                _registry.kill_entity(it->second); 
-                it = _playerEntities.erase(it); 
-            } else { 
+            if (netPlayers.find(it->first) == netPlayers.end()) {
+                _registry.kill_entity(it->second);
+                it = _playerEntities.erase(it);
+            } else {
                 ++it;
             }
         }
@@ -76,8 +79,8 @@ namespace game::scene {
                 ecs::entity_t e = game::entities::create_player(_registry, x, y);
                 _playerEntities.emplace(id, e);
             } else {
-                ecs::entity_t e = f->second; 
-                if (e.value() < positions.size() && positions[e.value()]) { 
+                ecs::entity_t e = f->second;
+                if (e.value() < positions.size() && positions[e.value()]) {
                     float currentX = positions[e.value()]->x;
                     float currentY = positions[e.value()]->y;
                     float diffX = x - currentX;
@@ -96,10 +99,10 @@ namespace game::scene {
         }
         if (!_player.value() && !_playerEntities.empty()) _player = _playerEntities.begin()->second;
         auto &pp = _registry.get_components<component::previous_position>();
-        for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) { 
-            if (positions[i] && pp[i]) { 
-                pp[i]->x = positions[i]->x; pp[i]->y = positions[i]->y; 
-            } 
+        for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) {
+            if (positions[i] && pp[i]) {
+                pp[i]->x = positions[i]->x; pp[i]->y = positions[i]->y;
+            }
         }
         _registry.run_systems();
         check_collisions();
@@ -123,9 +126,9 @@ namespace game::scene {
             _raylib.drawRectangle((int)(x - w / 2), (int)(y - h / 2), (int)w, (int)h, GRAY);
         }
 
-        auto colorForId = [](uint32_t id) -> Color { 
-            static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE}; 
-            return palette[id % (sizeof(palette)/sizeof(palette[0]))]; 
+        auto colorForId = [](uint32_t id) -> Color {
+            static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE};
+            return palette[id % (sizeof(palette)/sizeof(palette[0]))];
         };
 
         auto &positions = _registry.get_components<component::position>();
@@ -164,7 +167,7 @@ namespace game::scene {
                 RED
             );
         }
-        
+
         // Afficher les projectiles
         for (auto &kv : _game.getGameClient().projectiles) {
             float x = std::get<0>(kv.second);
@@ -174,7 +177,7 @@ namespace game::scene {
 
         if (_isDead) {
             _raylib.drawRectangle(0, 0, _width, _height, Color{255, 0, 0, 100});
-            
+
             const char* deathText = "YOU DIED!";
             int fontSize = 72;
             int textWidth = _raylib.measureText(deathText, fontSize);
@@ -217,7 +220,7 @@ namespace game::scene {
     void GameScene::handle_shoot() {
         _game.getGameClient().sendShoot();
     }
-    
+
     void GameScene::handle_input(float input_x, float input_y) {
         auto &positions = _registry.get_components<component::position>();
         auto &controls  = _registry.get_components<component::controllable>();
@@ -277,7 +280,7 @@ namespace game::scene {
                    ecs::sparse_array<component::drawable> &drw) {
             });
     }
-	
+
     void GameScene::setup_health_system() {
         _registry.add_system<component::health, component::type>(
             [](ecs::registry &reg,
@@ -310,7 +313,7 @@ namespace game::scene {
             collision::handle_entity_collisions(*this, kvPlayer.second);
         }
     }
- 
+
     void GameScene::onClose() {
         _game_running = false;
     }

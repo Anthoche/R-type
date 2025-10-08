@@ -9,6 +9,7 @@
 
 #include <raylib.h>
 #include "../../Include/entity.hpp"
+#include "DynamicPosition.hpp"
 #include <string>
 #include <cstdint>
 
@@ -43,6 +44,12 @@ namespace component {
     struct velocity {
         float vx{0.f}; ///< Velocity along X
         float vy{0.f}; ///< Velocity along Y
+    };
+
+    struct dynamic_position {
+        DynamicPosition position;
+        float offsetX{0.f};
+        float offsetY{0.f};
     };
 
 	/**

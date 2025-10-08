@@ -20,6 +20,7 @@
 #include "../../Physics/Include/Collision.hpp"
 #include "../Game.hpp"
 #include <unordered_map>
+#include "UI.hpp"
 
 namespace game::scene {
     /**
@@ -178,6 +179,7 @@ namespace game::scene {
         bool _game_running; ///< Indicates whether the game is running.
         double _startTime; ///< Start time of the scene.
         Game &_game; ///< Reference to the game instance.
+        UI _ui; ///< UI instance for game overlay
 
         // --- Helpers ---
         /**

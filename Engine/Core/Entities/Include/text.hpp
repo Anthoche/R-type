@@ -21,4 +21,10 @@ namespace game::entities {
 	*/
 	ecs::entity_t create_text(ecs::registry &reg, Vector2 pos, const std::string &content, Color color = WHITE, float spacing = 1.f,
 							int fontSize = 24, Font const &font = GetFontDefault());
+
+	/**
+	 * Create a text at a dynamic position
+	 */
+	ecs::entity_t create_text(ecs::registry &reg, DynamicPosition pos, Vector2 offset, const std::string &content, Color color,
+							float spacing, int fontSize, Font const &font);
 }
