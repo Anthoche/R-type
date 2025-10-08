@@ -26,13 +26,33 @@ GameClient::~GameClient() {
 }
 
 void GameClient::run() {
-    std::cout << "Client démarré. En attente du début du jeu..." << std::endl;
+    std::cout << "[Client] Tentative de connexion au serveur..." << std::endl;
+    sendHello();
     running = true;
     rxThread = std::thread(&GameClient::recvLoop, this);
-    while (_game.getGameStatus() != GameStatus::RUNNING) {
+    auto startTime = std::chrono::steady_clock::now();
+    const int TIMEOUT_SECONDS = 5;
+    
+    while (clientId == 0) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+        if (elapsed >= TIMEOUT_SECONDS) {
+            std::cerr << "\n[ERREUR] Aucune réponse du serveur après " << TIMEOUT_SECONDS << " secondes." << std::endl;
+            std::cerr << "[ERREUR] Le serveur n'est probablement pas lancé." << std::endl;
+            std::cerr << "[ERREUR] Adresse testée: " << serverIpStr << std::endl;
+            running = false;
+            connectionFailed = true;
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    std::cout << "[Client] ✓ Connecté avec succès ! ID: " << clientId << std::endl;
+    std::cout << "[Client] En attente de 3 autres joueurs..." << std::endl;
+    while (_game.getGameStatus() != GameStatus::RUNNING && running) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    std::cout << "Le jeu commence, ouverture de la fenêtre client..." << std::endl;
+    if (!running) return;
+    std::cout << "[Client] Le jeu commence !" << std::endl;
 }
 
 void GameClient::sendHello() {
@@ -116,5 +136,9 @@ void GameClient::sendShoot() {
     ClientShootMessage msg;
     msg.type = MessageType::ClientShoot;
     msg.clientId = htonl(clientId);
-    socket.sendTo( &msg, sizeof(msg) ,serverEndpoint);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+bool GameClient::hasConnectionFailed() const {
+    return connectionFailed;
 }
