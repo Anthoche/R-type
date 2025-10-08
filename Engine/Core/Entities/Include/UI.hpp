@@ -19,7 +19,7 @@ class UI {
 		~UI() = default;
 
 		void init();
-		void update();
+		void render();
 		void unload();
 
 	private:
@@ -28,8 +28,10 @@ class UI {
 		Raylib &_raylib;
 		Vector2 _margin;
 		Font _font{};
+		int _fontSize;
+		float _spacing;
 
-		Vector2 getTextPos(DynamicPosition pos, Vector2 offset) const;
+		Vector2 getTextPos(DynamicPosition pos, Vector2 offset, std::string const &content) const;
 };
 
 #endif //RTYPE_UI_HPP

@@ -55,7 +55,6 @@ namespace game::scene {
     }
 
     void GameScene::update() {
-        _ui.update();
         if (!_game_running) return;
 
         std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
@@ -111,6 +110,7 @@ namespace game::scene {
     void GameScene::render() {
         _raylib.beginDrawing();
         _raylib.clearBackground(BLACK);
+        _ui.render();
         _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
 
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obs;
@@ -316,5 +316,6 @@ namespace game::scene {
 
     void GameScene::onClose() {
         _game_running = false;
+        _ui.unload();
     }
 } // namespace game::scene

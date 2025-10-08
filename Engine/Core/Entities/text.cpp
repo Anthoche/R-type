@@ -25,7 +25,7 @@ namespace game::entities {
 		return e;
 	}
 
-	ecs::entity_t create_text(ecs::registry &reg, Vector2 pos, Vector2 offset, const std::string &content, Color color, float spacing,
+	ecs::entity_t create_text(ecs::registry &reg, Vector2 pos, const std::string &content, Color color, float spacing,
 							int fontSize, Font const &font) {
 		auto e = reg.spawn_entity();
 		reg.emplace_component<component::position>(e, pos.x, pos.y);
