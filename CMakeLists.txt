@@ -145,6 +145,9 @@ target_include_directories(r-type_server PRIVATE
 )
 target_link_libraries(r-type_server PRIVATE ecs nlohmann_json)
 
+if (WIN32)
+    target_compile_definitions(r-type_server PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
+endif()
 # -------------------------
 # Unit tests
 # -------------------------
