@@ -6,17 +6,18 @@
 */
 
 #include "Include/UI.hpp"
-
 #include "image.hpp"
 #include "RenderUtils.hpp"
 #include "text.hpp"
+#include "Include/GameScene.hpp"
 
-UI::UI(Game &game, ecs::registry &reg, Raylib &raylib) : _game(game), _reg(reg), _raylib(raylib) {
+UI::UI(game::scene::GameScene &scene, ecs::registry &reg, Raylib &raylib) : _scene(scene), _reg(reg), _raylib(raylib) {
 	_margin = Vector2{25, 25};
 	_fontSize = 20;
 	_spacing = -1.f;
 	_heartScale = 1.8f;
 	_heartSpacing = 10;
+	maxPlayerLives = 4; // TODO: Change with the number of player lives
 }
 
 void UI::init() {
@@ -35,8 +36,7 @@ void UI::init() {
 	game::entities::create_text(_reg, BOTTOM_RIGHT, {0, 0}, "Highest: 0", textColor, _spacing, _fontSize, _font);
 
 	float offsetX = 0;
-	int playerLives = 3; // TODO: Change "3" with the number of player lives
-	for (size_t i = 0; i < playerLives; ++i) {
+	for (size_t i = 0; i < maxPlayerLives; ++i) {
 		game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector2{offsetX, 0});
 		offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
 	}
@@ -49,6 +49,9 @@ void UI::render() {
 	auto &drawables = _reg.get_components<component::drawable>();
 	auto &sprite = _reg.get_components<component::sprite>();
 
+	int playerLives = 3; // TODO: Change with the number of player lives
+	int currentLive = maxPlayerLives;
+
 	for (std::size_t i = 0; i < dynamic_pos.size() && i < text.size(); ++i) {
 		if (!dynamic_pos[i] || !types[i] || !drawables[i]) continue;
 
@@ -58,11 +61,21 @@ void UI::render() {
 
 		switch (types[i]->value) {
 			case component::entity_type::TEXT:
+				if (text[i]->content.starts_with("Players:"))
+					text[i]->content = std::format("Players: {}", 1); // TODO: update value
+				if (text[i]->content.starts_with("Highest:"))
+					text[i]->content = std::format("Highest: {}", 2); // TODO: update value
+				if (text[i]->content.starts_with("Score:"))
+					text[i]->content = std::format("Score: {}", 3); // TODO: update value
 				pos = getTextPos(dyna_pos, offset, text[i]->content);
 				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
 				break;
 			case component::entity_type::IMAGE:
+				sprite[i]->texture = _emptyHeart;
+				if (playerLives + currentLive > maxPlayerLives)
+					sprite[i]->texture = _fullHeart;
 				_raylib.drawTextureEx(sprite[i]->texture, pos, 0, _heartScale, WHITE);
+				--currentLive;
 				break;
 			default:
 				break;

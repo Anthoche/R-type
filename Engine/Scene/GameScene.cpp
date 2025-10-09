@@ -12,7 +12,7 @@
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
-        : AScene(800, 600, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(game, _registry, _raylib) {
+        : AScene(800, 600, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib) {
         _raylib = Raylib();
         _game_running = true;
         _startTime = 0.f;

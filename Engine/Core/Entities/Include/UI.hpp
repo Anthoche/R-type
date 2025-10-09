@@ -13,9 +13,13 @@
 #include "registry.hpp"
 #include "Raylib.hpp"
 
+namespace game::scene {
+	class GameScene;
+}
+
 class UI {
 	public:
-		UI(Game &game, ecs::registry &reg, Raylib &raylib);
+		UI(game::scene::GameScene &scene, ecs::registry &reg, Raylib &raylib);
 		~UI() = default;
 
 		void init();
@@ -23,7 +27,7 @@ class UI {
 		void unload();
 
 	private:
-		Game &_game;
+		game::scene::GameScene &_scene;
 		ecs::registry &_reg;
 		Raylib &_raylib;
 		Vector2 _margin;
@@ -31,6 +35,7 @@ class UI {
 		int _fontSize;
 		float _spacing;
 
+		int maxPlayerLives;
 		float _heartScale;
 		float _heartSpacing;
 		Texture2D _fullHeart{};
