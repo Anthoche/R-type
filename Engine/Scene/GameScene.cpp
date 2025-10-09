@@ -109,7 +109,7 @@ namespace game::scene {
 
     void GameScene::render() {
         _raylib.beginDrawing();
-        _raylib.clearBackground(BLACK);
+        _raylib.clearBackground(WHITE);
         _ui.render();
         _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
 

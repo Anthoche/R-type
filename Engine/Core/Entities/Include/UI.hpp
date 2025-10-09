@@ -31,7 +31,13 @@ class UI {
 		int _fontSize;
 		float _spacing;
 
+		float _heartScale;
+		float _heartSpacing;
+		Texture2D _fullHeart{};
+		Texture2D _emptyHeart{};
+
 		Vector2 getTextPos(DynamicPosition pos, Vector2 offset, std::string const &content) const;
+		Vector2 getRealPos(DynamicPosition pos, Vector2 offset, Vector2 size) const;
 };
 
 #endif //RTYPE_UI_HPP

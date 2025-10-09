@@ -551,6 +551,40 @@ class Raylib {
 	    void closeAudioDevice();
 
 
+		// === rtextures module ===
+
+		/**
+		 * @brief Load texture from file into GPU memory (VRAM)
+		 * @param fileName The file to load
+		 * @return The loaded texture
+		 */
+		Texture2D loadTexture(const std::string &fileName);
+
+		/**
+		 * @brief Unload texture from GPU memory (VRAM)
+		 * @param texture The texture to unload
+		 */
+		void unloadTexture(Texture2D texture);
+
+		/**
+		 * @brief Draw a Texture2D
+		 * @param texture The texture to draw
+		 * @param posX The X position of the texture
+		 * @param posY The Y position of the texture
+		 * @param tint The tint color of the texture
+		 */
+		void drawTexture(Texture2D texture, int posX, int posY, Color tint);
+
+		/**
+		 * @brief Draw a Texture2D with extended parameters
+		 * @param texture The texture to draw
+		 * @param position The texture position
+		 * @param rotation Texture rotation in degrees
+		 * @param scale Multiplier for texture size
+		 * @param tint The tint color of the texture
+		 */
+		void drawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);
+
         // === mouse input ===
 
         /**
@@ -631,13 +665,6 @@ class Raylib {
 		 * @brief Pop latest inserted matrix from stack
 		 */
 		void popMatrix();
-
-
-        Texture2D loadTexture(const std::string &fileName);
-        void unloadTexture(Texture2D texture);
-        void drawTexture(Texture2D texture, int posX, int posY, Color tint);
-        void drawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);
-
 };
 
 #endif /* !RAYLIB_HPP */

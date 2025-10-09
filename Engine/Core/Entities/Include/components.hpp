@@ -68,6 +68,7 @@ namespace component {
      */
     struct sprite {
         std::string image_path{}; ///< Filepath to the image/texture
+        Texture2D texture{}; //TEMPORAIRE
         float scale{1.f};         ///< Uniform scale for rendering
         float rotation{0.f};      ///< Rotation in degrees
     };
@@ -162,6 +163,7 @@ namespace component {
         TEXT,      ///< Text label entity
         BUTTON,     ///< Button entity (UI)
         PROJECTILE,  ///< projectile entity
+        IMAGE     ///< Image entity
     };
 
     /**

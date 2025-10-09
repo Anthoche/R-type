@@ -75,6 +75,7 @@ add_executable(r-type_client
     ${ENGINE_ENTITIES_DIR}/projectile.cpp
     ${ENGINE_ENTITIES_DIR}/button.cpp
     ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/image.cpp
     ${ENGINE_ENTITIES_DIR}/UI.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp

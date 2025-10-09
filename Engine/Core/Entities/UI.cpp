@@ -6,53 +6,81 @@
 */
 
 #include "Include/UI.hpp"
+
+#include "image.hpp"
 #include "RenderUtils.hpp"
 #include "text.hpp"
 
 UI::UI(Game &game, ecs::registry &reg, Raylib &raylib) : _game(game), _reg(reg), _raylib(raylib) {
-	_margin = Vector2{40, 40};
-	_fontSize = 18;
-	_spacing = -0.5f;
+	_margin = Vector2{25, 25};
+	_fontSize = 20;
+	_spacing = -1.f;
+	_heartScale = 1.8f;
+	_heartSpacing = 10;
 }
 
 void UI::init() {
-	Color textColor = RAYWHITE;
+	Color textColor = BLACK;
 	_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+	Image heartImage = LoadImage(ASSETS_PATH"/sprites/heart.png");
+	Image heartEmptyImage = LoadImage(ASSETS_PATH"/sprites/heart_empty.png");
+	_fullHeart = LoadTextureFromImage(heartImage);
+	_emptyHeart = LoadTextureFromImage(heartEmptyImage);
 
-	game::entities::create_text(_reg, TOP_LEFT, {0, 0}, "206 HDI", textColor, _spacing, _fontSize, _font);
-	game::entities::create_text(_reg, TOP_CENTER, {0, 0}, "206 HDI", textColor, _spacing, _fontSize, _font);
-	game::entities::create_text(_reg, TOP_RIGHT, {0, 0}, "206 HDI", textColor, _spacing, _fontSize, _font);
+	UnloadImage(heartImage);
+	UnloadImage(heartEmptyImage);
 
-	game::entities::create_text(_reg, BOTTOM_LEFT, {0, 0}, "206 HDI", textColor, _spacing, _fontSize, _font);
-	game::entities::create_text(_reg, BOTTOM_CENTER, {0, 0}, "206 HDI", textColor, _spacing, _fontSize, _font);
-	game::entities::create_text(_reg, BOTTOM_RIGHT, {0, 0}, "206 HDI", textColor, _spacing, _fontSize, _font);
+	game::entities::create_text(_reg, BOTTOM_LEFT, {0, 0}, "Players: 0", textColor, _spacing, _fontSize, _font);
+	game::entities::create_text(_reg, BOTTOM_CENTER, {0, 0}, "Score: 0", textColor, _spacing, _fontSize, _font);
+	game::entities::create_text(_reg, BOTTOM_RIGHT, {0, 0}, "Highest: 0", textColor, _spacing, _fontSize, _font);
+
+	float offsetX = 0;
+	int playerLives = 3; // TODO: Change "3" with the number of player lives
+	for (size_t i = 0; i < playerLives; ++i) {
+		game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector2{offsetX, 0});
+		offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
+	}
 }
 
 void UI::render() {
 	auto &dynamic_pos = _reg.get_components<component::dynamic_position>();
 	auto &text = _reg.get_components<component::text>();
+	auto &types = _reg.get_components<component::type>();
+	auto &drawables = _reg.get_components<component::drawable>();
+	auto &sprite = _reg.get_components<component::sprite>();
 
 	for (std::size_t i = 0; i < dynamic_pos.size() && i < text.size(); ++i) {
-		if (!dynamic_pos[i] || !text[i]) continue;
+		if (!dynamic_pos[i] || !types[i] || !drawables[i]) continue;
 
 		Vector2 offset = {dynamic_pos[i]->offsetX, dynamic_pos[i]->offsetY};
 		DynamicPosition dyna_pos = dynamic_pos[i]->position;
-		Vector2 pos = getTextPos(dyna_pos, offset, text[i]->content);
+		Vector2 pos = getRealPos(dyna_pos, offset, Vector2{drawables[i]->width, drawables[i]->height});
 
-		_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
+		switch (types[i]->value) {
+			case component::entity_type::TEXT:
+				pos = getTextPos(dyna_pos, offset, text[i]->content);
+				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
+				break;
+			case component::entity_type::IMAGE:
+				_raylib.drawTextureEx(sprite[i]->texture, pos, 0, _heartScale, WHITE);
+				break;
+			default:
+				break;
+		}
 	}
 }
 
 void UI::unload() {
 	_raylib.unloadFont(_font);
+	_raylib.unloadTexture(_fullHeart);
+	_raylib.unloadTexture(_emptyHeart);
 }
 
-Vector2 UI::getTextPos(DynamicPosition pos, Vector2 offset, std::string const &content) const {
+Vector2 UI::getRealPos(DynamicPosition pos, Vector2 offset, Vector2 size) const {
 	Vector2 finalPos = {0.f, 0.f};
-	Vector2 textSize = _raylib.measureTextEx(_font, content, _fontSize, _spacing);
-	float bottomPosY = _raylib.getRenderHeight() - _margin.y - (textSize.y) / 2;
-	float centerPosX = getElementCenter(_raylib.getRenderWidth(), textSize.x);
-	float rightPosX = _raylib.getRenderWidth() - textSize.x - _margin.x;
+	float bottomPosY = _raylib.getRenderHeight() - _margin.y - (size.y) / 2;
+	float centerPosX = getElementCenter(_raylib.getRenderWidth(), size.x);
+	float rightPosX = _raylib.getRenderWidth() - size.x - _margin.x;
 
 	switch (pos) {
 		case TOP_LEFT:
@@ -77,4 +105,10 @@ Vector2 UI::getTextPos(DynamicPosition pos, Vector2 offset, std::string const &c
 	finalPos.x += offset.x;
 	finalPos.y += offset.y;
 	return finalPos;
+}
+
+Vector2 UI::getTextPos(DynamicPosition pos, Vector2 offset, std::string const &content) const {
+	Vector2 textSize = _raylib.measureTextEx(_font, content, _fontSize, _spacing);
+
+	return getRealPos(pos, offset, textSize);
 }
