@@ -637,6 +637,7 @@ class Raylib {
         void unloadTexture(Texture2D texture);
         void drawTexture(Texture2D texture, int posX, int posY, Color tint);
         void drawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);
+        void drawTexturePro(Texture2D texture, Rectangle sourceRec, Rectangle destRec, Vector2 origin, float rotation, Color tint);
 
 };
 

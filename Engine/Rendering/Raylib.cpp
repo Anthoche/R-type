@@ -372,3 +372,7 @@ void Raylib::drawTexture(Texture2D texture, int posX, int posY, Color tint) {
 void Raylib::drawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint) {
     DrawTextureEx(texture, position, rotation, scale, tint);
 }
+
+void Raylib::drawTexturePro(Texture2D texture, Rectangle sourceRec, Rectangle destRec, Vector2 origin, float rotation, Color tint) {
+    DrawTexturePro(texture, sourceRec, destRec, origin, rotation, tint);
+}

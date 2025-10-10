@@ -58,6 +58,7 @@ namespace game::scene {
         
         // Indexer les entités existantes dans le registre
         index_existing_entities();
+        load_entity_textures();
     }
 
     void GameScene::index_existing_entities() {
@@ -102,6 +103,45 @@ namespace game::scene {
                 << "Players=" << _playerEntities.size()
                 << ", Enemies=" << _enemys.size()
                 << ", Obstacles=" << _obstacles.size() << std::endl;
+    }
+
+    void GameScene::load_entity_textures() {
+        auto &sprites = _registry.get_components<component::sprite>();
+        
+        for (std::size_t i = 0; i < sprites.size(); ++i) {
+            if (sprites[i] && !sprites[i]->image_path.empty()) {
+                ecs::entity_t entity = _registry.entity_from_index(i);
+                
+                // Vérifier si la texture n'est pas déjà chargée
+                if (_entityTextures.find(entity.value()) == _entityTextures.end()) {
+                    try {
+                        Texture2D texture = _raylib.loadTexture(sprites[i]->image_path);
+                        _entityTextures[entity.value()] = texture;
+                        std::cout << "[DEBUG] Loaded texture for entity " << entity.value() 
+                                << " from " << sprites[i]->image_path << std::endl;
+                    } catch (const std::exception &e) {
+                        std::cerr << "[ERROR] Failed to load texture for entity " << entity.value() 
+                                << " from " << sprites[i]->image_path << ": " << e.what() << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    void GameScene::unload_entity_textures() {
+        for (auto &pair : _entityTextures) {
+            _raylib.unloadTexture(pair.second);
+        }
+        _entityTextures.clear();
+        std::cout << "[DEBUG] Unloaded all entity textures" << std::endl;
+    }
+
+    Texture2D* GameScene::get_entity_texture(ecs::entity_t entity) {
+        auto it = _entityTextures.find(entity.value());
+        if (it != _entityTextures.end()) {
+            return &it->second;
+        }
+        return nullptr;
     }
 
 
@@ -158,6 +198,8 @@ namespace game::scene {
         check_collisions();
     }
 
+    ////////////////////////////////////////////////////:
+
     void GameScene::render() {
         _raylib.beginDrawing();
         _raylib.clearBackground(BLACK);
@@ -165,11 +207,8 @@ namespace game::scene {
         _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
 
         render_entities();
-        
         render_network_obstacles();
-        
         render_network_enemies();
-        
         render_network_projectiles();
 
         if (_isDead) {
@@ -205,10 +244,6 @@ namespace game::scene {
                     render_background(entity, *positions[i], *drawables[i]);
                     break;
                     
-                case component::entity_type::TEXT:
-                    render_text(entity, *positions[i]);
-                    break;
-                    
                 case component::entity_type::POWERUP:
                     render_powerup(entity, *positions[i], *drawables[i]);
                     break;
@@ -224,85 +259,123 @@ namespace game::scene {
     }
 
     void GameScene::render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
-        uint32_t idForColor = 0;
-        for (auto const &kv : _playerEntities) {
-            if (kv.second == entity) {
-                idForColor = kv.first;
-                break;
+        Texture2D* texture = get_entity_texture(entity);
+
+        if (texture != nullptr) {
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Vector2 origin = {0.0f, 0.0f};
+            auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
+            float scale = 1.0f;
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                scale = sprites[entity.value()]->scale;
+                rotation = sprites[entity.value()]->rotation;
             }
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+        } else {
+            uint32_t idForColor = 0;
+            for (auto const &kv : _playerEntities) {
+                if (kv.second == entity) {
+                    idForColor = kv.first;
+                    break;
+                }
+            }
+            Color playerColor = get_color_for_id(idForColor);
+            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, playerColor);
+
         }
-        
-        Color playerColor = get_color_for_id(idForColor);
-        _raylib.drawRectangle(
-            (int)(pos.x - draw.width / 2),
-            (int)(pos.y - draw.height / 2),
-            (int)draw.width,
-            (int)draw.height,
-            playerColor
-        );
     }
 
     void GameScene::render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
-        _raylib.drawRectangle(
-            (int)(pos.x - draw.width / 2),
-            (int)(pos.y - draw.height / 2),
-            (int)draw.width,
-            (int)draw.height,
-            RED
-        );
-    }
+        Texture2D* texture = get_entity_texture(entity);
 
-    void GameScene::render_obstacle(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
-        _raylib.drawRectangle(
-            (int)(pos.x - draw.width / 2),
-            (int)(pos.y - draw.height / 2),
-            (int)draw.width,
-            (int)draw.height,
-            GRAY
-        );
-    }
-
-    void GameScene::render_background(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
-        auto &sprites = _registry.get_components<component::sprite>();
-        if (entity.value() < sprites.size() && sprites[entity.value()]) {
-            // Afficher avec le sprite
-            // TODO: Implémenter l'affichage de sprite
+        if (texture != nullptr) {
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Vector2 origin = {0.0f, 0.0f};
+            float rotation = 0.0f;
+            auto &sprites = _registry.get_components<component::sprite>();
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+        } else {
+            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, RED);
         }
     }
 
-    void GameScene::render_text(ecs::entity_t entity, const component::position &pos) {
-        auto &texts = _registry.get_components<component::text>();
-        if (entity.value() < texts.size() && texts[entity.value()]) {
-            auto &txt = *texts[entity.value()];
-            _raylib.drawText(
-                txt.content.c_str(),
-                (int)pos.x,
-                (int)pos.y,
-                txt.font_size,
-                txt.color
-            );
+    void GameScene::render_obstacle(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
+        Texture2D* texture = get_entity_texture(entity);
+
+        if (texture != nullptr) {
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Vector2 origin = {0.0f, 0.0f};
+            float rotation = 0.0f;
+            auto &sprites = _registry.get_components<component::sprite>();
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+        } else {
+            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GRAY);
+
+        }
+    }
+
+    void GameScene::render_background(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
+        Texture2D* texture = get_entity_texture(entity);
+
+        if (texture != nullptr) {
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Vector2 origin = {0.0f, 0.0f};
+            float rotation = 0.0f;
+            auto &sprites = _registry.get_components<component::sprite>();
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         }
     }
 
     void GameScene::render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
-        _raylib.drawRectangle(
-            (int)(pos.x - draw.width / 2),
-            (int)(pos.y - draw.height / 2),
-            (int)draw.width,
-            (int)draw.height,
-            GOLD
-        );
+        Texture2D* texture = get_entity_texture(entity);
+
+        if (texture != nullptr) {
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Vector2 origin = {0.0f, 0.0f};
+            float rotation = 0.0f;
+            auto &sprites = _registry.get_components<component::sprite>();
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+        } else {
+            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GOLD);
+        }
     }
 
     void GameScene::render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
-        _raylib.drawRectangle(
-            (int)(pos.x - draw.width / 2),
-            (int)(pos.y - draw.height / 2),
-            (int)draw.width,
-            (int)draw.height,
-            WHITE
-        );
+        Texture2D* texture = get_entity_texture(entity);
+
+        if (texture != nullptr) {
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Vector2 origin = {0.0f, 0.0f};
+            float rotation = 0.0f;
+            auto &sprites = _registry.get_components<component::sprite>();
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+        } else {
+            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, YELLOW);
+        }
     }
+
 
     void GameScene::render_network_obstacles() {
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obs;
@@ -367,6 +440,8 @@ namespace game::scene {
         };
         return palette[id % (sizeof(palette)/sizeof(palette[0]))];
     }
+
+    /////////////////////////////////////////////////////::
 
     void GameScene::handleEvents() {
         update();
@@ -487,5 +562,6 @@ namespace game::scene {
  
     void GameScene::onClose() {
         _game_running = false;
+        unload_entity_textures();
     }
 } // namespace game::scene
