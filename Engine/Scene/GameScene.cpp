@@ -82,17 +82,8 @@ namespace game::scene {
                 if (e.value() < positions.size() && positions[e.value()]) {
                     float currentX = positions[e.value()]->x;
                     float currentY = positions[e.value()]->y;
-                    float diffX = x - currentX;
-                    float diffY = y - currentY;
-                    const float threshold = 0.5f;
-                    if (std::abs(diffX) > threshold || std::abs(diffY) > threshold) {
-                        float lerpFactor = 0.3f;
-                        positions[e.value()]->x = currentX + diffX * lerpFactor;
-                        positions[e.value()]->y = currentY + diffY * lerpFactor;
-                    } else {
-                        positions[e.value()]->x = x;
-                        positions[e.value()]->y = y;
-                    }
+                    positions[e.value()]->x = x;
+                    positions[e.value()]->y = y;
                 }
             }
         }

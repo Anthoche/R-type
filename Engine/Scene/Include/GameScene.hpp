@@ -36,6 +36,8 @@ namespace game::scene {
      */
     class GameScene : public AScene {
     public:
+        Game &_game; ///< Reference to the game instance.
+
         /**
          * @brief Construct a GameScene with a reference to the Game instance.
          * @param game Reference to the game instance.
@@ -178,7 +180,6 @@ namespace game::scene {
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
         double _startTime; ///< Start time of the scene.
-        Game &_game; ///< Reference to the game instance.
         UI _ui; ///< UI instance for game overlay
 
         // --- Helpers ---
