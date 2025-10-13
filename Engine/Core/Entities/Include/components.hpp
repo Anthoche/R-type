@@ -8,6 +8,7 @@
 #pragma once
 
 #include <raylib.h>
+
 #include "../../Include/entity.hpp"
 #include <string>
 #include <cstdint>
@@ -155,6 +156,7 @@ namespace component {
         TEXT,      ///< Text label entity
         BUTTON,     ///< Button entity (UI)
         PROJECTILE,  ///< projectile entity
+        RANDOM_ELEMENT ///< Random element entity
     };
 
     /**

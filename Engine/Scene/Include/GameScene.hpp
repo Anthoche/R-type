@@ -81,24 +81,24 @@ namespace game::scene {
          */
         void handle_input(float input_x, float input_y);
 
-    // --- Accessors ---
-    /**
-     * @brief getter to send registry
-     * @return return the current registry.
-     */
-    ecs::registry &get_registry() { return _registry; }
+        // --- Accessors ---
+        /**
+         * @brief getter to send registry
+         * @return return the current registry.
+         */
+        ecs::registry &get_registry() { return _registry; }
 
-    /**
-     * @brief getter to send player
-     * @return return the current player.
-     */
-    ecs::entity_t get_player() const { return _player; }
+        /**
+         * @brief getter to send player
+         * @return return the current player.
+         */
+        ecs::entity_t get_player() const { return _player; }
 
-    /**
-     * @brief getter to send obstacles
-     * @return return tje current obstacles.
-     */
-    const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
+        /**
+         * @brief getter to send obstacles
+         * @return return tje current obstacles.
+         */
+        const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
 
     private:
         // --- Game logic ---
@@ -167,12 +167,32 @@ namespace game::scene {
          */
         void sync_hitboxes_immediate();
 
+        // --- Texture management ---
+        /**
+         * @brief Load all textures for entities that have a sprite component.
+         * Creates a mapping between entity IDs and their loaded textures.
+         */
+        void load_entity_textures();
+
+        /**
+         * @brief Unload all loaded textures.
+         */
+        void unload_entity_textures();
+
+        /**
+         * @brief Get the texture associated with an entity.
+         * @param entity The entity to get the texture for.
+         * @return Pointer to the texture if found, nullptr otherwise.
+         */
+        Texture2D* get_entity_texture(ecs::entity_t entity);
+
         // --- Entities ---
         ecs::entity_t _player; ///< Local player entity.
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
         bool _isDead = false; ///< Flag indicating if the local player is dead.
+        std::unordered_map<uint32_t, Texture2D> _entityTextures; ///< Map: entity ID -> loaded texture.
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
@@ -189,6 +209,28 @@ namespace game::scene {
          * @brief Render ECS entities organized by layer.
          */
         void draw_ecs_layers();
+
+        // --- Indexation des entités ---
+        void index_existing_entities();
+
+        // --- Rendu générique ---
+        void render_entities();
+        void render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_obstacle(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_background(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_text(ecs::entity_t entity, const component::position &pos);
+        void render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+
+        // --- Rendu des entités réseau ---
+        void render_network_obstacles();
+        void render_network_enemies();
+        void render_network_projectiles();
+        void render_death_screen();
+
+        // --- Utilitaires ---
+        Color get_color_for_id(uint32_t id);
     };
 } // namespace game::scene
 

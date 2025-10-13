@@ -6,6 +6,7 @@
 */
 #include "client.hpp"
 #include "../Engine/Game.hpp"
+#include "../Engine/Utils/Include/serializer.hpp"
 #include <asio.hpp>
 
 GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
@@ -84,7 +85,7 @@ void GameClient::sendInput(float inputX, float inputY) {
     socket.sendTo(&m, sizeof(m), serverEndpoint);
 }
 
-void GameClient::sendSceneState(SceneState scene) {
+void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
     SceneStateMessage msg{};
     msg.type = MessageType::SceneState;
     msg.clientId = htonl(clientId);
@@ -106,7 +107,8 @@ void GameClient::sendSceneState(SceneState scene) {
             std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
             return;
         }
-        std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
+         std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
+        game::serializer::deserialize_entities(*registry, fullRegistry);
     }
 }
 

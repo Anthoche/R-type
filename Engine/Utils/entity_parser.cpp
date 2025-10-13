@@ -33,16 +33,35 @@ namespace game::parsing
         }
     }
 
+    // Helper to get float from JSON (handles both direct and nested formats)
+    static float get_float_value(const nlohmann::json &data, const std::string &field, float default_val = 0.0f)
+    {
+        if (data.contains(field)) {
+            return data.at(field).get<float>();
+        }
+        return default_val;
+    }
+
     ecs::entity_t parse_player(ecs::registry &reg, const nlohmann::json &player_data)
     {
         try {
-            check_field(player_data, "x", nlohmann::json::value_t::number_float);
-            check_field(player_data, "y", nlohmann::json::value_t::number_float);
-            check_field(player_data, "client_id", nlohmann::json::value_t::number_unsigned);
+            // Support both formats: direct x/y and nested position
+            float x, y;
+            if (player_data.contains("position") && player_data["position"].is_object()) {
+                x = player_data["position"]["x"];
+                y = player_data["position"]["y"];
+            } else {
+                check_field(player_data, "x", nlohmann::json::value_t::number_float);
+                check_field(player_data, "y", nlohmann::json::value_t::number_float);
+                x = player_data.at("x");
+                y = player_data.at("y");
+            }
 
-            float x = player_data.at("x");
-            float y = player_data.at("y");
-            uint32_t clientId = player_data.at("client_id");
+            uint32_t clientId = 0;
+            if (player_data.contains("client_id")) {
+                clientId = player_data.at("client_id");
+            }
+
             std::string image_path = player_data.value("image_path", "");
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
@@ -62,15 +81,22 @@ namespace game::parsing
     ecs::entity_t parse_background(ecs::registry &reg, const nlohmann::json &bg_data)
     {
         try {
-            check_field(bg_data, "x", nlohmann::json::value_t::number_float);
-            check_field(bg_data, "y", nlohmann::json::value_t::number_float);
-            check_field(bg_data, "width", nlohmann::json::value_t::number_float);
-            check_field(bg_data, "height", nlohmann::json::value_t::number_float);
+            // Support both formats
+            float x, y;
+            if (bg_data.contains("position") && bg_data["position"].is_object()) {
+                x = bg_data["position"]["x"];
+                y = bg_data["position"]["y"];
+            } else {
+                check_field(bg_data, "x", nlohmann::json::value_t::number_float);
+                check_field(bg_data, "y", nlohmann::json::value_t::number_float);
+                x = bg_data.at("x");
+                y = bg_data.at("y");
+            }
 
-            float x = bg_data.at("x");
-            float y = bg_data.at("y");
-            float width = bg_data.at("width");
-            float height = bg_data.at("height");
+            // Width and height with defaults
+            float width = get_float_value(bg_data, "width", 800.0f);
+            float height = get_float_value(bg_data, "height", 600.0f);
+            
             std::string image_path = bg_data.value("image_path", "");
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
@@ -91,11 +117,18 @@ namespace game::parsing
     ecs::entity_t parse_enemy(ecs::registry &reg, const nlohmann::json &enemy_data)
     {
         try {
-            check_field(enemy_data, "x", nlohmann::json::value_t::number_float);
-            check_field(enemy_data, "y", nlohmann::json::value_t::number_float);
+            // Support both formats
+            float x, y;
+            if (enemy_data.contains("position") && enemy_data["position"].is_object()) {
+                x = enemy_data["position"]["x"];
+                y = enemy_data["position"]["y"];
+            } else {
+                check_field(enemy_data, "x", nlohmann::json::value_t::number_float);
+                check_field(enemy_data, "y", nlohmann::json::value_t::number_float);
+                x = enemy_data.at("x");
+                y = enemy_data.at("y");
+            }
 
-            float x = enemy_data.at("x");
-            float y = enemy_data.at("y");
             std::string image_path = enemy_data.value("image_path", "");
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
@@ -114,11 +147,18 @@ namespace game::parsing
     ecs::entity_t parse_obstacle(ecs::registry &reg, const nlohmann::json &obstacle_data)
     {
         try {
-            check_field(obstacle_data, "x", nlohmann::json::value_t::number_float);
-            check_field(obstacle_data, "y", nlohmann::json::value_t::number_float);
+            // Support both formats
+            float x, y;
+            if (obstacle_data.contains("position") && obstacle_data["position"].is_object()) {
+                x = obstacle_data["position"]["x"];
+                y = obstacle_data["position"]["y"];
+            } else {
+                check_field(obstacle_data, "x", nlohmann::json::value_t::number_float);
+                check_field(obstacle_data, "y", nlohmann::json::value_t::number_float);
+                x = obstacle_data.at("x");
+                y = obstacle_data.at("y");
+            }
 
-            float x = obstacle_data.at("x");
-            float y = obstacle_data.at("y");
             std::string image_path = obstacle_data.value("image_path", "");
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
@@ -137,15 +177,21 @@ namespace game::parsing
     ecs::entity_t parse_random_element(ecs::registry &reg, const nlohmann::json &element_data)
     {
         try {
-            check_field(element_data, "x", nlohmann::json::value_t::number_float);
-            check_field(element_data, "y", nlohmann::json::value_t::number_float);
-            check_field(element_data, "width", nlohmann::json::value_t::number_float);
-            check_field(element_data, "height", nlohmann::json::value_t::number_float);
+            // Support both formats
+            float x, y;
+            if (element_data.contains("position") && element_data["position"].is_object()) {
+                x = element_data["position"]["x"];
+                y = element_data["position"]["y"];
+            } else {
+                check_field(element_data, "x", nlohmann::json::value_t::number_float);
+                check_field(element_data, "y", nlohmann::json::value_t::number_float);
+                x = element_data.at("x");
+                y = element_data.at("y");
+            }
 
-            float x = element_data.at("x");
-            float y = element_data.at("y");
-            float width = element_data.at("width");
-            float height = element_data.at("height");
+            float width = get_float_value(element_data, "width", 100.0f);
+            float height = get_float_value(element_data, "height", 100.0f);
+            
             std::string image_path = element_data.value("image_path", "");
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
@@ -174,9 +220,11 @@ namespace game::parsing
     ecs::entity_t parse_sound(ecs::registry &reg, const nlohmann::json &sound_data)
     {
         try {
-            check_field(sound_data, "sound_path", nlohmann::json::value_t::string);
-
-            std::string sound_path = sound_data.at("sound_path");
+            std::string sound_path = sound_data.value("sound_path", "");
+            
+            if (sound_path.empty()) {
+                throw std::runtime_error("Missing sound_path field");
+            }
 
             if (!std::ifstream(sound_path).good()) {
                 std::cerr << "[WARNING] Sound file not found: " << sound_path << std::endl;
@@ -198,15 +246,20 @@ namespace game::parsing
     ecs::entity_t parse_text(ecs::registry &reg, const nlohmann::json &text_data)
     {
         try {
-            check_field(text_data, "x", nlohmann::json::value_t::number_float);
-            check_field(text_data, "y", nlohmann::json::value_t::number_float);
-            check_field(text_data, "content", nlohmann::json::value_t::string);
-            check_field(text_data, "font_size", nlohmann::json::value_t::number_integer);
+            // Support both formats
+            float x, y;
+            if (text_data.contains("position") && text_data["position"].is_object()) {
+                x = text_data["position"]["x"];
+                y = text_data["position"]["y"];
+            } else {
+                check_field(text_data, "x", nlohmann::json::value_t::number_float);
+                check_field(text_data, "y", nlohmann::json::value_t::number_float);
+                x = text_data.at("x");
+                y = text_data.at("y");
+            }
 
-            float x = text_data.at("x");
-            float y = text_data.at("y");
-            std::string content = text_data.at("content");
-            int font_size = text_data.at("font_size");
+            std::string content = text_data.value("content", "");
+            int font_size = text_data.value("font_size", 12);
             std::string font_path = text_data.value("font_path", "");
 
             if (!font_path.empty() && !std::ifstream(font_path).good()) {
@@ -215,7 +268,8 @@ namespace game::parsing
 
             std::cout << "[DEBUG] Parsed text: '" << content << "' at (" << x << ", " << y << ")" << std::endl;
 
-            //return game::entities::create_text(reg, x, y, content, font_size, font_path);;
+            // Uncomment when create_text is implemented
+            // return game::entities::create_text(reg, x, y, content, font_size, font_path);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse text: ") + e.what());

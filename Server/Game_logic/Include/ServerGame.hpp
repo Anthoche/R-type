@@ -16,44 +16,12 @@
 #include <chrono>
 #include <mutex>
 
-/**
- * @class ServerGame
- * @brief Main server-side game logic handler.
- *
- * Manages the game loop, player states, ECS registry, and network broadcasting.
- */
 class ServerGame {
     public:
-        /**
-         * @brief Constructs a ServerGame instance.
-         * @param conn Reference to the Connexion handler for network communication.
-         */
         ServerGame(Connexion &conn);
-
-        /**
-         * @brief Runs the main server game loop.
-         *
-         * Handles message processing, state updates, and broadcasting.
-         */
         void run();
-
-        /**
-         * @brief Loads players from a JSON configuration file.
-         * @param path Path to the players JSON file.
-         */
         void load_players(const std::string &path);
-
-        /**
-         * @brief Loads level entities from a JSON configuration file.
-         * @param path Path to the level JSON file.
-         */
         void load_level(const std::string &path);
-
-        /**
-         * @brief Broadcasts the entire ECS registry to all clients.
-         *
-         * Serializes all entities and sends them in batches.
-         */
         void broadcast_full_registry_to(uint32_t clientId);
 
     private:
@@ -61,151 +29,47 @@ class ServerGame {
         ecs::registry registry_server;
         std::unordered_map<uint32_t, SceneState> clientScenes;
         std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
         uint32_t nextProjectileId = 1;
         std::mutex mtx;
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
         std::unordered_set<uint32_t> deadPlayers;
         uint32_t nextEnemyId = 1;
+        std::unordered_map<uint32_t, std::string> enemyPatterns;
+        
+        std::vector<ecs::entity_t> _obstacles;
+        std::vector<ecs::entity_t> _enemies;
 
-        /**
-         * @brief Initializes player positions based on connected clients.
-         */
         void initialize_player_positions();
-        
-        /**
-         * @brief Processes pending network messages from clients.
-         */
+        void index_existing_entities();
         void process_pending_messages();
-
-        /**
-         * @brief Handles a single client message.
-         * @param data Raw message data.
-         * @param from Client endpoint.
-         */
-        void handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);  // <-- Changement ici
-        
-        /**
-         * @brief Broadcasts player state updates to all clients.
-         */
+        void handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);
         void broadcast_states_to_clients();
-
-        /**
-         * @brief Checks for collisions between players and enemies.
-         */
         void check_player_enemy_collisions();
-
-        /**
-         * @brief Notifies all clients that a player has died.
-         * @param clientId ID of the player who died.
-         */
         void broadcast_player_death(uint32_t clientId);
-
-        /**
-         * @brief Initializes obstacles in the game world.
-         */
         void initialize_obstacles();
-        
-        /**
-         * @brief Broadcasts an obstacle spawn message.
-         * @param obstacleId Unique obstacle ID.
-         * @param x X position.
-         * @param y Y position.
-         * @param w Width.
-         * @param h Height.
-         */
         void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h);
-
-        /**
-         * @brief Broadcasts an obstacle despawn message.
-         * @param obstacleId Unique obstacle ID.
-         */
         void broadcast_obstacle_despawn(uint32_t obstacleId);
-
-        /**
-         * @brief Sleeps to maintain consistent tick rate.
-         * @param start Tick start time.
-         * @param tick_ms Target tick duration in milliseconds.
-         */
         void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
-
-         /**
-         * @brief Updates all active projectiles on the server side.
-         * @param dt Delta time in seconds since the last update.
-         */
         void update_projectiles_server_only(float dt);
-
-        /**
-         * @brief Broadcasts the current positions of all active projectiles to all clients.
-         */
         void broadcast_projectile_positions();
-
-        /**
-         * @brief Checks for collisions between projectiles and other game entities.
-         */
         void check_projectile_collisions();
-
-        /**
-         * @brief Notifies all clients of a newly spawned projectile.
-         * @param projId Unique ID of the projectile.
-         * @param ownerId ID of the entity (player or enemy) that fired it.
-         * @param x Initial X coordinate.
-         * @param y Initial Y coordinate.
-         * @param vx Horizontal velocity.
-         * @param vy Vertical velocity.
-         */
         void broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float vx, float vy);
-
-        /**
-         * @brief Notifies all clients that a projectile has been removed from the game.
-         * @param projId Unique ID of the projectile to despawn.
-         */
         void broadcast_projectile_despawn(uint32_t projId);
-
-
-        /**
-         * @brief Initializes enemies in the game world.
-         */
-        void initialize_enemies(); 
-
-        /**
-         * @brief Broadcasts an enemy spawn message.
-         * @param enemyId Unique enemy ID.
-         * @param x X position.
-         * @param y Y position.
-         * @param vx Velocity in X direction.
-         * @param vy Velocity in Y direction.
-         */
-        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float vx, float vy); 
-
-        /**
-         * @brief Broadcasts the current positions of all active enemies to all clients.
-         */
-        void broadcast_enemy_positions();
-
-        /**
-         * @brief Updates all active enemies on the server side.
-         * @param dt Delta time in seconds since the last update.
-         */
+        void initialize_enemies();
         void update_enemies(float dt);
-
-        /**
-         * @brief Checks for collisions between projectiles and enemies.
-         */
-        void check_projectile_enemy_collisions();
-
-        /**
-         * @brief Notifies all clients that an enemy has been removed from the game.
-         * @param enemyId Unique ID of the enemy to despawn.
-         */
-        void broadcast_enemy_despawn(uint32_t enemyId);
-        
-        /**
-         * @brief Notifies all clients of an enemy's updated position.
-         * @param enemyId Unique ID of the enemy.
-         * @param x New X coordinate.
-         * @param y New Y coordinate.
-         */
+        void update_enemy_default(uint32_t id, float dt);
+        void update_enemy_straight(uint32_t id, float dt);
+        void update_enemy_zigzag(uint32_t id, float dt);
+        void update_enemy_circle(uint32_t id, float dt);
+        void update_enemy_turret(uint32_t id, float dt);
+        void update_enemy_boss_phase1(uint32_t id, float dt);
+        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float vx, float vy);
+        void broadcast_enemy_positions();
         void broadcast_enemy_update(uint32_t enemyId, float x, float y);
+        void broadcast_enemy_despawn(uint32_t enemyId);
+        void check_projectile_enemy_collisions();
+        bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
+                        float left2, float right2, float top2, float bottom2);
+        bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
+                        const std::vector<ecs::entity_t> &obstacles);
 };

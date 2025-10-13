@@ -121,6 +121,10 @@ add_executable(r-type_server
     ${SERVER_DIR}/Network_handler/TCP_socketServer.cpp
     ${SERVER_DIR}/Game_logic/game_setup.cpp
     ${SERVER_DIR}/Game_logic/ServerGame.cpp
+    ${SERVER_DIR}/Game_logic/ServerGame/SGPlayer.cpp
+    ${SERVER_DIR}/Game_logic/ServerGame/SGEnnemy.cpp
+    ${SERVER_DIR}/Game_logic/ServerGame/SGObstacle.cpp
+    ${SERVER_DIR}/Game_logic/ServerGame/SGProjectile.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
