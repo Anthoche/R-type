@@ -23,8 +23,8 @@ namespace game::entities
         reg.emplace_component<component::client_id>(player, clientId);
 
 		component::drawable drawable;
-		drawable.width = 30.f;
-		drawable.height = 30.f;
+		drawable.width = 33.f;
+		drawable.height = 16.f;
 		reg.add_component<component::drawable>(player, std::move(drawable));
 
         if (!imagePath.empty()) {

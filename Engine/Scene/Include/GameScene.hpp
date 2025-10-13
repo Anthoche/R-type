@@ -182,6 +182,10 @@ namespace game::scene {
          */
         void unload_entity_textures();
 
+        void load_projectile_textures();
+
+        void unload_projectile_textures();
+
         /**
          * @brief Get the texture associated with an entity.
          * @param entity The entity to get the texture for.
@@ -196,6 +200,8 @@ namespace game::scene {
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
         bool _isDead = false; ///< Flag indicating if the local player is dead.
         std::unordered_map<uint32_t, Texture2D> _entityTextures; ///< Map: entity ID -> loaded texture.
+        std::unordered_map<std::string, Texture2D> _projectileTextures; ///< Map: projectile type -> loaded texture.
+        std::unordered_map<uint32_t, float> moovePlayer; ///< Map: client ID -> movement offset for sprite rendering.
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
