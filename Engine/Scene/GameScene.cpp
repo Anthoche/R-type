@@ -450,7 +450,13 @@ namespace game::scene {
         float input_x = 0.f;
         float input_y = 0.f;
         static float lastShotTime = 0.f;
-        const float SHOOT_COOLDOWN = 0.3f;
+        float globalScore = 0.0f;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            globalScore = _game.getGameClient().globalScore;
+        }
+        float t = std::clamp(globalScore / 150.0f, 0.0f, 1.0f);
+        float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
 
         if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP))
             input_y = -1.f;
