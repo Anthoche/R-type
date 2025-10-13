@@ -637,6 +637,76 @@ class Raylib {
          */
         bool isKeyReleased(int key);
 
+		// === Game controller input ===
+
+		/**
+		 * @brief Check if a gamepad is available
+		 * @param gamepad The gamepad to check
+		 * @return True if available, false otherwise
+		 */
+		bool isGamepadAvailable(int gamepad);
+
+		/**
+		 * @brief Get gamepad internal name id
+		 * @param gamepad The gamepad to get the name of
+		 * @return The name of the given gamepad
+		 */
+		std::string getGamepadName(int gamepad) const;
+
+		/**
+		 * @brief Check if a gamepad button has been pressed once
+		 * @param gamepad The current gamepad
+		 * @param button The button to check if pressed
+		 * @return True if the button has been pressed once
+		 */
+		bool isGamepadButtonPressed(int gamepad, int button);
+
+		/**
+		 * @brief Check if a gamepad button is being pressed
+		 * @param gamepad The current gamepad
+		 * @param button The button to check if pressed
+		 * @return True if the button is being pressed
+		 */
+		bool isGamepadButtonDown(int gamepad, int button);
+
+		/**
+		 * @brief Check if a gamepad button has been released once
+		 * @param gamepad The current gamepad
+		 * @param button The button to check if released
+		 * @return True if the button has been released once
+		 */
+		bool isGamepadButtonReleased(int gamepad, int button);
+
+		/**
+		 * @brief Get the last gamepad button pressed
+		 * @return The last button pressed
+		 */
+		int getGamepadButtonPressed();
+
+		/**
+		 * @brief Get gamepad axis count for a gamepad
+		 * @param gamepad The current gamepad
+		 * @return The gamepad's axis count
+		 */
+		int getGamepadAxisCount(int gamepad);
+
+		/**
+		 * @brief Get axis movement value for a gamepad axis
+		 * @param gamepad The current gamepad
+		 * @param axis The axis to get the movement from
+		 * @return the axis movement value
+		 */
+		float getGamepadAxisMovement(int gamepad, int axis);
+
+		/**
+		 * @brief Set gamepad vibration for both motors (duration in seconds)
+		 * @param gamepad The current gamepad
+		 * @param leftMotor The left motor force (0 to 1)
+		 * @param rightMotor The right motor force (0 to 1)
+		 * @param duration The duration of the vibration
+		 */
+		void setGamepadVibration(int gamepad, float leftMotor, float rightMotor, float duration);
+
 		// === RLGL ===
 
 		/**
