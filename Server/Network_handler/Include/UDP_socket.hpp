@@ -1,91 +1,99 @@
 /*
 ** EPITECH PROJECT, 2025
-** G-CPP-500-PAR-5-1-rtype-1
+** R-type
 ** File description:
 ** UDP_socket
 */
 
 #pragma once
 
+#include <asio.hpp>
 #include <unordered_map>
 #include <vector>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstring>
+#include <string>
+#include <mutex>
+#include <cstdint>
 #include <iostream>
 
 /**
- * @brief UDP socket wrapper for non-blocking network communication.
+ * @class UDP_socket
+ * @brief Cross-platform UDP socket wrapper for client/server communication.
  *
- * Manages a UDP socket, client connections, and message sending/receiving.
- * Supports both blocking and non-blocking receive operations.
+ * Provides methods for sending, receiving, broadcasting messages,
+ * and managing multiple clients. Supports both blocking and non-blocking operations.
  */
 class UDP_socket {
-    int socketFd; ///< File descriptor for the UDP socket.
-    sockaddr_in serverAddr; ///< Server address structure.
-    std::unordered_map<std::string, uint32_t> clients; ///< Maps client addresses (as "ip:port") to their assigned IDs.
-
     public:
         /**
-         * @brief Constructs a UDP_socket bound to the specified port.
-         * @param port The UDP port to listen on.
+         * @brief Constructs a UDP socket and binds it to the given port.
+         * @param port Port number to bind the UDP socket.
          * @throws std::runtime_error if socket creation or binding fails.
          */
-        UDP_socket(uint16_t port);
+        explicit UDP_socket(uint16_t port);
 
         /**
-         * @brief Destroys the UDP_socket and closes the socket file descriptor.
+         * @brief Destroys the UDP_socket and closes the socket.
          */
         ~UDP_socket();
 
         /**
-         * @brief Receives a UDP message (blocking).
-         * @return A pair containing the received data and the sender's address.
-         * @throws std::runtime_error if the receive operation fails.
+         * @brief Receives a UDP message in blocking mode.
+         * @return A pair containing the received data vector and the sender's endpoint.
+         * @throws std::runtime_error on receive errors.
          */
-        std::pair<std::vector<uint8_t>, sockaddr_in> receive();
+        std::pair<std::vector<uint8_t>, asio::ip::udp::endpoint> receive();
 
         /**
-         * @brief Attempts to receive a UDP message (non-blocking).
-         * @param outData Output parameter for the received data.
-         * @param outAddr Output parameter for the sender's address.
-         * @return true if a message was received, false otherwise (e.g., no data available).
+         * @brief Attempts to receive a UDP message without blocking.
+         * @param outData Vector to store received bytes.
+         * @param outEndpoint Sender's endpoint (output parameter).
+         * @return true if data was received, false if no data is available.
          */
-        bool try_receive(std::vector<uint8_t>& outData, sockaddr_in& outAddr);
+        bool try_receive(std::vector<uint8_t>& outData, asio::ip::udp::endpoint& outEndpoint);
 
         /**
-         * @brief Sends a UDP message to a specific client.
-         * @param data Pointer to the data to send.
+         * @brief Sends a UDP message to the specified endpoint.
+         * @param data Pointer to the data buffer.
          * @param size Size of the data in bytes.
-         * @param clientAddr Destination address.
+         * @param endpoint Destination UDP endpoint.
          */
-        void sendTo(const void* data, size_t size, const sockaddr_in& clientAddr);
+        void sendTo(const void* data, size_t size, const asio::ip::udp::endpoint& endpoint);
 
         /**
-         * @brief Broadcasts a UDP message to all connected clients.
-         * @param data Pointer to the data to send.
+         * @brief Broadcasts a message to all registered clients.
+         * @param data Pointer to the data buffer.
          * @param size Size of the data in bytes.
          */
         void broadcast(const void* data, size_t size);
 
         /**
-         * @brief Registers a new client with the socket.
-         * @param clientAddr Address of the client to add.
-         * @param clientId Unique ID to assign to the client.
+         * @brief Registers a client with a unique ID.
+         * @param endpoint Client's UDP endpoint.
+         * @param clientId Unique client ID.
          */
-        void addClient(const sockaddr_in& clientAddr, uint32_t clientId);
+        void addClient(const asio::ip::udp::endpoint& endpoint, uint32_t clientId);
 
         /**
-         * @brief Gets the number of connected clients.
-         * @return Current client count.
+         * @brief Disconnects a client by removing it from the list.
+         * @param clientId ID of the client to disconnect.
+         */
+        void disconnectClient(uint32_t clientId);
+
+        /**
+         * @brief Returns the number of currently connected clients.
+         * @return Number of clients.
          */
         size_t getClientCount() const;
 
         /**
-         * @brief Gets the map of connected clients.
-         * @return A const reference to the clients map (address string -> client ID).
+         * @brief Returns a map of client addresses to their IDs.
+         * @return const reference to the clients map.
          */
         const std::unordered_map<std::string, uint32_t>& getClients() const { return clients; }
+
+    private:
+        asio::io_context ioContext;                 /**< Internal ASIO I/O context. */
+        asio::ip::udp::socket socket;              /**< UDP socket instance. */
+        std::unordered_map<std::string, uint32_t> clients; /**< Maps client address strings to client IDs. */
+        mutable std::mutex clientsMutex;           /**< Mutex for thread-safe client map access. */
 };

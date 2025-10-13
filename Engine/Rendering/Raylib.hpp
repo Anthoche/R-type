@@ -11,6 +11,9 @@
 #include <string>
 #include <raylib.h>
 
+// Type alias pour Rectangle de raylib
+using RaylibRectangle = Rectangle;
+
 /**
  * @class Raylib
  * @brief A C++ wrapper around selected functions from the raylib library.
@@ -241,7 +244,7 @@ class Raylib {
 		 * @param rec The rectangle to draw
 		 * @param color The color of the rectangle
 		 */
-		void drawRectangleRec(Rectangle rec, Color color);
+		void drawRectangleRec(RaylibRectangle rec, Color color);
 
         /**
          * @brief Draw a rotated rectangle using pro parameters.
@@ -250,7 +253,7 @@ class Raylib {
          * @param rotation Rotation angle.
          * @param color Rectangle color.
          */
-        void drawRectanglePro(Rectangle rec, Vector2 origin, float rotation, Color color);
+        void drawRectanglePro(RaylibRectangle rec, Vector2 origin, float rotation, Color color);
 
         /**
          * @brief Draw the outline of a rectangle.
@@ -268,7 +271,16 @@ class Raylib {
          * @param rec Rectangle to test against.
          * @return True if collision detected.
          */
-        bool checkCollisionPointRec(Vector2 point, Rectangle rec);
+        bool checkCollisionPointRec(Vector2 point, RaylibRectangle rec);
+
+		/**
+		 * @brief Draw rectangle with rounded edges
+		 * @param rec The rectangle to draw
+		 * @param roundness The rect roundness (0 to 1)
+		 * @param segments ??
+		 * @param color The rectangle fill color
+		 */
+		void drawRectangleRounded(Rectangle rec, float roundness, int segments, Color color);
 
         /**
          * @brief Draw a line between two points.
@@ -299,6 +311,19 @@ class Raylib {
 
         // === rtext module ===
 
+		/**
+		 * @brief Load font from file into GPU memory (VRAM)
+		 * @param fileName The file path of the font file
+		 * @return The loaded font
+		 */
+		Font loadFont(std::string const &fileName);
+
+		/**
+		 * @brief Unload font from GPU memory (VRAM)
+		 * @param font The font to unload
+		 */
+		void unloadFont(Font font);
+
         /**
          * @brief Measure the width of text with given font size.
          * @param text Text string.
@@ -306,6 +331,16 @@ class Raylib {
          * @return Text width in pixels.
          */
         int measureText(std::string const &text, int fontSize);
+
+		/**
+		 * @brief Measure string size for a specific Font
+		 * @param font The font used for the text
+		 * @param text The text to measure
+		 * @param fontSize The size of the text font
+		 * @param spacing The spacing between letters in the text
+		 * @return Vector {width, height} of the measured text
+		 */
+		Vector2 measureTextEx(Font font, std::string const &text, float fontSize, float spacing);
 
         /**
          * @brief Draw text on screen.
@@ -316,6 +351,17 @@ class Raylib {
          * @param color Text color.
          */
         void drawText(std::string const &text, int posX, int posY, int fontSize, Color color);
+
+		/**
+		 * @brief Draw text using font and additional parameters
+		 * @param font The font to be used to draw the text
+		 * @param text The text to draw
+		 * @param position The position of the text
+		 * @param fontSize The font size of the text
+		 * @param spacing The spacing between letters
+		 * @param tint The text color
+		 */
+		void drawTextEx(Font font, std::string const &text, Vector2 position, float fontSize, float spacing, Color tint);
 
         /**
          * @brief Format text with variable arguments (like printf).
@@ -505,6 +551,40 @@ class Raylib {
 	    void closeAudioDevice();
 
 
+		// === rtextures module ===
+
+		/**
+		 * @brief Load texture from file into GPU memory (VRAM)
+		 * @param fileName The file to load
+		 * @return The loaded texture
+		 */
+		Texture2D loadTexture(const std::string &fileName);
+
+		/**
+		 * @brief Unload texture from GPU memory (VRAM)
+		 * @param texture The texture to unload
+		 */
+		void unloadTexture(Texture2D texture);
+
+		/**
+		 * @brief Draw a Texture2D
+		 * @param texture The texture to draw
+		 * @param posX The X position of the texture
+		 * @param posY The Y position of the texture
+		 * @param tint The tint color of the texture
+		 */
+		void drawTexture(Texture2D texture, int posX, int posY, Color tint);
+
+		/**
+		 * @brief Draw a Texture2D with extended parameters
+		 * @param texture The texture to draw
+		 * @param position The texture position
+		 * @param rotation Texture rotation in degrees
+		 * @param scale Multiplier for texture size
+		 * @param tint The tint color of the texture
+		 */
+		void drawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);
+
         // === mouse input ===
 
         /**
@@ -526,6 +606,13 @@ class Raylib {
          * @return True if the button was released.
          */
         bool isMouseButtonReleased(int button);
+
+        /**
+         * @brief Check if a mouse button was pressed.
+         * @param button Mouse button code.
+         * @return True if the button was pressed.
+         */
+        bool isMouseButtonPressed(int button);
 
         // === keyboard input ===
 
@@ -578,6 +665,8 @@ class Raylib {
 		 * @brief Pop latest inserted matrix from stack
 		 */
 		void popMatrix();
+
+        void drawTexturePro(Texture2D texture, Rectangle sourceRec, Rectangle destRec, Vector2 origin, float rotation, Color tint);
 };
 
 #endif /* !RAYLIB_HPP */

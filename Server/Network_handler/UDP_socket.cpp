@@ -1,108 +1,128 @@
-/*
-** EPITECH PROJECT, 2025
-** G-CPP-500-PAR-5-1-rtype-1
-** File description:
-** UDP_socket
-*/
-
-
 #include "Include/UDP_socket.hpp"
-#include <fcntl.h>
-#include <errno.h>
+#include <stdexcept>
+#include <cstring>
+#include <asio.hpp>
 
+using asio::ip::udp;
 
-UDP_socket::UDP_socket(uint16_t port) {
-    socketFd = socket(AF_INET, SOCK_DGRAM, 0);
+UDP_socket::UDP_socket(uint16_t port): ioContext(), socket(ioContext) {
+    udp::endpoint ep(udp::v4(), port);
+    asio::error_code ec;
 
-    if (socketFd < 0) {
-        throw std::runtime_error("Failed to create socket");
-    }
-    serverAddr = {};
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(port);
-    if (bind(socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        throw std::runtime_error("Failed to bind socket");
-    }
-    // Set non-blocking mode
-    int flags = fcntl(socketFd, F_GETFL, 0);
-    if (flags != -1) {
-        fcntl(socketFd, F_SETFL, flags | O_NONBLOCK);
+    try {
+        socket.open(udp::v4(), ec);
+        if (ec) throw std::runtime_error("Failed to open UDP socket: " + ec.message());
+
+        socket.bind(ep, ec);
+        if (ec) throw std::runtime_error("Failed to bind UDP socket: " + ec.message());
+
+        socket.non_blocking(true, ec);
+        if (ec) throw std::runtime_error("Failed to set non-blocking mode: " + ec.message());
+
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] UDP_socket ctor: " << e.what() << std::endl;
+        throw;
     }
 }
 
 UDP_socket::~UDP_socket() {
-    close(socketFd);
+    asio::error_code ec;
+    socket.close(ec);
 }
 
-std::pair<std::vector<uint8_t>, sockaddr_in> UDP_socket::receive() {
-    std::vector<uint8_t> buffer(1024);
-    sockaddr_in clientAddr = {};
-    socklen_t clientAddrLen = sizeof(clientAddr);
-    ssize_t bytesReceived = recvfrom(
-        socketFd, buffer.data(), buffer.size(), 0,
-        (struct sockaddr*)&clientAddr, &clientAddrLen
-    );
+std::pair<std::vector<uint8_t>, asio::ip::udp::endpoint> UDP_socket::receive() {
+    std::array<uint8_t, 2048> buf{};
+    udp::endpoint sender;
+    asio::error_code ec;
 
-    if (bytesReceived < 0) {
-        throw std::runtime_error("Failed to receive data");
+    try {
+        size_t len = socket.receive_from(asio::buffer(buf), sender, 0, ec);
+        if (ec) throw std::runtime_error("UDP receive failed: " + ec.message());
+
+        return { std::vector<uint8_t>(buf.data(), buf.data() + len), sender };
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] receive(): " << e.what() << std::endl;
+        return {};
     }
-    buffer.resize(bytesReceived);
-
-    return {buffer, clientAddr};
 }
 
-bool UDP_socket::try_receive(std::vector<uint8_t>& outData, sockaddr_in& outAddr) {
-    outData.resize(1024);
-    socklen_t addrLen = sizeof(outAddr);
-    ssize_t bytesReceived = recvfrom(
-        socketFd, outData.data(), outData.size(), 0,
-        (struct sockaddr*)&outAddr, &addrLen
-    );
-    if (bytesReceived < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return false;
+bool UDP_socket::try_receive(std::vector<uint8_t>& outData, asio::ip::udp::endpoint& outEndpoint) {
+    std::array<uint8_t, 2048> buf{};
+    udp::endpoint sender;
+    asio::error_code ec;
+
+    try {
+        std::size_t len = socket.receive_from(asio::buffer(buf), sender, 0, ec);
+
+        if (ec) {
+            if (ec == asio::error::would_block || ec == asio::error::try_again)
+                return false;
+            throw std::runtime_error("UDP try_receive failed: " + ec.message());
         }
+
+        outData.assign(buf.data(), buf.data() + len);
+        outEndpoint = sender;
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] try_receive(): " << e.what() << std::endl;
         return false;
     }
-    outData.resize(bytesReceived);
-    return true;
 }
 
-void UDP_socket::sendTo(const void* data, size_t size, const sockaddr_in& clientAddr) {
-    sendto(
-        socketFd, data, size, 0,
-        (struct sockaddr*)&clientAddr, sizeof(clientAddr)
-    );
+void UDP_socket::sendTo(const void* data, size_t size, const asio::ip::udp::endpoint& endpoint) {
+    try {
+        asio::error_code ec;
+        socket.send_to(asio::buffer(data, size), endpoint, 0, ec);
+        if (ec) throw std::runtime_error("UDP sendTo failed: " + ec.message());
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] sendTo(): " << e.what() << std::endl;
+    }
 }
 
 void UDP_socket::broadcast(const void* data, size_t size) {
-    for (const auto& [addrStr, clientId] : clients) {
-        sockaddr_in addr = {};
-        addr.sin_family = AF_INET;
-        size_t colonPos = addrStr.find(':');
-        std::string ipStr = addrStr.substr(0, colonPos);
-        uint16_t port = static_cast<uint16_t>(std::stoi(addrStr.substr(colonPos + 1)));
+    std::lock_guard<std::mutex> lock(clientsMutex);
+    asio::error_code ec;
 
-        inet_pton(AF_INET, ipStr.c_str(), &addr.sin_addr);
-        addr.sin_port = htons(port);
-        ssize_t sentBytes = sendto(
-            socketFd, data, size, 0,
-            (struct sockaddr*)&addr, sizeof(addr)
-        );
-        if (sentBytes < 0) {
-            std::cerr << "[ERREUR] Échec de l'envoi à " << addrStr << std::endl;
+    for (const auto& [addrStr, clientId] : clients) {
+        try {
+            auto pos = addrStr.find(':');
+            if (pos == std::string::npos) continue;
+            std::string ip = addrStr.substr(0, pos);
+            uint16_t port = static_cast<uint16_t>(std::stoi(addrStr.substr(pos + 1)));
+            auto addr = asio::ip::make_address(ip, ec);
+            if (ec) continue;
+
+            udp::endpoint ep(addr, port);
+            socket.send_to(asio::buffer(data, size), ep, 0, ec);
+            if (ec) throw std::runtime_error("UDP broadcast failed to " + addrStr + ": " + ec.message());
+
+        } catch (const std::exception& e) {
+            std::cerr << "[WARN] broadcast(): " << e.what() << std::endl;
         }
     }
 }
 
-void UDP_socket::addClient(const sockaddr_in& clientAddr, uint32_t clientId) {
-    char ipStr[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(clientAddr.sin_addr), ipStr, INET_ADDRSTRLEN);
-    std::string addrStr = std::string(ipStr) + ":" + std::to_string(ntohs(clientAddr.sin_port));
+void UDP_socket::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t clientId) {
+    std::string addrStr = endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
+
+    std::lock_guard<std::mutex> lock(clientsMutex);
     clients[addrStr] = clientId;
 }
 
+void UDP_socket::disconnectClient(uint32_t clientId) {
+    std::lock_guard<std::mutex> lock(clientsMutex);
+
+    for (auto it = clients.begin(); it != clients.end();) {
+        if (it->second == clientId) {
+            std::cout << "[INFO] Client disconnected: " << it->first << " (ID " << clientId << ")" << std::endl;
+            it = clients.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 size_t UDP_socket::getClientCount() const {
+    std::lock_guard<std::mutex> lock(clientsMutex);
     return clients.size();
 }

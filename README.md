@@ -7,83 +7,116 @@
 
 ## 📋 Project Description
 
-R-Type is a remake of the legendary side-scrolling shooter arcade game, developed as part of an Epitech project.
-The goal is to faithfully recreate the classic gameplay experience while building a modular and scalable game engine from scratch.
+This project is a **multiplayer recreation of the classic R-Type game** in C++, built with a **client-server architecture** and a **custom Entity-Component-System (ECS) engine**.  
+The goal is to reproduce a **retro shoot’em up** with smooth gameplay, precise collision handling, and robust network management.  
 
-This project focuses on:
+The project is divided into several modules:  
+- **Client**: Handles rendering, player input, and synchronization with the server.  
+- **Server**: Centralized game engine, responsible for world state, collisions, entities, and overall logic.  
+- **ECS Engine**: Custom implementation of the Entity-Component-System model, ensuring a clear separation between data (components) and logic (systems).  
 
-* Implementing an Entity-Component-System (ECS) architecture for flexibility and reusability
+## Key Features  
 
-* Separating engine logic from game-specific logic to allow future game development beyond R-Type
-
-* Supporting multiplayer gameplay through a dedicated server-client architecture
-
-* Leveraging Raylib for rendering and cross-platform compatibility
+- 🎮 **Multiplayer**: Supports multiple players connected via UDP.  
+- 👾 **Classic gameplay**: Players, enemies, obstacles, and projectiles with full collision detection.  
+- 🧩 **ECS system**: Modular entities, easily extendable (new enemy types, power-ups, etc.).  
+- 🎨 **Rendering**: Sprites + debug rectangles (optional visible hitboxes).  
+- 🛠️ **Authoritative server**: All collisions and game logic are validated server-side to prevent cheating.  
+- 🔊 **Audio & effects**: Integration of sound effects and music (optional depending on configuration).  
 
 ## 🛠️ Technologies Used
 
-### Frontend
+### Language & Libs
 
 * **C++** - Development language
-* **Raylib** - Graphics library
+* **Raylib** - Graphical library
+* **Asio** - Network library
 
 ### Compilation & Build
 
-CMake – Cross-platform build system and project configuration
+* **CMake** – Cross-platform build system and project configuration
+* **VCPKG** - Cross-platform package manager for C++
 
 ### Testing
 
-Criterion – Unit testing framework
+* **Criterion** – Unit testing framework
 
 ## 📁 Project Structure
 
 ```
-R-Type/
-├── Client/               # Graphical client
-│   ├── Input/            # Input handling
-│   ├── Network_client/   # Communication with the server
+r-type/
+├── engine/               # Generic engine (independent from R-Type)
+│   |── assets/           # Sprites, sounds
+│   ├── core/             # Core (ECS, Event Bus, Time Management)
+|   |     └─entities/     # Prefabs (Player, Enemy, Bullet...)
+│   ├── rendering/        # Rendering (Raylib wrapper)
+│   ├── physics/          # Collisions, hitboxes
+│   └── scenes/           # Levels, menus
 │
-├── Engine/               # Generic engine (independent from R-Type)
-│   ├── Core/             # ECS, Event Bus, Time Management
-│   ├── Physics/          # Collisions, hitboxes
-│   └── Rendering/        # Rendering (Raylib wrapper)
+├── server/               # Authoritative server
+│   ├── game_logic/       # Game rules (spawn, score...)
+│   └── network_handler/  # Client management
 │
-├── Game/                 # R-Type game (built on top of the engine)
-│   ├── Assets/           # Game assets (sprites, sounds)
-│   │   ├── sounds/       # Audio files
-│   │   └── sprites/      # Image files
-│   ├── Config_assets/    # Config files (players, settings…)
-│   ├── Entities/         # Prefabs (Player, Enemy, Bullet…)
-│   ├── Scene/            # Levels, menus
-│   ├── Systeme/          # Game systems (logic, mechanics)
+├── client/               # Graphical client
+│   ├── Hander/            # Input handling
+│   └── network_client/   # Communication with the server
 │
-├── Server/               # Authoritative server
-│   ├── Game_logic/       # Game rules (spawn, score…)
-│   ├── Network_handler/  # Client management
+├── shared/               # Shared code (protocol, common structures)
 │
-├── Shared/               # Shared code (protocol, common structures)
-│
-├── Unit_test/            # Unit tests
-│   └── Engine/           # Engine-related tests
-│
-├── CMakeLists.txt        # Root build configuration
-├── vcpkg/                # Dependencies manager
-└── README.md
+└── Unit_test/                # Unit tests (catch2, doctest)
 
 ```
-
-## 📚 Documentation
-
-- 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**  
-  Visual representations of system architecture.
 
 ## 🔧 Development
 
 ### Available Scripts
 
+#### 1. Install dependencies
+vcpkg:
+
 ```bash
-# IN DEVELLOPEMENT
+sudo dnf install ninja-build
+
+sudo dnf install libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel mesa-libGL-devel pkg-config
+
+git submodule update --init --recursive
 ```
+
+#### 2. Build the project
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+
+#### 3. Launch the project
+3.1 server:
+
+```bash
+./rtype_server
+```
+
+3.2 client:
+
+```bash
+./rtype_client [IP ADRESS] [NAME]
+```
+📝 Example:
+```bash
+./rtype_client 127.0.0.1 Paco
+```
+
+## 📚 Documentation
+
+- 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**<br>
+Visual representations of system architecture.
+
+- 📕 **[Wiki](https://github.com/Anthoche/R-type/wiki)**<br>
+Simple wiki to explain some technical details of the project.
+
+- 🖥️ **[Mirror Repository](https://github.com/Anthoche/R-type)**<br>
+Repository to run CI.
 
 ## 👥 Team
 
@@ -93,7 +126,7 @@ R-Type/
 - [Mariia Semenchenko](https://github.com/mariiasemenchenko)
 - [Corto Morrow](https://github.com/NuggetReckt)
 
-
+<br>
 *Last update: September 2025*
 
 ---

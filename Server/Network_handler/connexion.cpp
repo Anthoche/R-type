@@ -6,27 +6,110 @@
 */
 
 #include "Include/connexion.hpp"
-#include <arpa/inet.h>
+#include <asio.hpp>
 
-Connexion::Connexion(uint16_t port) : socket(port) {}
+Connexion::Connexion(asio::io_context& io, uint16_t port) : socket(port) {}
 
-bool Connexion::tryReceive(std::vector<uint8_t>& data, sockaddr_in& from) {
-    return socket.try_receive(data, from);
+void Connexion::asyncReceive(std::function<void(const asio::error_code&, std::vector<uint8_t>, asio::ip::udp::endpoint)> handler) {
+    try {
+        std::vector<uint8_t> data;
+        asio::ip::udp::endpoint clientEndpoint;
+        if (socket.try_receive(data, clientEndpoint)) {
+            asio::error_code ec; 
+            handler(ec, std::move(data), clientEndpoint);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] asyncReceive(): " << e.what() << std::endl;
+    }
 }
 
-void Connexion::sendTo(const void* msg, size_t size, const sockaddr_in& to) {
-    socket.sendTo(msg, size, to);
+void Connexion::sendTo(const void* msg, size_t size, const asio::ip::udp::endpoint& to) {
+    try {
+        socket.sendTo(msg, size, to);
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] Connexion::sendTo(): " << e.what() << std::endl;
+    }
 }
 
 void Connexion::broadcast(const void* msg, size_t size) {
-    socket.broadcast(msg, size);
+    try {
+        socket.broadcast(msg, size);
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] Connexion::broadcast(): " << e.what() << std::endl;
+    }
 }
 
-void Connexion::addClient(const sockaddr_in& addr, uint32_t id) {
-    char ipStr[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &addr.sin_addr, ipStr, INET_ADDRSTRLEN);
-    clients[ipStr] = id;
-    socket.addClient(addr, id);
+void Connexion::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t id) {
+    try {
+        std::string addrStr = endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
+        clients[addrStr] = id;
+        endpoints[addrStr] = endpoint;
+
+        socket.addClient(endpoint, id);
+
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] Connexion::addClient(): " << e.what() << std::endl;
+    }
+}
+
+void Connexion::disconnectClient(uint32_t id) {
+    try {
+        // Nettoyer la map endpoints
+        for (auto it = endpoints.begin(); it != endpoints.end();) {
+            if (clients[it->first] == id) {
+                it = endpoints.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        for (auto it = clients.begin(); it != clients.end();) {
+            if (it->second == id) {
+                std::cout << "[INFO] Disconnected client: " << it->first << " (ID " << id << ")" << std::endl;
+                it = clients.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        socket.disconnectClient(id);
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] Connexion::disconnectClient(): " << e.what() << std::endl;
+    }
+}
+
+bool Connexion::acceptTcpClient(uint32_t id, uint16_t port) {
+    try {
+        auto client = std::make_shared<TCP_socketServer>(port);
+        if (!client->acceptClient())
+            return false;
+        tcpClients[id] = client;
+        std::cout << "[INFO] TCP client " << id << " accepted on port " << port << std::endl;
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] acceptTcpClient(): " << e.what() << std::endl;
+        return false;
+    }
+}
+
+void Connexion::sendJsonToClient(uint32_t id, const nlohmann::json& j) {
+    try {
+        if (tcpClients.find(id) != tcpClients.end()) {
+            tcpClients[id]->sendJson(j);
+        } else {
+            std::cerr << "[WARN] sendJsonToClient(): client " << id << " not found" << std::endl;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] sendJsonToClient(): " << e.what() << std::endl;
+    }
+}
+
+void Connexion::broadcastJson(const nlohmann::json& j) {
+    try {
+        for (auto& [id, client] : tcpClients) {
+            client->sendJson(j);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] broadcastJson(): " << e.what() << std::endl;
+    }
 }
 
 size_t Connexion::getClientCount() const {
@@ -35,4 +118,8 @@ size_t Connexion::getClientCount() const {
 
 const std::unordered_map<std::string, uint32_t>& Connexion::getClients() const {
     return clients;
+}
+
+const std::unordered_map<std::string, asio::ip::udp::endpoint>& Connexion::getEndpoints() const {
+    return endpoints;
 }

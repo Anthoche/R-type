@@ -37,14 +37,7 @@ namespace ecs {
         registry(registry &&) noexcept = default;
         registry &operator=(registry &&) noexcept = default;
 
-        /**
-         * @brief Registers a new component type in the registry.
-         *
-         * Also registers a component eraser used when killing an entity.
-         *
-         * @tparam Component The type of the component.
-         * @return Reference to the sparse_array of that component type.
-         */
+        // --- Component registration ---
         template <class Component>
         sparse_array<Component> &register_component() {
             const std::type_index key = std::type_index(typeid(Component));
@@ -60,12 +53,6 @@ namespace ecs {
             return std::any_cast<sparse_array<Component> &>(it->second);
         }
 
-        /**
-         * @brief Access the sparse array for a component type (mutable).
-         * @tparam Component Component type.
-         * @return Reference to the sparse array.
-         * @throw std::runtime_error if the component type was not registered.
-         */
         template <class Component>
         sparse_array<Component> &get_components() {
             const std::type_index key = std::type_index(typeid(Component));
@@ -76,12 +63,6 @@ namespace ecs {
             return std::any_cast<sparse_array<Component> &>(it->second);
         }
 
-        /**
-         * @brief Access the sparse array for a component type (const).
-         * @tparam Component Component type.
-         * @return Const reference to the sparse array.
-         * @throw std::runtime_error if the component type was not registered.
-         */
         template <class Component>
         sparse_array<Component> const &get_components() const {
             const std::type_index key = std::type_index(typeid(Component));
@@ -92,16 +73,7 @@ namespace ecs {
             return std::any_cast<sparse_array<Component> const &>(it->second);
         }
 
-        /**
-         * @brief Adds a system to the registry.
-         *
-         * The system function/lambda will be called every frame and is automatically injected with
-         * sparse arrays of the specified component types.
-         *
-         * @tparam Components Component types required by the system.
-         * @tparam Function Function/lambda type.
-         * @param f The system function.
-         */
+        // --- Systems ---
         template <class... Components, typename Function>
         void add_system(Function &&f) {
             using Fn = std::decay_t<Function>;
@@ -110,55 +82,35 @@ namespace ecs {
             });
         }
 
-        /** @brief Runs all registered systems. Defined in registry.cpp */
         void run_systems();
 
-        /** @brief Creates a new entity and returns it. Defined in registry.cpp */
+        // --- Entities ---
         entity_t spawn_entity();
-
-        /** @brief Retrieves an entity from its index. Defined in registry.cpp */
-        entity_t entity_from_index(std::size_t idx);
-
-        /** @brief Kills an entity, removing all its components. Defined in registry.cpp */
+        entity_t entity_from_index(std::size_t idx) const;
         void kill_entity(entity_t const &e);
 
-        /**
-         * @brief Adds a component to an entity.
-         * @tparam Component Component type.
-         * @param to Entity to add the component to.
-         * @param c Component instance.
-         * @return Reference to the stored component.
-         */
         template <typename Component>
         typename sparse_array<Component>::reference_type add_component(entity_t const &to, Component &&c) {
             auto &arr = get_components<Component>();
             return arr.insert_at(static_cast<std::size_t>(to), std::forward<Component>(c));
         }
 
-        /**
-         * @brief Emplaces a component in-place for an entity.
-         * @tparam Component Component type.
-         * @tparam Params Constructor parameters for the component.
-         * @param to Entity to add the component to.
-         * @param p Parameters to construct the component.
-         * @return Reference to the stored component.
-         */
         template <typename Component, typename... Params>
         typename sparse_array<Component>::reference_type emplace_component(entity_t const &to, Params &&...p) {
             auto &arr = get_components<Component>();
             return arr.emplace_at(static_cast<std::size_t>(to), std::forward<Params>(p)...);
         }
 
-        /**
-         * @brief Removes a component from an entity.
-         * @tparam Component Component type.
-         * @param from Entity to remove the component from.
-         */
         template <typename Component>
         void remove_component(entity_t const &from) {
             auto &arr = get_components<Component>();
             arr.erase(static_cast<std::size_t>(from));
         }
+
+        /**
+         * @brief Récupère toutes les entités encore vivantes (non détruites).
+         */
+        std::vector<entity_t> alive_entities() const;
 
     private:
         std::unordered_map<std::type_index, std::any> _components_arrays; ///< Map from component type to sparse array

@@ -1,0 +1,60 @@
+{
+  "level": {
+    "backgrounds": [
+      {
+        "x": 400.0,
+        "y": 300.0,
+        "width": 800.0,
+        "height": 600.0,
+        "image_path": "assets/background.png",
+        "scale": 1.0,
+        "scroll_speed": 0.5
+      },
+      {
+        "x": 1200.0,
+        "y": 300.0,
+        "width": 800.0,
+        "height": 600.0,
+        "image_path": "assets/background_layer2.png",
+        "scale": 1.0,
+        "scroll_speed": 0.3
+      }
+    ],
+    "enemies": [
+      {"x": 900.0, "y": 150.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 1, "speed": 1.0, "pattern": "straight"},
+      {"x": 1000.0, "y": 200.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 1, "speed": 1.0, "pattern": "straight"},
+      {"x": 1100.0, "y": 250.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 1, "speed": 1.0, "pattern": "straight"},
+      {"x": 1200.0, "y": 200.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 1, "speed": 1.0, "pattern": "straight"},
+      {"x": 1300.0, "y": 150.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 1, "speed": 1.0, "pattern": "straight"},
+
+      {"x": 1600.0, "y": 100.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet14.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "amplitude": 50.0},
+      {"x": 1800.0, "y": 200.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet14.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "amplitude": 70.0},
+      {"x": 2000.0, "y": 100.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet14.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "amplitude": 50.0},
+
+      {"x": 2400.0, "y": 120.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.5, "pattern": "straight", "fire_rate": 1.5},
+      {"x": 2600.0, "y": 200.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.5, "pattern": "straight", "fire_rate": 1.5},
+      {"x": 2800.0, "y": 120.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.5, "pattern": "straight", "fire_rate": 1.5},
+
+      {"x": 3200.0, "y": 150.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet7.png", "type": "circle", "health": 1, "speed": 0.7, "pattern": "circle", "radius": 100.0},
+      {"x": 3200.0, "y": 250.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet7.png", "type": "circle", "health": 1, "speed": 0.7, "pattern": "circle", "radius": 100.0},
+      {"x": 3200.0, "y": 350.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet7.png", "type": "circle", "health": 1, "speed": 0.7, "pattern": "circle", "radius": 100.0},
+      {"x": 3200.0, "y": 450.0, "image_path": "../Engine/Assets/sprites/ennemies/r-typesheet7.png", "type": "circle", "health": 1, "speed": 0.7, "pattern": "circle", "radius": 100.0},
+
+      {"x": 4500.0, "y": 200.0, "image_path": "assets/enemies/boss.png", "type": "boss", "health": 50, "speed": 0.2, "pattern": "boss_phase1", "fire_rate": 0.5, "phase": 1}
+    ],
+    "obstacles": [
+      {"x": 1500.0, "y": 400.0, "image_path": "../Engine/Assets/sprites/obstacles/r-typesheet28.png", "health": 5},
+      {"x": 1700.0, "y": 500.0, "image_path": "../Engine/Assets/sprites/obstacles/r-typesheet28.png", "health": 5},
+      {"x": 2200.0, "y": 450.0, "image_path": "../Engine/Assets/sprites/obstacles/r-typesheet28.png", "health": 5},
+      {"x": 2500.0, "y": 300.0, "image_path": "../Engine/Assets/sprites/obstacles/r-typesheet28.png", "health": 5},
+      {"x": 3000.0, "y": 500.0, "image_path": "../Engine/Assets/sprites/obstacles/r-typesheet28.png", "health": 5},
+      {"x": 3500.0, "y": 400.0, "image_path": "../Engine/Assets/sprites/obstacles/r-typesheet28.png", "health": 5},
+      {"x": 4000.0, "y": 350.0, "image_path": "../Engine/Assets/sprites/obstacles/r-typesheet28.png", "health": 5}
+    ],
+    "random_elements": [
+      {"x": 1400.0, "y": 450.0, "width": 32.0, "height": 32.0, "image_path": "assets/items/powerup.png", "sound_path": "assets/sfx/powerup.wav", "volume": 0.8, "type": "powerup"},
+      {"x": 2300.0, "y": 450.0, "width": 32.0, "height": 32.0, "image_path": "assets/items/health.png", "sound_path": "assets/sfx/health.wav", "volume": 0.8, "type": "health"},
+      {"x": 3600.0, "y": 450.0, "width": 32.0, "height": 32.0, "image_path": "assets/items/shield.png", "sound_path": "assets/sfx/shield.wav", "volume": 0.8, "type": "shield"}
+    ]
+  }
+}

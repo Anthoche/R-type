@@ -6,8 +6,12 @@
 */
 
 #include "SceneHandler.hpp"
-#include "../../../Game/Scene/MenuScene.hpp"
-#include "../../../Game/Scene/GameScene.hpp"
+#include "Include/MenuScene.hpp"
+#include "Include/GameScene.hpp"
+#include "Include/ServerWaitScene.hpp"
+#include "Include/WaitingScene.hpp"
+#include "Include/SettingsScene.hpp"
+
 
 SceneHandler::SceneHandler(Game &game) : _game(game) {
 	_raylib = Raylib();
@@ -20,7 +24,10 @@ void SceneHandler::addScene(const std::string &name, const std::shared_ptr<IScen
 
 void SceneHandler::setupScenes() {
 	addScene("menu", std::make_shared<scene::MenuScene>(_game));
+	addScene("waiting", std::make_shared<scene::WaitingScene>(_game));
+	addScene("server_wait", std::make_shared<scene::ServerWaitScene>(_game));
 	addScene("game", std::make_shared<game::scene::GameScene>(_game));
+	addScene("settings", std::make_shared<scene::SettingsScene>(_game));
 }
 
 void SceneHandler::openMenu() {
@@ -54,7 +61,6 @@ void SceneHandler::open(const std::string &name) {
 		scene->handleEvents();
 		scene->render();
 	}
-
 	scene->onClose();
 	_scenes[name].second = false;
 }

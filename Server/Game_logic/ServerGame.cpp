@@ -1,0 +1,349 @@
+/*
+** EPITECH PROJECT, 2025
+** G-CPP-500-PAR-5-1-rtype-1
+** File description:
+** ServerGame
+*/
+
+#include "Include/ServerGame.hpp"
+#include "../../Engine/Utils/Include/serializer.hpp"
+#include <nlohmann/json.hpp>
+#include <algorithm>
+#include <cstring>
+#include <thread>
+#include <fstream>
+#include <iostream>
+#include <cmath>
+
+#define RESET_COLOR   "\033[0m"
+#define RED_COLOR     "\033[31m"
+#define GREEN_COLOR   "\033[32m"
+#define YELLOW_COLOR  "\033[33m"
+#define BLUE_COLOR    "\033[34m"
+#define LOG_ERROR(msg)   std::cerr << RED_COLOR << "[ERROR] " << msg << RESET_COLOR << std::endl
+#define LOG_INFO(msg)    std::cout << GREEN_COLOR << "[INFO] " << msg << RESET_COLOR << std::endl
+#define LOG_DEBUG(msg)   std::cout << YELLOW_COLOR << "[DEBUG] " << msg << RESET_COLOR << std::endl
+#define LOG(msg)         std::cout << BLUE_COLOR << msg << RESET_COLOR << std::endl
+
+
+static nlohmann::json load_json_from_file(const std::string &path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open JSON file: " + path);
+    }
+    nlohmann::json data;
+    file >> data;
+    return data;
+}
+
+ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
+    registry_server.register_component<component::position>();
+    registry_server.register_component<component::previous_position>();
+    registry_server.register_component<component::velocity>();
+    registry_server.register_component<component::controllable>();
+    registry_server.register_component<component::health>();
+    registry_server.register_component<component::type>();
+    registry_server.register_component<component::client_id>();
+    registry_server.register_component<component::drawable>();
+    registry_server.register_component<component::sprite>();
+    registry_server.register_component<component::collision_box>();
+    registry_server.register_component<component::hitbox_link>();
+}
+
+void ServerGame::run() {
+    LOG("[Server] Starting game loop...");
+    load_players("../Engine/Assets/Config_assets/Players/players.json");
+    load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
+    initialize_player_positions();
+    index_existing_entities();
+
+    const int tick_ms = 16;
+    float dt = 0.016f;
+
+    while (true) {
+        auto tick_start = std::chrono::high_resolution_clock::now();
+
+        update_projectiles_server_only(dt);
+        update_enemies(dt);
+        check_projectile_collisions();
+        check_projectile_enemy_collisions();
+        check_player_enemy_collisions();
+
+        broadcast_projectile_positions();
+        broadcast_enemy_positions();
+
+        process_pending_messages();
+        broadcast_states_to_clients();
+      
+        broadcast_player_health();
+        broadcast_global_score();
+        broadcast_individual_scores();
+        
+        sleep_to_maintain_tick(tick_start, tick_ms);
+    }
+}
+
+bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
+                        float left2, float right2, float top2, float bottom2) {
+    return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
+}
+
+void ServerGame::initialize_enemies() {
+    LOG_DEBUG("Initializing enemies...");    
+    for (int i = 0; i < 5; ++i) {
+        uint32_t enemyId = nextEnemyId++;
+        float x = 100.f + i * 100.f;
+        float y = 200.f;
+        float vx = 50.f;
+        float vy = 0.f;
+        enemies[enemyId] = std::make_tuple(x, y, vx, vy);
+        broadcast_enemy_spawn(enemyId, x, y, vx, vy);
+        LOG_DEBUG("[Server] Enemy spawned: id=" << enemyId << " pos=(" << x << ", " << y << ")");
+    }
+}
+
+void ServerGame::broadcast_full_registry_to(uint32_t clientId) {
+    nlohmann::json root;
+    root["type"] = "FullRegistry";
+    root["entities"] = nlohmann::json::array();
+
+    for (auto entity : registry_server.alive_entities()) {
+        auto j = game::serializer::serialize_entity(registry_server, entity);
+        if (!j.empty()) {
+            root["entities"].push_back(j);
+        }
+    }
+    connexion.sendJsonToClient(clientId, root);
+    LOG_DEBUG("[Server] Sent full registry to client " << clientId 
+              << " with " << root["entities"].size() << " entities");
+}
+
+void ServerGame::load_players(const std::string &path) {
+    try {
+        auto json = load_json_from_file(path);
+        game::storage::store_players(registry_server, json);
+        LOG_DEBUG("===== Loaded Players =====");
+        auto &positions = registry_server.get_components<component::position>();
+        auto &clientIds = registry_server.get_components<component::client_id>();
+        for (std::size_t i = 0; i < positions.size(); ++i) {
+            if (positions[i].has_value() && clientIds[i].has_value()) {
+                auto &pos = positions[i].value();
+                auto &cid = clientIds[i].value();
+                ecs::entity_t entity = registry_server.entity_from_index(i);
+                LOG("Player entity " << entity << " client_id=" << cid.id << " pos=(" << pos.x << ", " << pos.y << ")");
+            }
+        }
+    } catch (const std::exception &e) {
+        LOG_ERROR("load_players failed: " << e.what());
+    }
+}
+
+void ServerGame::load_level(const std::string &path) {
+    try {
+        auto json = load_json_from_file(path);
+        game::storage::store_level_entities(registry_server, json);
+        LOG_DEBUG("===== Loaded Level Entities =====");
+        auto &positions = registry_server.get_components<component::position>();
+        for (std::size_t i = 0; i < positions.size(); ++i) {
+            if (positions[i].has_value()) {
+                auto &pos = positions[i].value();
+                ecs::entity_t entity = registry_server.entity_from_index(i);
+                LOG("Entity " << entity << " pos=(" << pos.x << ", " << pos.y << ")");
+            }
+        }
+    } catch (const std::exception &e) {
+        LOG_ERROR("load_level failed: " << e.what());
+    }
+}
+
+void ServerGame::index_existing_entities() {
+    _obstacles.clear();
+    _enemies.clear();
+
+    auto &types = registry_server.get_components<component::type>();
+
+    for (std::size_t i = 0; i < types.size(); ++i) {
+        if (!types[i])
+            continue;
+
+        ecs::entity_t entity = registry_server.entity_from_index(i);
+        switch (types[i]->value) {
+            case component::entity_type::ENEMY:
+                _enemies.push_back(entity);
+                break;
+            case component::entity_type::OBSTACLE:
+                _obstacles.push_back(entity);
+                break;
+            default:
+                break;
+        }
+    }
+
+    LOG_INFO("[Server] Indexed entities:");
+    LOG_DEBUG("  - Enemies: " << _enemies.size());
+    LOG_DEBUG("  - Obstacles: " << _obstacles.size());
+}
+
+
+void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from) {
+    if (data.size() < sizeof(MessageType))
+        return;
+    MessageType type = *reinterpret_cast<const MessageType*>(data.data());
+    switch(type) {
+        case MessageType::ClientInput: {
+            if (data.size() >= sizeof(ClientInputMessage)) {
+                const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
+                uint32_t id = ntohl(msg->clientId);
+                if (deadPlayers.find(id) != deadPlayers.end())
+                    break;
+                float inputX, inputY;
+                uint32_t xbits = ntohl(msg->inputXBits);
+                uint32_t ybits = ntohl(msg->inputYBits);
+                std::memcpy(&inputX, &xbits, sizeof(float));
+                std::memcpy(&inputY, &ybits, sizeof(float));
+                auto& pos = playerPositions[id];
+                float speed = 200.f / 60.f;
+                const float playerWidth = 30.f;
+                const float playerHeight = 30.f;
+                float newX = pos.first + inputX * speed;
+                float newY = pos.second + inputY * speed;
+                if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles))
+                    pos.first = newX;
+                if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
+                    pos.second = newY;
+            }
+            break;
+        }
+        case MessageType::SceneState: {
+            if (data.size() >= sizeof(SceneStateMessage)) {
+                const SceneStateMessage* msg = reinterpret_cast<const SceneStateMessage*>(data.data());
+                uint32_t id = ntohl(msg->clientId);
+                SceneState scene = static_cast<SceneState>(ntohl(msg->scene));
+                {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    clientScenes[id] = scene;
+                }
+                LOG_DEBUG("[Server] Client " << id << " switched to scene = " << static_cast<int>(scene));
+                if (scene == SceneState::GAME) {
+                    broadcast_full_registry_to(id);
+                }
+            }
+            break;
+        }
+        case MessageType::ClientShoot: {
+            if (data.size() >= sizeof(ClientShootMessage)) {
+                const ClientShootMessage* msg = reinterpret_cast<const ClientShootMessage*>(data.data());
+                uint32_t clientId = ntohl(msg->clientId);
+                if (deadPlayers.find(clientId) != deadPlayers.end())
+                    break;
+
+                auto it = playerPositions.find(clientId);
+                if (it != playerPositions.end()) {
+                    float playerX = it->second.first;
+                    float playerY = it->second.second;
+
+                    uint32_t projId = nextProjectileId++;
+                    float projX = playerX + 20.f;
+                    float projY = playerY;
+                    float projVelX = 400.f;
+                    float projVelY = 0.f;
+                    
+                    projectiles[projId] = std::make_tuple(projX, projY, projVelX, projVelY, clientId);
+
+                    broadcast_projectile_spawn(projId, clientId, projX, projY, projVelX, projVelY);
+
+                    LOG_DEBUG("[Server] Client " << clientId << " shot projectile " << projId);
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void ServerGame::process_pending_messages() {
+    int messagesProcessed = 0;
+    const int maxMessagesPerTick = 5;
+    while (messagesProcessed < maxMessagesPerTick) {
+        connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
+            if (ec)
+                return;
+            handle_client_message(data, endpoint);
+        });
+        messagesProcessed++;
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
+
+void ServerGame::broadcast_states_to_clients() {
+    for (const auto& kv : connexion.getClients()) {
+        uint32_t id = kv.second;
+        if (deadPlayers.find(id) != deadPlayers.end())
+            continue;
+        auto it = playerPositions.find(id);
+        if (it == playerPositions.end()) continue;
+        StateUpdateMessage m;
+        m.type = MessageType::StateUpdate;
+        m.clientId = htonl(id);
+        uint32_t xbits, ybits;
+        std::memcpy(&xbits, &it->second.first, sizeof(float));
+        std::memcpy(&ybits, &it->second.second, sizeof(float));
+        m.posXBits = htonl(xbits);
+        m.posYBits = htonl(ybits);
+        connexion.broadcast(&m, sizeof(m));
+    }
+}
+
+void ServerGame::broadcast_obstacle_despawn(uint32_t obstacleId) {
+    ObstacleDespawnMessage m;
+    m.type = MessageType::ObstacleDespawn;
+    m.obstacleId = htonl(obstacleId);
+    connexion.broadcast(&m, sizeof(m));
+}
+
+void ServerGame::broadcast_player_health() {
+    auto& healths = registry_server.get_components<component::health>();
+    auto& clientIds = registry_server.get_components<component::client_id>();
+    
+    for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+        if (healths[i] && clientIds[i]) {
+            PlayerHealthMessage msg;
+            msg.type = MessageType::PlayerHealth;
+            msg.clientId = htonl(clientIds[i]->id);
+            msg.currentHealth = htons(static_cast<int16_t>(healths[i]->current));
+            msg.maxHealth = htons(static_cast<int16_t>(healths[i]->max));
+            
+            connexion.broadcast(&msg, sizeof(msg));
+        }
+    }
+}
+
+void ServerGame::broadcast_global_score() {
+    GlobalScoreMessage msg;
+    msg.type = MessageType::GlobalScore;
+    msg.totalScore = htonl(totalScore);
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::broadcast_individual_scores() {
+    for (const auto& kv : playerIndividualScores) {
+        uint32_t clientId = kv.first;
+        int score = kv.second;
+        
+        IndividualScoreMessage msg;
+        msg.type = MessageType::IndividualScore;
+        msg.clientId = htonl(clientId);
+        msg.score = htonl(score);
+        
+        connexion.broadcast(&msg, sizeof(msg));
+    }
+}
+
+void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {
+    auto tick_end = std::chrono::high_resolution_clock::now();
+    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(tick_end - start).count();
+    if (elapsed_ms < tick_ms) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(tick_ms - elapsed_ms));
+    }
+}
