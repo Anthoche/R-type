@@ -118,5 +118,9 @@ void GameClient::sendShoot() {
     ClientShootMessage msg;
     msg.type = MessageType::ClientShoot;
     msg.clientId = htonl(clientId);
-    socket.sendTo( &msg, sizeof(msg) ,serverEndpoint);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+bool GameClient::hasConnectionFailed() const {
+    return connectionFailed;
 }

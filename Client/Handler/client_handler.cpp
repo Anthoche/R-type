@@ -26,6 +26,15 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::ObstacleDespawn:
             handleObstacleDespawn(buffer);
             break;
+        case MessageType::PlayerHealth:
+            handlePlayerHealth(buffer);
+            break;
+        case MessageType::GlobalScore:
+            handleGlobalScore(buffer);
+            break;
+        case MessageType::IndividualScore:
+            handleIndividualScore(buffer);
+            break;
         case MessageType::ProjectileSpawn:
             handleProjectileSpawn(buffer);
             break;
@@ -120,7 +129,7 @@ void GameClient::handleProjectileSpawn(const std::vector<uint8_t> &buffer) {
     std::memcpy(&vy, &vyb, sizeof(float));
     
     std::lock_guard<std::mutex> g(stateMutex);
-    projectiles[projId] = std::make_tuple(x, y, vx, vy);
+    projectiles[projId] = std::make_tuple(x, y, vx, vy, clientId);
 }
 
 void GameClient::handleProjectileDespawn(const std::vector<uint8_t> &buffer) {
@@ -221,4 +230,38 @@ void GameClient::handlePlayerDeath(const std::vector<uint8_t> &buffer) {
     if (deadPlayerId == clientId) {
         std::cout << "[Client] YOU DIED!" << std::endl;
     }
+}
+
+void GameClient::handlePlayerHealth(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(PlayerHealthMessage)) return;
+    const PlayerHealthMessage *msg = reinterpret_cast<const PlayerHealthMessage *>(buffer.data());
+    
+    uint32_t playerId = ntohl(msg->clientId);
+    int16_t currentHealth = ntohs(msg->currentHealth);
+    int16_t maxHealth = ntohs(msg->maxHealth);
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    
+    playerHealth[playerId] = {currentHealth, maxHealth};
+}
+
+void GameClient::handleGlobalScore(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(GlobalScoreMessage)) return;
+    const GlobalScoreMessage *msg = reinterpret_cast<const GlobalScoreMessage *>(buffer.data());
+    
+    int32_t globalScore = ntohl(msg->totalScore);
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    this->globalScore = globalScore;
+}
+
+void GameClient::handleIndividualScore(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(IndividualScoreMessage)) return;
+    const IndividualScoreMessage *msg = reinterpret_cast<const IndividualScoreMessage *>(buffer.data());
+    
+    uint32_t playerId = ntohl(msg->clientId);
+    uint32_t score = ntohl(msg->score);
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    playerIndividualScores[playerId] = score;
 }

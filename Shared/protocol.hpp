@@ -31,7 +31,10 @@ enum class MessageType : uint8_t {
     ProjectileDespawn,     /**< Server delete an projectile */   /**< Server → Clients: suppression obstacle */
     EntityData,         /**< Server → Clients: synchronisation entité ECS */
     SceneState,        /**< Client → Server: indique la scène courante */
-    PlayerDeath
+    PlayerDeath,   /**< Server notifies clients that a player has died */
+    PlayerHealth,   /**< Server updates a player's health */
+    GlobalScore,  /**< Server updates the global score */
+    IndividualScore /**< Server updates a player's individual score */
 };
 
 /**
@@ -202,3 +205,29 @@ struct SceneStateMessage {
     uint32_t scene; // correspond à SceneState
 };
 
+/**
+ * @brief Message sent by server to update a player's health
+ */
+struct PlayerHealthMessage {
+    MessageType type;
+    uint32_t clientId;
+    int16_t currentHealth;
+    int16_t maxHealth;
+};
+
+/**
+ * @brief Message sent by server to update the global score
+ */
+struct GlobalScoreMessage {
+    MessageType type;
+    int32_t totalScore;
+};
+
+/**
+ * @brief Message sent by server to update a player's individual score
+ */
+struct IndividualScoreMessage {
+    MessageType type;
+    uint32_t clientId;
+    uint32_t score;
+};

@@ -44,7 +44,9 @@ class GameClient {
         std::atomic<bool> running{false}; ///< Flag to control client activity.
         Game &_game; ///< Reference to the associated Game instance.
         std::unique_ptr<TCP_socketClient> tcpClient; ///< TCP client for reliable data transfer.
+        std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
+        bool connectionFailed = false;
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         
@@ -66,12 +68,24 @@ class GameClient {
         /**
          * @brief Maps projectiles IDs to their (x,y,width,height).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projectiles;
 
         /**
          * @brief Maps enemy IDs to their (x,y,velX,velY).
          */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
+
+        /**
+         * @brief Maps player IDs to their current health values.
+         */
+        std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> playerHealth;
+
+        /**
+         * @brief Maps player IDs to their individual scores.
+         */
+        std::unordered_map<uint32_t, uint32_t> playerIndividualScores;
+
+        int32_t globalScore = 0;
 
         /**
          * @brief Constructs a GameClient and connects to the server.
@@ -222,4 +236,34 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handlePlayerDeath(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Vérifie si la connexion au serveur a échoué
+         * @return true si échec, false sinon
+         */
+        bool hasConnectionFailed() const;
+
+        /**
+         * @brief Vérifie si le client est connecté au serveur
+         * @return true si connecté (a reçu un clientId), false sinon
+         */
+        bool isConnected() const;
+  
+        /**
+         * @brief Handles a player health update message.
+         * @param buffer Raw message data.
+         */
+        void handlePlayerHealth(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles a global score update message.
+         * @param buffer Raw message data.
+         */
+        void handleGlobalScore(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an individual score update message.
+         * @param buffer Raw message data.
+         */
+        void handleIndividualScore(const std::vector<uint8_t> &buffer);
 };
