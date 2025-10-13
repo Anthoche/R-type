@@ -10,6 +10,7 @@
 #include "../Shared/protocol.hpp"
 #include "Network_client/Include/UDP_socket.hpp"
 #include "Network_client/Include/TCP_socketClient.hpp"
+#include "../../Core/Include/registry.hpp"
 #include <asio.hpp>
 #include <cstring>
 #include <iostream>
@@ -188,8 +189,9 @@ class GameClient {
          * Used to inform the server whether the client is in MENU or GAME state.
          *
          * @param scene The current SceneState (MENU, GAME, UNKNOWN).
+         * @param registry Pointer to the current ECS registry (used when switching to GAME).
          */
-        void sendSceneState(SceneState scene);
+        void sendSceneState(SceneState scene, ecs::registry* registry);
 
         /**
          * @brief Handles an shoot message.

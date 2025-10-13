@@ -374,3 +374,24 @@ void Raylib::rotatef(float angle, float x, float y, float z) {
 void Raylib::popMatrix() {
 	rlPopMatrix();
 }
+
+//rtextures
+Texture2D Raylib::loadTexture(const std::string &fileName) {
+    return LoadTexture(fileName.c_str());
+}
+
+void Raylib::unloadTexture(Texture2D texture) {
+    UnloadTexture(texture);
+}
+
+void Raylib::drawTexture(Texture2D texture, int posX, int posY, Color tint) {
+    DrawTexture(texture, posX, posY, tint);
+}
+
+void Raylib::drawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint) {
+    DrawTextureEx(texture, position, rotation, scale, tint);
+}
+
+void Raylib::drawTexturePro(Texture2D texture, Rectangle sourceRec, Rectangle destRec, Vector2 origin, float rotation, Color tint) {
+    DrawTexturePro(texture, sourceRec, destRec, origin, rotation, tint);
+}

@@ -4,6 +4,7 @@
 ** File description:
 ** ServerGame
 */
+
 #include "Include/ServerGame.hpp"
 #include "../../Engine/Utils/Include/serializer.hpp"
 #include <nlohmann/json.hpp>
@@ -13,7 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
-// === Couleurs pour les logs ===
+
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"
 #define GREEN_COLOR   "\033[32m"
@@ -23,16 +24,6 @@
 #define LOG_INFO(msg)    std::cout << GREEN_COLOR << "[INFO] " << msg << RESET_COLOR << std::endl
 #define LOG_DEBUG(msg)   std::cout << YELLOW_COLOR << "[DEBUG] " << msg << RESET_COLOR << std::endl
 #define LOG(msg)         std::cout << BLUE_COLOR << msg << RESET_COLOR << std::endl
-
-static nlohmann::json load_json_from_file(const std::string &path) {
-    std::ifstream file(path);
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open JSON file: " + path);
-    }
-    nlohmann::json data;
-    file >> data;
-    return data;
-}
 
 ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
     registry_server.register_component<component::position>();
@@ -51,28 +42,28 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
 void ServerGame::run() {
     LOG("[Server] Starting game loop...");
     load_players("../Engine/Assets/Config_assets/Players/players.json");
-    //load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
+    load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
     initialize_player_positions();
-    initialize_obstacles();
-    initialize_enemies();
-    
+    index_existing_entities();
+
     const int tick_ms = 16;
     float dt = 0.016f;
-    
+
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
-        
+
         update_projectiles_server_only(dt);
         update_enemies(dt);
         check_projectile_collisions();
         check_projectile_enemy_collisions();
         check_player_enemy_collisions();
-        
+
         broadcast_projectile_positions();
         broadcast_enemy_positions();
-        
+
         process_pending_messages();
         broadcast_states_to_clients();
+      
         broadcast_player_health();
         broadcast_global_score();
         broadcast_individual_scores();
@@ -81,7 +72,7 @@ void ServerGame::run() {
     }
 }
 
-bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
+bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
                         float left2, float right2, float top2, float bottom2) {
     return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
 }
@@ -439,12 +430,16 @@ void ServerGame::broadcast_full_registry_to(uint32_t clientId) {
         if (!j.empty()) {
             root["entities"].push_back(j);
         }
-    }
-    connexion.sendJsonToClient(clientId, root);
-    LOG_DEBUG("[Server] Sent full registry to client " << clientId 
-              << " with " << root["entities"].size() << " entities");
-}
 
+static nlohmann::json load_json_from_file(const std::string &path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open JSON file: " + path);
+    }
+    nlohmann::json data;
+    file >> data;
+    return data;
+}
 
 void ServerGame::load_players(const std::string &path) {
     try {
@@ -458,9 +453,7 @@ void ServerGame::load_players(const std::string &path) {
                 auto &pos = positions[i].value();
                 auto &cid = clientIds[i].value();
                 ecs::entity_t entity = registry_server.entity_from_index(i);
-                LOG("Player entity " << entity
-                          << " client_id=" << cid.id
-                          << " pos=(" << pos.x << ", " << pos.y << ")");
+                LOG("Player entity " << entity << " client_id=" << cid.id << " pos=(" << pos.x << ", " << pos.y << ")");
             }
         }
     } catch (const std::exception &e) {
@@ -478,8 +471,7 @@ void ServerGame::load_level(const std::string &path) {
             if (positions[i].has_value()) {
                 auto &pos = positions[i].value();
                 ecs::entity_t entity = registry_server.entity_from_index(i);
-                LOG("Entity " << entity
-                          << " pos=(" << pos.x << ", " << pos.y << ")");
+                LOG("Entity " << entity << " pos=(" << pos.x << ", " << pos.y << ")");
             }
         }
     } catch (const std::exception &e) {
@@ -487,51 +479,34 @@ void ServerGame::load_level(const std::string &path) {
     }
 }
 
-void ServerGame::initialize_player_positions() {
-    LOG_DEBUG("Initializing player positions...");
-    for (const auto& kv : connexion.getClients()) {
-        playerPositions[kv.second] = {100.f + (kv.second - 1) * 50.f, 300.f};
-    }
-}
+void ServerGame::index_existing_entities() {
+    _obstacles.clear();
+    _enemies.clear();
 
-void ServerGame::process_pending_messages() {
-    int messagesProcessed = 0;
-    const int maxMessagesPerTick = 5;
-    while (messagesProcessed < maxMessagesPerTick) {
-        connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
-            if (ec)
-                return;
-            handle_client_message(data, endpoint);
-        });
-        messagesProcessed++;
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
-    }
-}
+    auto &types = registry_server.get_components<component::type>();
 
-bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
-                        const std::unordered_map<uint32_t, std::tuple<float, float, float, float>>& obstacles) {
-    float halfW = playerWidth * 0.5f;
-    float halfH = playerHeight * 0.5f;
-    float left   = testX - halfW;
-    float right  = testX + halfW;
-    float top    = testY - halfH;
-    float bottom = testY + halfH;
-    for (const auto& kv : obstacles) {
-        float obsX = std::get<0>(kv.second);
-        float obsY = std::get<1>(kv.second);
-        float obsW = std::get<2>(kv.second);
-        float obsH = std::get<3>(kv.second);
-        float obsLeft   = obsX - obsW * 0.5f;
-        float obsRight  = obsX + obsW * 0.5f;
-        float obsTop    = obsY - obsH * 0.5f;
-        float obsBottom = obsY + obsH * 0.5f;
-        if (check_aabb_overlap(left, right, top, bottom,
-                              obsLeft, obsRight, obsTop, obsBottom)) {
-            return true;
+    for (std::size_t i = 0; i < types.size(); ++i) {
+        if (!types[i])
+            continue;
+
+        ecs::entity_t entity = registry_server.entity_from_index(i);
+        switch (types[i]->value) {
+            case component::entity_type::ENEMY:
+                _enemies.push_back(entity);
+                break;
+            case component::entity_type::OBSTACLE:
+                _obstacles.push_back(entity);
+                break;
+            default:
+                break;
         }
     }
-    return false;
+
+    LOG_INFO("[Server] Indexed entities:");
+    LOG_DEBUG("  - Enemies: " << _enemies.size());
+    LOG_DEBUG("  - Obstacles: " << _obstacles.size());
 }
+
 
 void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from) {
     if (data.size() < sizeof(MessageType))
@@ -555,9 +530,9 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 const float playerHeight = 30.f;
                 float newX = pos.first + inputX * speed;
                 float newY = pos.second + inputY * speed;
-                if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, obstacles))
+                if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles))
                     pos.first = newX;
-                if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, obstacles))
+                if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
                     pos.second = newY;
             }
             break;
@@ -582,15 +557,14 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             if (data.size() >= sizeof(ClientShootMessage)) {
                 const ClientShootMessage* msg = reinterpret_cast<const ClientShootMessage*>(data.data());
                 uint32_t clientId = ntohl(msg->clientId);
-
                 if (deadPlayers.find(clientId) != deadPlayers.end())
                     break;
-                
+
                 auto it = playerPositions.find(clientId);
                 if (it != playerPositions.end()) {
                     float playerX = it->second.first;
                     float playerY = it->second.second;
-                    
+
                     uint32_t projId = nextProjectileId++;
                     float projX = playerX + 20.f;
                     float projY = playerY;
@@ -598,8 +572,9 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     float projVelY = 0.f;
                     
                     projectiles[projId] = std::make_tuple(projX, projY, projVelX, projVelY, clientId);
+
                     broadcast_projectile_spawn(projId, clientId, projX, projY, projVelX, projVelY);
-                    
+
                     LOG_DEBUG("[Server] Client " << clientId << " shot projectile " << projId);
                 }
             }
@@ -608,6 +583,34 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
         default:
             break;
     }
+}
+
+void ServerGame::process_pending_messages() {
+    int messagesProcessed = 0;
+    const int maxMessagesPerTick = 5;
+    while (messagesProcessed < maxMessagesPerTick) {
+        connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
+            if (ec)
+                return;
+            handle_client_message(data, endpoint);
+        });
+        messagesProcessed++;
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
+
+void ServerGame::broadcast_full_registry_to(uint32_t clientId) {
+    nlohmann::json root;
+    root["type"] = "FullRegistry";
+    root["entities"] = nlohmann::json::array();
+    for (auto entity : registry_server.alive_entities()) {
+        auto j = game::serializer::serialize_entity(registry_server, entity);
+        if (!j.empty()) {
+            root["entities"].push_back(j);
+        }
+    }
+    connexion.sendJsonToClient(clientId, root);
+    LOG_DEBUG("[Server] Sent full registry to client " << clientId << " with " << root["entities"].size() << " entities");
 }
 
 void ServerGame::broadcast_states_to_clients() {

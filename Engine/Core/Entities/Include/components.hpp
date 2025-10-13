@@ -8,6 +8,7 @@
 #pragma once
 
 #include <raylib.h>
+
 #include "../../Include/entity.hpp"
 #include "DynamicPosition.hpp"
 #include <string>
@@ -164,6 +165,7 @@ namespace component {
         BUTTON,     ///< Button entity (UI)
         PROJECTILE,  ///< projectile entity
         IMAGE     ///< Image entity
+        RANDOM_ELEMENT ///< Random element entity
     };
 
     /**
