@@ -43,7 +43,9 @@ class GameClient {
         std::atomic<bool> running{false}; ///< Flag to control client activity.
         Game &_game; ///< Reference to the associated Game instance.
         std::unique_ptr<TCP_socketClient> tcpClient; ///< TCP client for reliable data transfer.
+        std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
+        bool connectionFailed = false;
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         
@@ -233,6 +235,18 @@ class GameClient {
          */
         void handlePlayerDeath(const std::vector<uint8_t> &buffer);
 
+        /**
+         * @brief Vérifie si la connexion au serveur a échoué
+         * @return true si échec, false sinon
+         */
+        bool hasConnectionFailed() const;
+
+        /**
+         * @brief Vérifie si le client est connecté au serveur
+         * @return true si connecté (a reçu un clientId), false sinon
+         */
+        bool isConnected() const;
+  
         /**
          * @brief Handles a player health update message.
          * @param buffer Raw message data.

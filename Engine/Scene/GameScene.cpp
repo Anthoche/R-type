@@ -87,7 +87,10 @@ namespace game::scene {
                 }
             }
         }
-        if (!_player.value() && !_playerEntities.empty()) _player = _playerEntities.begin()->second;
+        uint32_t myClientId = _game.getGameClient().clientId;
+        auto myPlayerIt = _playerEntities.find(myClientId);
+        if (myPlayerIt != _playerEntities.end())
+            _player = myPlayerIt->second;
         auto &pp = _registry.get_components<component::previous_position>();
         for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) {
             if (positions[i] && pp[i]) {
@@ -211,34 +214,38 @@ namespace game::scene {
     void GameScene::handle_shoot() {
         _game.getGameClient().sendShoot();
     }
-
+    
     void GameScene::handle_input(float input_x, float input_y) {
+        if (_isDead)
+            return;
         auto &positions = _registry.get_components<component::position>();
         auto &controls  = _registry.get_components<component::controllable>();
         auto &hitboxes  = _registry.get_components<component::collision_box>();
-
-        if (_player.value() < positions.size() && positions[_player.value()] &&
-            _player.value() < controls.size() && controls[_player.value()]) {
-            float speed = controls[_player.value()]->speed;
+        uint32_t myClientId = _game.getGameClient().clientId;
+        auto myPlayerIt = _playerEntities.find(myClientId);
+        if (myPlayerIt == _playerEntities.end())
+            return;
+        
+        ecs::entity_t myPlayer = myPlayerIt->second;
+        
+        if (myPlayer.value() < positions.size() && positions[myPlayer.value()] &&
+            myPlayer.value() < controls.size() && controls[myPlayer.value()]) {
+            float speed = controls[myPlayer.value()]->speed;
             float dt = 0.016f;
 
             ecs::entity_t playerHitbox = collision::find_player_hitbox(*this);
             if (playerHitbox.value() < hitboxes.size() && hitboxes[playerHitbox.value()]) {
-                auto &playerPos = *positions[_player.value()];
+                auto &playerPos = *positions[myPlayer.value()];
                 auto &playerBox = *hitboxes[playerHitbox.value()];
-
                 float ix = input_x;
                 float iy = input_y;
-
                 float testX = playerPos.x + ix * speed * dt;
                 float testY = playerPos.y + iy * speed * dt;
 
-                // Check séparés sur X et Y
                 if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
                     ix = 0.f;
                 if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
                     iy = 0.f;
-
                 if (ix != 0.f || iy != 0.f) {
                     playerPos.x += ix * speed * dt;
                     playerPos.y += iy * speed * dt;
