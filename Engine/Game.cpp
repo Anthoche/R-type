@@ -15,28 +15,10 @@ Game::Game(const std::string &serverIp, const std::string &serverPort, const std
 
 void Game::run() {
     _networkThread = std::thread([this]() {
-        _client.run();
-    });
-    auto startTime = std::chrono::steady_clock::now();
-    const int MAX_WAIT = 6;
-    
-    while (!_client.isConnected() && !_client.hasConnectionFailed()) {
-        auto now = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
-        if (elapsed >= MAX_WAIT) {
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-    if (_client.hasConnectionFailed()) {
-        std::cerr << "\n[GAME] Impossible de se connecter au serveur." << std::endl;
-        std::cerr << "[GAME] Le programme va se terminer.\n" << std::endl;
-        _networkThread.join();
-        return;
-    }
-    std::cout << "[GAME] Connexion réussie, ouverture de l'interface..." << std::endl;
-    _sceneHandler.openMenu();  
-    _networkThread.join();
+		_client.run();
+	});
+	_sceneHandler.openMenu();
+	_networkThread.join();
 }
 
 bool GameClient::isConnected() const { 
