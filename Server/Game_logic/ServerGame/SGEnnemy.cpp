@@ -149,34 +149,80 @@ void ServerGame::update_enemy_boss_phase1(uint32_t id, float dt) {
 }
 
 void ServerGame::check_player_enemy_collisions() {
-    std::lock_guard<std::mutex> lock(mtx);
-    const float PW=30.f, PH=30.f, EW=30.f, EH=30.f;
-    std::vector<uint32_t> toKill;
-
-    for (auto &[playerId, ppos] : playerPositions) {
-        if (deadPlayers.count(playerId)) continue;
-        float px=ppos.first, py=ppos.second;
-        float pL=px-PW*0.5f, pR=px+PW*0.5f, pT=py-PH*0.5f, pB=py+PH*0.5f;
-
-        for (auto entity : _enemies) {
-            uint32_t eid = static_cast<uint32_t>(entity);
-            auto epos = get_component_ptr<component::position>(registry_server, entity);
-            if (!epos) continue;
-
-            float ex=epos->x, ey=epos->y;
-            float eL=ex-EW*0.5f, eR=ex+EW*0.5f, eT=ey-EH*0.5f, eB=ey+EH*0.5f;
-
-            if (check_aabb_overlap(pL,pR,pT,pB,eL,eR,eT,eB)) {
-                toKill.push_back(playerId);
-                LOG_DEBUG("[Server] Player " << playerId << " hit by enemy " << eid);
+    const float PLAYER_WIDTH = 30.f;
+    const float PLAYER_HEIGHT = 30.f;
+    const float ENEMY_WIDTH = 30.f;
+    const float ENEMY_HEIGHT = 30.f;
+    const int DAMAGE_PER_HIT = 10;
+    const int COOLDOWN_MS = 1000;
+    
+    std::vector<uint32_t> playersHit;
+    auto now = std::chrono::high_resolution_clock::now();
+    
+    for (const auto& playerKv : playerPositions) {
+        uint32_t playerId = playerKv.first;
+        
+        if (deadPlayers.find(playerId) != deadPlayers.end())
+            continue;
+        
+        float playerX = playerKv.second.first;
+        float playerY = playerKv.second.second;
+        
+        float playerLeft = playerX - PLAYER_WIDTH * 0.5f;
+        float playerRight = playerX + PLAYER_WIDTH * 0.5f;
+        float playerTop = playerY - PLAYER_HEIGHT * 0.5f;
+        float playerBottom = playerY + PLAYER_HEIGHT * 0.5f;
+        
+        for (const auto& enemy : enemies) {
+            float enemyX = std::get<0>(enemy.second);
+            float enemyY = std::get<1>(enemy.second);
+            
+            float enemyLeft = enemyX - ENEMY_WIDTH * 0.5f;
+            float enemyRight = enemyX + ENEMY_WIDTH * 0.5f;
+            float enemyTop = enemyY - ENEMY_HEIGHT * 0.5f;
+            float enemyBottom = enemyY + ENEMY_HEIGHT * 0.5f;
+            
+            if (check_aabb_overlap(playerLeft, playerRight, playerTop, playerBottom,
+                                  enemyLeft, enemyRight, enemyTop, enemyBottom)) {
+                
+                auto it = playerDamageCooldown.find(playerId);
+                bool canTakeDamage = (it == playerDamageCooldown.end());
+                
+                if (!canTakeDamage) {
+                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second).count();
+                    canTakeDamage = (elapsed >= COOLDOWN_MS);
+                }
+                
+                if (canTakeDamage) {
+                    playersHit.push_back(playerId);
+                    playerDamageCooldown[playerId] = now;
+                    LOG_DEBUG("[Server] Player " << playerId << " hit by enemy " << enemy.first 
+                            << " - Taking " << DAMAGE_PER_HIT << " damage");
+                    LOG_DEBUG("[Server] Cooldown set for player " << playerId);
+                }
                 break;
             }
         }
     }
-
-    for (uint32_t pid : toKill) {
-        deadPlayers.insert(pid);
-        broadcast_player_death(pid);
+    
+    for (uint32_t playerId : playersHit) {
+        auto& healths = registry_server.get_components<component::health>();
+        auto& clientIds = registry_server.get_components<component::client_id>();
+        
+        for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+            if (clientIds[i] && clientIds[i]->id == playerId && healths[i]) {
+                healths[i]->current -= DAMAGE_PER_HIT;
+                LOG_INFO("[Server] Player " << playerId << " health: " 
+                        << healths[i]->current << "/" << healths[i]->max);
+                
+                if (healths[i]->current <= 0) {
+                    deadPlayers.insert(playerId);
+                    broadcast_player_death(playerId);
+                    LOG_INFO("[Server] Player " << playerId << " is now dead!");
+                }
+                break;
+            }
+        }
     }
 }
 

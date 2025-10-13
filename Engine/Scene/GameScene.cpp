@@ -202,7 +202,7 @@ namespace game::scene {
 
     void GameScene::render() {
         _raylib.beginDrawing();
-        _raylib.clearBackground(GREY);
+        _raylib.clearBackground(GRAY);
         _ui.render();
         _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
 
@@ -398,31 +398,6 @@ namespace game::scene {
             return palette[id % (sizeof(palette)/sizeof(palette[0]))];
         };
 
-        auto &positions = _registry.get_components<component::position>();
-        auto &drawables = _registry.get_components<component::drawable>();
-        auto &types = _registry.get_components<component::type>();
-        for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
-            if (!positions[i] || !drawables[i] || !types[i]) continue;
-            ecs::entity_t e = _registry.entity_from_index(i);
-            if (types[i]->value == component::entity_type::PLAYER) {
-                uint32_t idForColor = 0;
-                for (auto const &kv : _playerEntities) {
-                    if (kv.second == e) {
-                        idForColor = kv.first;
-                        break;
-                    }
-                }
-                _raylib.drawRectangle(
-                    (int)(positions[i]->x - drawables[i]->width / 2),
-                    (int)(positions[i]->y - drawables[i]->height / 2),
-                    (int)drawables[i]->width,
-                    (int)drawables[i]->height,
-                    colorForId(idForColor)
-                );
-            }
-        }
-    }
-
     void GameScene::render_network_enemies() {
         const float ENEMY_WIDTH = 30.f;
         const float ENEMY_HEIGHT = 30.f;
@@ -448,23 +423,6 @@ namespace game::scene {
         }
     }
 
-        if (_isDead) {
-            _raylib.drawRectangle(0, 0, _width, _height, Color{255, 0, 0, 100});
-
-            const char* deathText = "YOU DIED!";
-            int fontSize = 72;
-            int textWidth = _raylib.measureText(deathText, fontSize);
-            _raylib.drawText(
-                deathText,
-                (_width - textWidth) / 2,
-                _height / 2 - fontSize / 2,
-                fontSize,
-                RED
-            );
-        }
-        _raylib.endDrawing();
-    }
-
     void GameScene::render_death_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{255, 0, 0, 100});
         
@@ -487,8 +445,6 @@ namespace game::scene {
         };
         return palette[id % (sizeof(palette)/sizeof(palette[0]))];
     }
-
-    /////////////////////////////////////////////////////::
 
     void GameScene::handleEvents() {
         update();

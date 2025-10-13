@@ -164,7 +164,7 @@ namespace component {
         TEXT,      ///< Text label entity
         BUTTON,     ///< Button entity (UI)
         PROJECTILE,  ///< projectile entity
-        IMAGE     ///< Image entity
+        IMAGE,     ///< Image entity
         RANDOM_ELEMENT ///< Random element entity
     };
 

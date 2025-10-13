@@ -31,6 +31,7 @@ class ServerGame {
         std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projectiles;
+         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
         std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
         uint32_t nextProjectileId = 1;
         std::mutex mtx;
