@@ -73,6 +73,9 @@ void ServerGame::run() {
         
         process_pending_messages();
         broadcast_states_to_clients();
+        broadcast_player_health();
+        broadcast_global_score();
+        broadcast_individual_scores();
         
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
@@ -132,8 +135,11 @@ void ServerGame::check_player_enemy_collisions() {
     const float PLAYER_HEIGHT = 30.f;
     const float ENEMY_WIDTH = 30.f;
     const float ENEMY_HEIGHT = 30.f;
+    const int DAMAGE_PER_HIT = 10;
+    const int COOLDOWN_MS = 1000;
     
-    std::vector<uint32_t> playersToKill;
+    std::vector<uint32_t> playersHit;
+    auto now = std::chrono::high_resolution_clock::now();
     
     for (const auto& playerKv : playerPositions) {
         uint32_t playerId = playerKv.first;
@@ -160,16 +166,45 @@ void ServerGame::check_player_enemy_collisions() {
             
             if (check_aabb_overlap(playerLeft, playerRight, playerTop, playerBottom,
                                   enemyLeft, enemyRight, enemyTop, enemyBottom)) {
-                playersToKill.push_back(playerId);
-                LOG_DEBUG("[Server] Player " << playerId << " hit by enemy " << enemy.first);
+                
+                auto it = playerDamageCooldown.find(playerId);
+                bool canTakeDamage = (it == playerDamageCooldown.end());
+                
+                if (!canTakeDamage) {
+                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second).count();
+                    canTakeDamage = (elapsed >= COOLDOWN_MS);
+                }
+                
+                if (canTakeDamage) {
+                    playersHit.push_back(playerId);
+                    playerDamageCooldown[playerId] = now;
+                    LOG_DEBUG("[Server] Player " << playerId << " hit by enemy " << enemy.first 
+                            << " - Taking " << DAMAGE_PER_HIT << " damage");
+                    LOG_DEBUG("[Server] Cooldown set for player " << playerId);
+                }
                 break;
             }
         }
     }
     
-    for (uint32_t playerId : playersToKill) {
-        deadPlayers.insert(playerId);
-        broadcast_player_death(playerId);
+    for (uint32_t playerId : playersHit) {
+        auto& healths = registry_server.get_components<component::health>();
+        auto& clientIds = registry_server.get_components<component::client_id>();
+        
+        for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+            if (clientIds[i] && clientIds[i]->id == playerId && healths[i]) {
+                healths[i]->current -= DAMAGE_PER_HIT;
+                LOG_INFO("[Server] Player " << playerId << " health: " 
+                        << healths[i]->current << "/" << healths[i]->max);
+                
+                if (healths[i]->current <= 0) {
+                    deadPlayers.insert(playerId);
+                    broadcast_player_death(playerId);
+                    LOG_INFO("[Server] Player " << playerId << " is now dead!");
+                }
+                break;
+            }
+        }
     }
 }
 
@@ -206,19 +241,27 @@ void ServerGame::check_projectile_enemy_collisions() {
                                   enemyLeft, enemyRight, enemyTop, enemyBottom)) {
                 projectilesToRemove.push_back(projId);
                 enemiesToRemove.push_back(enemyId);
+                
+                totalScore += 10;
+
+                uint32_t killerId = std::get<4>(proj.second);
+                if (playerIndividualScores.find(killerId) == playerIndividualScores.end()) {
+                    playerIndividualScores[killerId] = 0;
+                }
+                playerIndividualScores[killerId] += 10;
+                LOG_DEBUG("[Server] Enemy killed! +10 points. Total: " << totalScore);
+                
                 LOG_DEBUG("[Server] Projectile " << projId << " hit enemy " << enemyId);
                 break;
             }
         }
     }
     
-    // Supprimer les projectiles touchés
     for (uint32_t projId : projectilesToRemove) {
         projectiles.erase(projId);
         broadcast_projectile_despawn(projId);
     }
     
-    // Supprimer les ennemis touchés
     for (uint32_t enemyId : enemiesToRemove) {
         enemies.erase(enemyId);
         broadcast_enemy_despawn(enemyId);
@@ -554,7 +597,7 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     float projVelX = 400.f;
                     float projVelY = 0.f;
                     
-                    projectiles[projId] = std::make_tuple(projX, projY, projVelX, projVelY);
+                    projectiles[projId] = std::make_tuple(projX, projY, projVelX, projVelY, clientId);
                     broadcast_projectile_spawn(projId, clientId, projX, projY, projVelX, projVelY);
                     
                     LOG_DEBUG("[Server] Client " << clientId << " shot projectile " << projId);
@@ -622,6 +665,44 @@ void ServerGame::broadcast_obstacle_despawn(uint32_t obstacleId) {
     m.type = MessageType::ObstacleDespawn;
     m.obstacleId = htonl(obstacleId);
     connexion.broadcast(&m, sizeof(m));
+}
+
+void ServerGame::broadcast_player_health() {
+    auto& healths = registry_server.get_components<component::health>();
+    auto& clientIds = registry_server.get_components<component::client_id>();
+    
+    for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+        if (healths[i] && clientIds[i]) {
+            PlayerHealthMessage msg;
+            msg.type = MessageType::PlayerHealth;
+            msg.clientId = htonl(clientIds[i]->id);
+            msg.currentHealth = htons(static_cast<int16_t>(healths[i]->current));
+            msg.maxHealth = htons(static_cast<int16_t>(healths[i]->max));
+            
+            connexion.broadcast(&msg, sizeof(msg));
+        }
+    }
+}
+
+void ServerGame::broadcast_global_score() {
+    GlobalScoreMessage msg;
+    msg.type = MessageType::GlobalScore;
+    msg.totalScore = htonl(totalScore);
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::broadcast_individual_scores() {
+    for (const auto& kv : playerIndividualScores) {
+        uint32_t clientId = kv.first;
+        int score = kv.second;
+        
+        IndividualScoreMessage msg;
+        msg.type = MessageType::IndividualScore;
+        msg.clientId = htonl(clientId);
+        msg.score = htonl(score);
+        
+        connexion.broadcast(&msg, sizeof(msg));
+    }
 }
 
 void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {

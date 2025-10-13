@@ -9,6 +9,7 @@
 
 #include <raylib.h>
 #include "../../Include/entity.hpp"
+#include "DynamicPosition.hpp"
 #include <string>
 #include <cstdint>
 
@@ -45,6 +46,12 @@ namespace component {
         float vy{0.f}; ///< Velocity along Y
     };
 
+    struct dynamic_position {
+        DynamicPosition position;
+        float offsetX{0.f};
+        float offsetY{0.f};
+    };
+
 	/**
 	* @struct drawable
 	* @brief Represents a renderable entity with size and color.
@@ -61,6 +68,7 @@ namespace component {
      */
     struct sprite {
         std::string image_path{}; ///< Filepath to the image/texture
+        Texture2D texture{}; //TEMPORAIRE
         float scale{1.f};         ///< Uniform scale for rendering
         float rotation{0.f};      ///< Rotation in degrees
     };
@@ -155,6 +163,7 @@ namespace component {
         TEXT,      ///< Text label entity
         BUTTON,     ///< Button entity (UI)
         PROJECTILE,  ///< projectile entity
+        IMAGE     ///< Image entity
     };
 
     /**

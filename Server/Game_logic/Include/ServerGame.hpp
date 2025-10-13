@@ -62,12 +62,15 @@ class ServerGame {
         std::unordered_map<uint32_t, SceneState> clientScenes;
         std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> projectiles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projectiles;
+        std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
         uint32_t nextProjectileId = 1;
         std::mutex mtx;
         std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
         std::unordered_set<uint32_t> deadPlayers;
         uint32_t nextEnemyId = 1;
+        std::unordered_map<uint32_t, int> playerIndividualScores;
+        int totalScore = 0;
 
         /**
          * @brief Initializes player positions based on connected clients.
@@ -208,4 +211,19 @@ class ServerGame {
          * @param y New Y coordinate.
          */
         void broadcast_enemy_update(uint32_t enemyId, float x, float y);
+
+        /**
+         * @brief Broadcasts the current health of all players to all clients.
+         */
+        void broadcast_player_health();
+
+        /**
+         * @brief Broadcasts the current global score to all clients.
+         */
+        void broadcast_global_score();
+
+        /**
+         * @brief Broadcasts the individual scores of all players to all clients.
+         */
+        void broadcast_individual_scores();
 };

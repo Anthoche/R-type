@@ -1,0 +1,20 @@
+/*
+** EPITECH PROJECT, 2025
+** rtype
+** File description:
+** DynamicPosition
+*/
+
+#ifndef RTYPE_DYNAMICPOSITION_HPP
+	#define RTYPE_DYNAMICPOSITION_HPP
+
+enum DynamicPosition {
+	TOP_LEFT,
+	TOP_CENTER,
+	TOP_RIGHT,
+	BOTTOM_LEFT,
+	BOTTOM_CENTER,
+	BOTTOM_RIGHT
+};
+
+#endif //RTYPE_DYNAMICPOSITION_HPP
