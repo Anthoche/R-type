@@ -65,12 +65,16 @@ void ServerGame::run() {
 
         update_projectiles_server_only(dt);
         update_enemies(dt);
+        update_enemy_projectiles_server_only(dt);
+
+        check_enemy_projectile_player_collisions();
         check_projectile_collisions();
         check_projectile_enemy_collisions();
         check_player_enemy_collisions();
 
         broadcast_projectile_positions();
         broadcast_enemy_positions();
+        broadcast_enemy_projectile_positions();
 
         process_pending_messages();
         broadcast_states_to_clients();
@@ -86,20 +90,6 @@ void ServerGame::run() {
 bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
                         float left2, float right2, float top2, float bottom2) {
     return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
-}
-
-void ServerGame::initialize_enemies() {
-    LOG_DEBUG("Initializing enemies...");    
-    for (int i = 0; i < 5; ++i) {
-        uint32_t enemyId = nextEnemyId++;
-        float x = 100.f + i * 100.f;
-        float y = 200.f;
-        float vx = 50.f;
-        float vy = 0.f;
-        enemies[enemyId] = std::make_tuple(x, y, vx, vy);
-        broadcast_enemy_spawn(enemyId, x, y, vx, vy);
-        LOG_DEBUG("[Server] Enemy spawned: id=" << enemyId << " pos=(" << x << ", " << y << ")");
-    }
 }
 
 void ServerGame::broadcast_full_registry_to(uint32_t clientId) {

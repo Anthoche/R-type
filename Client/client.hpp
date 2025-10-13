@@ -85,6 +85,11 @@ class GameClient {
          */
         std::unordered_map<uint32_t, uint32_t> playerIndividualScores;
 
+        /**
+         * @brief Maps enemy projectile IDs to their (x,y,velX,velY,ownerId).
+         */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjectiles;
+
         int32_t globalScore = 0;
 
         /**
@@ -266,4 +271,22 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleIndividualScore(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an enemy projectile spawn message.
+         * @param buffer Raw message data.
+         */
+        void handleEnemyProjectileSpawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an enemy projectile update message.
+         * @param buffer Raw message data.
+         */
+        void handleEnemyProjectileUpdate(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an enemy projectile despawn message.
+         * @param buffer Raw message data.
+         */
+        void handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer);
 };

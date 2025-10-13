@@ -60,6 +60,7 @@ namespace game::scene {
         // Indexer les entités existantes dans le registre
         index_existing_entities();
         load_entity_textures();
+        load_projectile_textures();
     }
 
     void GameScene::index_existing_entities() {
@@ -106,6 +107,11 @@ namespace game::scene {
                 << ", Obstacles=" << _obstacles.size() << std::endl;
     }
 
+    void GameScene::load_projectile_textures() {
+        _projectileTextures["player_missile"] = _raylib.loadTexture("../Engine/Assets/sprites/r-typesheet1.png");
+        _projectileTextures["enemy_missile"] = _raylib.loadTexture("../Engine/Assets/sprites/r-typesheet1.png");
+    }
+
     void GameScene::load_entity_textures() {
         auto &sprites = _registry.get_components<component::sprite>();
         
@@ -113,7 +119,6 @@ namespace game::scene {
             if (sprites[i] && !sprites[i]->image_path.empty()) {
                 ecs::entity_t entity = _registry.entity_from_index(i);
                 
-                // Vérifier si la texture n'est pas déjà chargée
                 if (_entityTextures.find(entity.value()) == _entityTextures.end()) {
                     try {
                         Texture2D texture = _raylib.loadTexture(sprites[i]->image_path);
@@ -127,6 +132,14 @@ namespace game::scene {
                 }
             }
         }
+    }
+
+    void GameScene::unload_projectile_textures() {
+        for (auto &pair : _projectileTextures) {
+            _raylib.unloadTexture(pair.second);
+        }
+        _projectileTextures.clear();
+        std::cout << "[DEBUG] Unloaded all projectile textures" << std::endl;
     }
 
     void GameScene::unload_entity_textures() {
@@ -156,7 +169,6 @@ namespace game::scene {
             netPlayers = _game.getGameClient().players;
         }
 
-        // Supprimer les joueurs disparus
         for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
             if (netPlayers.find(it->first) == netPlayers.end()) {
                 _registry.kill_entity(it->second);
@@ -166,7 +178,6 @@ namespace game::scene {
             }
         }
 
-        // Synchroniser les positions des joueurs existants uniquement (pas de création)
         auto &positions = _registry.get_components<component::position>();
         for (auto const &kv : netPlayers) {
             uint32_t id = kv.first;
@@ -209,6 +220,7 @@ namespace game::scene {
         render_network_obstacles();
         render_network_enemies();
         render_network_projectiles();
+        render_network_enemy_projectiles();
 
         if (_isDead) {
             render_death_screen();
@@ -257,11 +269,59 @@ namespace game::scene {
         }
     }
 
+    void GameScene::render_network_projectiles() {
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projs;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            projs = _game.getGameClient().projectiles;
+        }
+        
+        auto it = _projectileTextures.find("player_missile");
+        bool hasTexture = (it != _projectileTextures.end());
+        
+        for (auto &kv : projs) {
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
+            
+            if (hasTexture) {
+                Texture2D &texture = it->second;
+                
+                Rectangle sourceRec = {
+                    170.0f, 135.0f, 50.0f, 15.0f 
+                };
+                
+                Rectangle destRec = {
+                    x - 23.0f, y - 5.0f, 50.0f, 15.0f
+                };
+                
+                Vector2 origin = {0.0f, 0.0f};
+                float rotation = 0.0f;
+                
+                _raylib.drawTexturePro(texture, sourceRec, destRec, origin, rotation, WHITE);
+            } else {
+                _raylib.drawRectangle((int)(x - 8), (int)(y - 2), 16, 5, WHITE);
+            }
+        }
+    }
+
+
     void GameScene::render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            uint32_t clientId = 0;
+            for (auto const &kv : _playerEntities) {
+                if (kv.second == entity) {
+                    clientId = kv.first;
+                    break;
+                }
+            }
+            float spriteOffsetX = 0.0f;
+            if (moovePlayer.find(clientId) != moovePlayer.end()) {
+                spriteOffsetX = moovePlayer[clientId];
+            }
+            float spriteOffsetY = 0.0f + (17.0f * (clientId % 4));
+            Rectangle sourceRec = {66.0f + spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
             auto &sprites = _registry.get_components<component::sprite>();
@@ -414,11 +474,38 @@ namespace game::scene {
         }
     }
 
-    void GameScene::render_network_projectiles() {
-        for (auto &kv : _game.getGameClient().projectiles) {
+    void GameScene::render_network_enemy_projectiles() {
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjs;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            enemyProjs = _game.getGameClient().enemyProjectiles;
+        }
+        
+        auto it = _projectileTextures.find("enemy_missile");
+        bool hasTexture = (it != _projectileTextures.end());
+        
+        for (auto &kv : enemyProjs) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
-            _raylib.drawRectangle((int)(x - 5), (int)(y - 2), 10, 5, WHITE);
+            
+            if (hasTexture) {
+                Texture2D &texture = it->second;
+                
+                Rectangle sourceRec = {
+                    170.0f, 135.0f, 50.0f, 15.0f 
+                };
+                
+                Rectangle destRec = {
+                    x - 23.0f, y - 5.0f, 50.0f, 15.0f
+                };
+                
+                Vector2 origin = {0.0f, 0.0f};
+                float rotation = 180.0f;
+                
+                _raylib.drawTexturePro(texture, sourceRec, destRec, origin, rotation, RED);
+            } else {
+                _raylib.drawRectangle((int)(x - 8), (int)(y - 2), 16, 5, RED);
+            }
         }
     }
 
@@ -450,12 +537,25 @@ namespace game::scene {
         float input_x = 0.f;
         float input_y = 0.f;
         static float lastShotTime = 0.f;
-        const float SHOOT_COOLDOWN = 0.3f;
+        float globalScore = 0.0f;
+        uint32_t myClientId = 0;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            globalScore = _game.getGameClient().globalScore;
+            myClientId = _game.getGameClient().clientId;
+        }
+        float t = std::clamp(globalScore / 150.0f, 0.0f, 1.0f);
+        float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
 
-        if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP))
+        if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP)) {
             input_y = -1.f;
-        if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN))
+            moovePlayer[myClientId] = 33.0f;
+        } else if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN)) {
+            moovePlayer[myClientId] = -33.0f;
             input_y = 1.f;
+        } else {
+            moovePlayer[myClientId] = 0.0f;
+        }
         if (_raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT))
             input_x = -1.f;
         if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT))
@@ -560,5 +660,6 @@ namespace game::scene {
         _game_running = false;
         _ui.unload();
         unload_entity_textures();
+        unload_projectile_textures();
     }
 } // namespace game::scene
