@@ -87,9 +87,6 @@ class ServerGame {
         /** @brief Maps projectile IDs to their (x, y, velX, velY, ownerId) data. */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projectiles;
 
-        /** @brief Maps enemy IDs to their (x, y, velX, velY) data. */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
-
         /** @brief Tracks damage cooldown timestamps for each player to prevent rapid consecutive hits. */
         std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
 
@@ -218,11 +215,6 @@ class ServerGame {
          * @param projId ID of the projectile being removed.
          */
         void broadcast_projectile_despawn(uint32_t projId);
-
-        /**
-         * @brief Initializes all enemies with their starting positions and behaviors.
-         */
-        void initialize_enemies();
 
         /**
          * @brief Updates all enemies' positions based on their behavior patterns.

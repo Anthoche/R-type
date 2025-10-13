@@ -88,20 +88,6 @@ bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float
     return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
 }
 
-void ServerGame::initialize_enemies() {
-    LOG_DEBUG("Initializing enemies...");    
-    for (int i = 0; i < 5; ++i) {
-        uint32_t enemyId = nextEnemyId++;
-        float x = 100.f + i * 100.f;
-        float y = 200.f;
-        float vx = 50.f;
-        float vy = 0.f;
-        enemies[enemyId] = std::make_tuple(x, y, vx, vy);
-        broadcast_enemy_spawn(enemyId, x, y, vx, vy);
-        LOG_DEBUG("[Server] Enemy spawned: id=" << enemyId << " pos=(" << x << ", " << y << ")");
-    }
-}
-
 void ServerGame::broadcast_full_registry_to(uint32_t clientId) {
     nlohmann::json root;
     root["type"] = "FullRegistry";
