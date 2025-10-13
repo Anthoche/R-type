@@ -173,9 +173,13 @@ void ServerGame::check_player_enemy_collisions() {
         float playerTop = playerY - PLAYER_HEIGHT * 0.5f;
         float playerBottom = playerY + PLAYER_HEIGHT * 0.5f;
         
-        for (const auto& enemy : enemies) {
-            float enemyX = std::get<0>(enemy.second);
-            float enemyY = std::get<1>(enemy.second);
+        for (const auto& enemy : _enemies) {
+            uint32_t eid = static_cast<uint32_t>(enemy);
+            auto epos = get_component_ptr<component::position>(registry_server, enemy);
+            if (!epos)
+                continue;
+            float enemyX = epos->x;
+            float enemyY = epos->y;
             
             float enemyLeft = enemyX - ENEMY_WIDTH * 0.5f;
             float enemyRight = enemyX + ENEMY_WIDTH * 0.5f;
@@ -196,8 +200,6 @@ void ServerGame::check_player_enemy_collisions() {
                 if (canTakeDamage) {
                     playersHit.push_back(playerId);
                     playerDamageCooldown[playerId] = now;
-                    LOG_DEBUG("[Server] Player " << playerId << " hit by enemy " << enemy.first 
-                            << " - Taking " << DAMAGE_PER_HIT << " damage");
                     LOG_DEBUG("[Server] Cooldown set for player " << playerId);
                 }
                 break;

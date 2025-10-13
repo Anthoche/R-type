@@ -70,6 +70,13 @@ void ServerGame::check_projectile_enemy_collisions() {
                                   enemyLeft, enemyRight, enemyTop, enemyBottom)) {
                 projectilesToRemove.push_back(projId);
                 enemiesToRemove.push_back(static_cast<uint32_t>(enemyEntity));
+                 totalScore += 10;
+
+                uint32_t killerId = std::get<4>(projKv.second);
+                if (playerIndividualScores.find(killerId) == playerIndividualScores.end()) {
+                    playerIndividualScores[killerId] = 0;
+                }
+                playerIndividualScores[killerId] += 10;
                 LOG_DEBUG("[Server] Projectile " << projId << " hit enemy " << static_cast<uint32_t>(enemyEntity));
                 break;
             }

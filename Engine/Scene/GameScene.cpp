@@ -197,7 +197,6 @@ namespace game::scene {
             }
         }
         _registry.run_systems();
-        check_collisions();
     }
 
     void GameScene::render() {
@@ -555,12 +554,6 @@ namespace game::scene {
                     }
                 }
             });
-    }
-
-    void GameScene::check_collisions() {
-        for (auto const &kvPlayer : _playerEntities) {
-            collision::handle_entity_collisions(*this, kvPlayer.second);
-        }
     }
 
     void GameScene::onClose() {
