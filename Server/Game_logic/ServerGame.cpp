@@ -65,12 +65,16 @@ void ServerGame::run() {
 
         update_projectiles_server_only(dt);
         update_enemies(dt);
+        update_enemy_projectiles_server_only(dt);
+
+        check_enemy_projectile_player_collisions();
         check_projectile_collisions();
         check_projectile_enemy_collisions();
         check_player_enemy_collisions();
 
         broadcast_projectile_positions();
         broadcast_enemy_positions();
+        broadcast_enemy_projectile_positions();
 
         process_pending_messages();
         broadcast_states_to_clients();

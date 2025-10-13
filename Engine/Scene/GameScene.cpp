@@ -209,6 +209,7 @@ namespace game::scene {
         render_network_obstacles();
         render_network_enemies();
         render_network_projectiles();
+        render_network_enemy_projectiles();
 
         if (_isDead) {
             render_death_screen();
@@ -419,6 +420,19 @@ namespace game::scene {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
             _raylib.drawRectangle((int)(x - 5), (int)(y - 2), 10, 5, WHITE);
+        }
+    }
+
+    void GameScene::render_network_enemy_projectiles() {
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjs;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            enemyProjs = _game.getGameClient().enemyProjectiles;
+        }
+        for (auto &kv : enemyProjs) {
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
+            _raylib.drawRectangle((int)(x - 5), (int)(y - 2), 10, 5, RED);
         }
     }
 

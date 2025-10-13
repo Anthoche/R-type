@@ -230,6 +230,7 @@ namespace game::scene {
         void render_network_obstacles();
         void render_network_enemies();
         void render_network_projectiles();
+        void render_network_enemy_projectiles();
         void render_death_screen();
 
         // --- Utilitaires ---

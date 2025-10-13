@@ -69,6 +69,13 @@ class ServerGame {
         void broadcast_full_registry_to(uint32_t clientId);
 
     private:
+
+        /** @brief Maps enemy IDs to their (x,y,velX,velY). */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjectiles;
+
+        /** @brief Counter for assigning unique enemy projectile IDs. */
+        uint32_t nextEnemyProjectileId = 100000; 
+
         /** @brief Reference to the network connection handler. */
         Connexion &connexion;
 
@@ -286,6 +293,36 @@ class ServerGame {
          * @param y Current Y-coordinate.
          */
         void broadcast_enemy_update(uint32_t enemyId, float x, float y);
+
+        /**
+         * @brief Spawns a projectile fired by an enemy.
+         * @param enemyId ID of the enemy firing the projectile.
+         * @param x Initial X-coordinate of the projectile.
+         * @param y Initial Y-coordinate of the projectile.
+         * @param vx Velocity in X direction.
+         * @param vy Velocity in Y direction.
+         */
+        void shoot_enemy_projectile(uint32_t enemyId, float x, float y, float vx, float vy);
+
+        /**
+         * @brief Updates all enemy-fired projectiles' positions based on velocity.
+         * @param dt Delta time in seconds.
+         */
+        void update_enemy_projectiles_server_only(float dt);
+
+        /**
+         * @brief Checks and handles collisions between enemy projectiles and players.
+         */
+        void check_enemy_projectile_player_collisions();
+
+        
+        void broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId,
+                                                   float x, float y, float vx, float vy);
+
+
+        void broadcast_enemy_projectile_positions();
+
+        void broadcast_enemy_projectile_despawn(uint32_t projId);
 
         /**
          * @brief Broadcasts the current health values of all players to all clients.
