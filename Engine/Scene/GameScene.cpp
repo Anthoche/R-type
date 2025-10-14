@@ -549,7 +549,7 @@ namespace game::scene {
         if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP)) {
             input_y = -1.f;
             moovePlayer[myClientId] = 33.0f;
-        } else if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEfix Y_DOWN)) {
+        } else if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN)) {
             moovePlayer[myClientId] = -33.0f;
             input_y = 1.f;
         } else {
