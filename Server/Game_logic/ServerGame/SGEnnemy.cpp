@@ -54,7 +54,6 @@ void ServerGame::update_enemies(float dt) {
         if (pattern == "straight") update_enemy_straight(id, dt);
         else if (pattern == "zigzag") update_enemy_zigzag(id, dt);
         else if (pattern == "circle") update_enemy_circle(id, dt);
-        else if (pattern == "turret") update_enemy_turret(id, dt);
         else if (pattern == "boss_phase1") update_enemy_boss_phase1(id, dt);
         else update_enemy_default(id, dt);
         update_enemy_turret(id, dt);

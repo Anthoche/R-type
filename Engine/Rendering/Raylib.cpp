@@ -263,6 +263,18 @@ void Raylib::playMusicStream(Music const &music) {
 	PlayMusicStream(music);
 }
 
+void Raylib::playSound(Sound const &sound) {
+	PlaySound(sound);
+}
+
+void Raylib::setSoundVolume(Sound const &sound, float volume) {
+	SetSoundVolume(sound, volume);
+}
+
+Sound Raylib::loadSound(std::string const &fileName) {
+	return LoadSound(fileName.c_str());
+}
+
 void Raylib::updateMusicStream(Music const &music) {
 	UpdateMusicStream(music);
 }
@@ -273,6 +285,10 @@ void Raylib::stopMusicStream(Music const &music) {
 
 void Raylib::unloadMusicStream(Music const &music) {
 	UnloadMusicStream(music);
+}
+
+void Raylib::unloadSound(Sound const &sound) {
+	UnloadSound(sound);
 }
 
 void Raylib::setMusicVolume(Music const &music, float volume) {
