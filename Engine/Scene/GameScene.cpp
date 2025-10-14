@@ -40,6 +40,7 @@ namespace game::scene {
         _registry.register_component<component::text>();
         _registry.register_component<component::previous_position>();
         _registry.register_component<component::client_id>();
+        _registry.register_component<component::enemy_pattern>();
         _ui.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 

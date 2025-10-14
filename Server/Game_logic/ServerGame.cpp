@@ -48,6 +48,7 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
     registry_server.register_component<component::sprite>();
     registry_server.register_component<component::collision_box>();
     registry_server.register_component<component::hitbox_link>();
+    registry_server.register_component<component::enemy_pattern>();
 }
 
 void ServerGame::run() {

@@ -16,6 +16,8 @@
 #include <iostream>
 #include <cmath>
 #include <chrono>
+#include <cstdlib>
+#include <ctime>
 
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"
@@ -52,11 +54,8 @@ void ServerGame::update_enemies(float dt) {
         if (it != enemyPatterns.end()) pattern = it->second;
 
         if (pattern == "straight") update_enemy_straight(id, dt);
-        else if (pattern == "zigzag") update_enemy_zigzag(id, dt);
-        else if (pattern == "circle") update_enemy_circle(id, dt);
         else if (pattern == "boss_phase1") update_enemy_boss_phase1(id, dt);
         else update_enemy_default(id, dt);
-        update_enemy_turret(id, dt);
 
         pos = get_component_ptr<component::position>(registry_server, entity);
         if (pos) broadcast_enemy_update(id, pos->x, pos->y);
@@ -79,92 +78,43 @@ void ServerGame::update_enemy_straight(uint32_t id, float dt) {
     update_enemy_default(id, dt); // Straight = same as default
 }
 
-void ServerGame::update_enemy_zigzag(uint32_t id, float dt) {
-    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
-    auto pos = get_component_ptr<component::position>(registry_server, entity);
-    auto vel = get_component_ptr<component::velocity>(registry_server, entity);
-    if (!pos) return;
-
-    float baseVx = -80.f;
-    if (vel) baseVx = vel->vx;
-
-    const float amplitude = 30.f;
-    const float wavelength = 50.f;
-    pos->x += baseVx * dt;
-    pos->y += std::sin(pos->x / wavelength) * amplitude * dt;
-}
-
-void ServerGame::update_enemy_circle(uint32_t id, float dt) {
-    static std::unordered_map<uint32_t, float> angles;
-    static std::unordered_map<uint32_t, std::pair<float, float>> centers;
-
-    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
-    auto pos = get_component_ptr<component::position>(registry_server, entity);
-    auto vel = get_component_ptr<component::velocity>(registry_server, entity);
-    if (!pos) return;
-
-    if (centers.find(id) == centers.end()) {
-        centers[id] = std::make_pair(pos->x, pos->y);
-        angles[id] = 0.f;
-    }
-
-    float radius = 100.f;
-    float speed = 1.f;
-    if (vel) {
-        float mag = std::sqrt(vel->vx*vel->vx + vel->vy*vel->vy);
-        if (mag > 10.f) radius = mag;
-        speed = radius / 50.f;
-    }
-
-    angles[id] += speed * dt;
-    const auto &c = centers[id];
-    pos->x = c.first + std::cos(angles[id]) * radius;
-    pos->y = c.second + std::sin(angles[id]) * radius;
-}
-
-void ServerGame::update_enemy_turret(uint32_t id, float dt) {
-    static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
-    static const float SHOOT_COOLDOWN = 2.0f;
-    
-    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
-    auto pos = get_component_ptr<component::position>(registry_server, entity);
-    auto vel = get_component_ptr<component::velocity>(registry_server, entity);
-    if (!pos) return;
-
-    float vx = -30.f, vy = 0.f;
-    if (vel) { vx = vel->vx; vy = vel->vy; }
-    pos->x += vx * dt;
-    pos->y += vy * dt;
-    
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    
-    if (lastShootTime.find(id) == lastShootTime.end()) {
-        lastShootTime[id] = currentTime;
-    }
-    
-    auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
-        currentTime - lastShootTime[id]
-    ).count();
-    
-    if (elapsed >= SHOOT_COOLDOWN) {
-        shoot_enemy_projectile(id, pos->x, pos->y, -200.f, 0.f);
-        lastShootTime[id] = currentTime;
-    }
-}
-
 void ServerGame::update_enemy_boss_phase1(uint32_t id, float dt) {
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
-    if (!pos) return;
 
-    float vx = -20.f;
-    if (vel) vx = vel->vx;
+    if (!pos)
+        return;
+    static bool seeded = false;
+    if (!seeded) {
+        std::srand(std::time(nullptr));
+        seeded = true;
+    }
+    if (pos->x > 900.f) {
+        pos->x += vel->vx * dt;
+        pos->y += std::sin(pos->x * 0.5f) * 40.f * dt;
+    }
+    else {
+        if (vel && vel->vx < 0.f) {
+            vel->vx = 0.f;
+        }
+        const float vertical_speed = 50.f;
+        const float change_dir_prob = 0.02f;
+        if (vel && (std::rand() % 100) < (change_dir_prob * 100)) {
+            vel->vy = (std::rand() % 2 == 0) ? vertical_speed : -vertical_speed;
+        }
+        pos->y += vel->vy * dt;
 
-    const float amplitude = 40.f;
-    const float freq = 0.5f;
-    pos->x += vx * dt;
-    pos->y += std::sin(pos->x * freq) * amplitude * dt;
+        const float min_y = 100.f;
+        const float max_y = 900.f;
+        if (pos->y < min_y) {
+            pos->y = min_y;
+            vel->vy = vertical_speed;
+        } else if (pos->y > max_y) {
+            pos->y = max_y;
+            vel->vy = -vertical_speed;
+        }
+    }
 }
 
 void ServerGame::check_player_enemy_collisions() {

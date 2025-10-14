@@ -20,7 +20,7 @@ namespace game::entities {
      * @param y Initial Y position.
      * @return The created enemy entity.
      */
-    ecs::entity_t create_enemy(ecs::registry &reg, float x = 900.f, float y = 300.f, const std::string &imagePath = "");
+    ecs::entity_t create_enemy(ecs::registry &reg, float x = 900.f, float y = 300.f, const std::string &imagePath = "", const std::string &pattern = "straight");
 
     /**
      * @brief Sets up simple AI movement for enemies (e.g., move left).

@@ -60,6 +60,9 @@ namespace game::serializer {
             j["collision_width"] = cbox->width;
             j["collision_height"] = cbox->height;
         }
+        if (auto pattern = reg.get_components<component::enemy_pattern>()[static_cast<std::size_t>(entity)]) {
+            j["pattern"] = pattern->pattern;
+        }
         return j;
     }
 

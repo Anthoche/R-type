@@ -198,4 +198,8 @@ namespace component {
     struct client_id {
         uint32_t id;
     };
+
+    struct enemy_pattern {
+        std::string pattern;
+    };
 }
