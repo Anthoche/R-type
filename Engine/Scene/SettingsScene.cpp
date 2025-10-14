@@ -56,7 +56,7 @@ namespace scene {
 	}
 
 	void SettingsScene::createButtons() {
-		float y = 220.f;
+		float y = 190.f;
 
 		std::vector<ButtonCreator> creators = {
 			&SettingsScene::createDifficultyButton,

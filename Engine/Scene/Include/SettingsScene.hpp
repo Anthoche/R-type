@@ -75,7 +75,7 @@ private:
     Vector2 const _buttonSize{300.f, 50.f};
     int const _buttonTextSize = 23; 
     int const _buttonSpacing = 20;
-    Vector2 _buttonPosition{230.f, 200.f};
+    Vector2 _buttonPosition{230.f, 150.f};
 
     // --- Language management ---
     Game::Language _currentLanguage = Game::Language::ENGLISH;
