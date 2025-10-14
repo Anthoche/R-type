@@ -28,7 +28,10 @@ enum class MessageType : uint8_t {
     ClientShoot,        /**< CLient send a shoot */
     ProjectileSpawn,      /**< Server create an projectile */
     ProjectileUpdate,     /**< Server update an projectile */
-    ProjectileDespawn,     /**< Server delete an projectile */   /**< Server → Clients: suppression obstacle */
+    ProjectileDespawn,     /**< Server delete an projectile */
+    EnemyProjectileSpawn,  /**< Server spawns an enemy projectile */
+    EnemyProjectileUpdate, /**< Server updates an enemy projectile */
+    EnemyProjectileDespawn, /**< Server removes an enemy projectile */
     EntityData,         /**< Server → Clients: synchronisation entité ECS */
     SceneState,        /**< Client → Server: indique la scène courante */
     PlayerDeath,   /**< Server notifies clients that a player has died */
@@ -185,6 +188,37 @@ struct ProjectileUpdateMessage {
 struct ProjectileDespawnMessage {
     MessageType type;       // ProjectileDeSpawn
     uint32_t projectileId;  // ID unique du projectile
+};
+
+/**
+ * @brief Message sent by server to spawn an enemy projectile
+ */
+struct EnemyProjectileSpawnMessage {
+    MessageType type;         // EnemyProjectileSpawn
+    uint32_t projectileId;    // ID unique du projectile ennemi
+    uint32_t ownerId;         // ID de l'ennemi qui a tiré
+    uint32_t posXBits;        // Position X (float bits)
+    uint32_t posYBits;        // Position Y (float bits)
+    uint32_t velXBits;        // Vélocité X (float bits)
+    uint32_t velYBits;        // Vélocité Y (float bits)
+};
+
+/**
+ * @brief Message sent by server to update an enemy projectile
+ */
+struct EnemyProjectileUpdateMessage {
+    MessageType type;       // EnemyProjectileUpdate
+    uint32_t projectileId;  // ID unique du projectile ennemi
+    uint32_t posXBits;      // Position X (float bits)
+    uint32_t posYBits;      // Position Y (float bits)
+};
+
+/**
+ * @brief Message sent by server to remove an enemy projectile
+ */
+struct EnemyProjectileDespawnMessage {
+    MessageType type;       // EnemyProjectileDespawn
+    uint32_t projectileId;  // ID unique du projectile ennemi
 };
 
 /**
