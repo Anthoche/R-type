@@ -127,7 +127,7 @@ void ServerGame::update_projectiles_server_only(float dt) {
         float vy = std::get<3>(kv.second);
         x += vx * dt;
         y += vy * dt;
-        if (x < -50.f || x > 850.f || y < -50.f || y > 650.f) {
+        if (x < -50.f || x > 1970.f || y < -50.f || y > 1130.f) {
             toRemove.push_back(id);
         }
     }
@@ -219,7 +219,6 @@ void ServerGame::shoot_enemy_projectile(uint32_t enemyId, float x, float y, floa
     float spawnY = y;
     enemyProjectiles[projId] = std::make_tuple(spawnX, spawnY, vx, vy, enemyId);
     broadcast_enemy_projectile_spawn(projId, enemyId, spawnX, spawnY, vx, vy);
-    LOG_DEBUG("[Server] Enemy " << enemyId << " shot projectile " << projId);
 }
 
 void ServerGame::update_enemy_projectiles_server_only(float dt) {
@@ -233,7 +232,7 @@ void ServerGame::update_enemy_projectiles_server_only(float dt) {
         float vy = std::get<3>(kv.second);
         x += vx * dt;
         y += vy * dt;
-        if (x < -50.f || x > 850.f || y < -50.f || y > 650.f) {
+        if (x < -50.f || x > 1970.f || y < -50.f || y > 1130.f) {
             toRemove.push_back(id);
         }
     }
@@ -315,7 +314,7 @@ void ServerGame::check_enemy_projectile_player_collisions() {
 void ServerGame::broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId,
                                                    float x, float y, float vx, float vy) {
     ProjectileSpawnMessage msg;
-    msg.type = MessageType::EnemyProjectileSpawn; // Nouveau type à définir
+    msg.type = MessageType::EnemyProjectileSpawn;
     msg.projectileId = htonl(projId);
     msg.ownerId = htonl(ownerId);
 

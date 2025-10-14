@@ -12,7 +12,7 @@
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
-        : AScene(800, 600, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib) {
+        : AScene(1920, 1080, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib) {
         _raylib = Raylib();
         _game_running = true;
         _startTime = 0.f;
@@ -52,7 +52,6 @@ namespace game::scene {
         game::entities::setup_hitbox_sync_system(_registry);
         
         // Création des entités statiques (background, UI, etc.)
-        game::entities::create_background(_registry, 400.f, 300.f, 800.f, 600.f, "assets/background.png", 1.f);
         game::entities::create_sound(_registry, "assets/music.ogg", 0.5f, true, true);
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
         game::entities::create_random_element(_registry, 600.f, 450.f, 64.f, 64.f, "assets/items/star.png", "assets/sfx/pickup.wav", 0.8f, false, false);
@@ -213,15 +212,15 @@ namespace game::scene {
     void GameScene::render() {
         _raylib.beginDrawing();
         _raylib.clearBackground(GRAY);
-        _ui.render();
         _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
-
+        
         render_entities();
         render_network_obstacles();
         render_network_enemies();
         render_network_projectiles();
         render_network_enemy_projectiles();
-
+        
+        _ui.render();
         if (_isDead) {
             render_death_screen();
         }
@@ -232,37 +231,35 @@ namespace game::scene {
         auto &positions = _registry.get_components<component::position>();
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
-        
+                for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
+            if (!positions[i] || !drawables[i] || !types[i])
+                continue;
+            if (types[i]->value == component::entity_type::BACKGROUND) {
+                ecs::entity_t entity = _registry.entity_from_index(i);
+                render_background(entity, *positions[i], *drawables[i]);
+            }
+        }        
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
             
             ecs::entity_t entity = _registry.entity_from_index(i);
             
             switch (types[i]->value) {
-                case component::entity_type::PLAYER:
-                    render_player(entity, *positions[i], *drawables[i]);
-                    break;
-                    
-                case component::entity_type::ENEMY:
-                    render_enemy(entity, *positions[i], *drawables[i]);
-                    break;
-                    
                 case component::entity_type::OBSTACLE:
                     render_obstacle(entity, *positions[i], *drawables[i]);
                     break;
-                    
-                case component::entity_type::BACKGROUND:
-                    render_background(entity, *positions[i], *drawables[i]);
+                case component::entity_type::ENEMY:
+                    render_enemy(entity, *positions[i], *drawables[i]);
                     break;
-                    
                 case component::entity_type::POWERUP:
                     render_powerup(entity, *positions[i], *drawables[i]);
                     break;
-                    
                 case component::entity_type::PROJECTILE:
                     render_projectile(entity, *positions[i], *drawables[i]);
                     break;
-                    
+                case component::entity_type::PLAYER:
+                    render_player(entity, *positions[i], *drawables[i]);
+                    break;
                 default:
                     break;
             }
@@ -322,7 +319,7 @@ namespace game::scene {
             }
             float spriteOffsetY = 0.0f + (17.0f * (clientId % 4));
             Rectangle sourceRec = {66.0f + spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)_width / 40.0f, (float)_height / 40.0f};
             Vector2 origin = {0.0f, 0.0f};
             auto &sprites = _registry.get_components<component::sprite>();
             float rotation = 0.0f;
@@ -387,15 +384,15 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
+            _backgroundScrollX -= 0.2f;
+            if (_backgroundScrollX <= -(float)_width)
+                _backgroundScrollX = 0.0f;
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Rectangle destRec = {_backgroundScrollX, 0.0f, (float)_width, (float)_height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
-            auto &sprites = _registry.get_components<component::sprite>();
-            if (entity.value() < sprites.size() && sprites[entity.value()]) {
-                rotation = sprites[entity.value()]->rotation;
-            }
-            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, 0.0f, WHITE);
+            Rectangle destRec2 = {_backgroundScrollX + _width, 0.0f, (float)_width, (float)_height};
+            _raylib.drawTexturePro(*texture, sourceRec, destRec2, origin, 0.0f, WHITE);
         }
     }
 

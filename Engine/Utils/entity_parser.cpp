@@ -41,6 +41,42 @@ namespace game::parsing
         }
         return default_val;
     }
+    
+    ecs::entity_t parse_background(ecs::registry &reg, const nlohmann::json &bg_data)
+    {
+        try {
+            // Support both formats
+            float x, y;
+            if (bg_data.contains("position") && bg_data["position"].is_object()) {
+                x = bg_data["position"]["x"];
+                y = bg_data["position"]["y"];
+            } else {
+                check_field(bg_data, "x", nlohmann::json::value_t::number_float);
+                check_field(bg_data, "y", nlohmann::json::value_t::number_float);
+                x = bg_data.at("x");
+                y = bg_data.at("y");
+            }
+
+            // Width and height with defaults
+            float width = get_float_value(bg_data, "width", 1200.0f);
+            float height = get_float_value(bg_data, "height", 200.0f);
+            
+            std::string image_path = bg_data.value("image_path", "");
+
+            if (!image_path.empty() && !std::ifstream(image_path).good()) {
+                std::cerr << "[WARNING] Background image file not found: " << image_path << std::endl;
+            }
+
+            float scale = bg_data.value("scale", 1.0f);
+
+            std::cout << "[DEBUG] Parsed background at (" << x << ", " << y << ")" << std::endl;
+
+            return game::entities::create_background(reg, x, y, width, height, image_path, scale);
+        }
+        catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse background: ") + e.what());
+        }
+    }
 
     ecs::entity_t parse_player(ecs::registry &reg, const nlohmann::json &player_data)
     {
@@ -78,41 +114,6 @@ namespace game::parsing
         }
     }
 
-    ecs::entity_t parse_background(ecs::registry &reg, const nlohmann::json &bg_data)
-    {
-        try {
-            // Support both formats
-            float x, y;
-            if (bg_data.contains("position") && bg_data["position"].is_object()) {
-                x = bg_data["position"]["x"];
-                y = bg_data["position"]["y"];
-            } else {
-                check_field(bg_data, "x", nlohmann::json::value_t::number_float);
-                check_field(bg_data, "y", nlohmann::json::value_t::number_float);
-                x = bg_data.at("x");
-                y = bg_data.at("y");
-            }
-
-            // Width and height with defaults
-            float width = get_float_value(bg_data, "width", 800.0f);
-            float height = get_float_value(bg_data, "height", 600.0f);
-            
-            std::string image_path = bg_data.value("image_path", "");
-
-            if (!image_path.empty() && !std::ifstream(image_path).good()) {
-                std::cerr << "[WARNING] Background image file not found: " << image_path << std::endl;
-            }
-
-            float scale = bg_data.value("scale", 1.0f);
-
-            std::cout << "[DEBUG] Parsed background at (" << x << ", " << y << ")" << std::endl;
-
-            return game::entities::create_background(reg, x, y, width, height, image_path, scale);
-        }
-        catch (const std::exception &e) {
-            throw std::runtime_error(std::string("Failed to parse background: ") + e.what());
-        }
-    }
 
     ecs::entity_t parse_enemy(ecs::registry &reg, const nlohmann::json &enemy_data)
     {

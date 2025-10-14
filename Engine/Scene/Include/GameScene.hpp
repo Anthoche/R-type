@@ -202,6 +202,7 @@ namespace game::scene {
         std::unordered_map<uint32_t, Texture2D> _entityTextures; ///< Map: entity ID -> loaded texture.
         std::unordered_map<std::string, Texture2D> _projectileTextures; ///< Map: projectile type -> loaded texture.
         std::unordered_map<uint32_t, float> moovePlayer; ///< Map: client ID -> movement offset for sprite rendering.
+        float _backgroundScrollX = 0.0f; ///< Background scrolling offset.
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
