@@ -69,9 +69,32 @@ class Game {
 		 */
 		void setGameStatus(const GameStatus &status);
 
+
+        /**
+         * @enum Language
+         * @brief Supported languages for the game.
+         * Defines the available localization options.
+         */
+        enum class Language { ENGLISH, FRENCH };
+
+        /**
+         * @brief Set the current language of the game.
+         * Changes the active language, affecting displayed text and UI labels.
+         * @param lang The language to set (ENGLISH or FRENCH).
+         */
+        void setLanguage(Language lang) { _language = lang; }
+
+        /**
+         * @brief Get the current language of the game.
+         * Returns the language currently used for UI and text elements.
+         * @return The current language (ENGLISH or FRENCH).
+         */
+        Language getLanguage() const { return _language; }
+
 	private:
 		GameStatus _status; ///< Status of the game
 		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
 		GameClient _client; ///< Network client handling server communication
 		std::thread _networkThread; ///< Thread for handling network communication
+		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
 };

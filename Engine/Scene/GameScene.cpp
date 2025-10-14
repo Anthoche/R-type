@@ -546,8 +546,9 @@ namespace game::scene {
 
     void GameScene::render_death_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{255, 0, 0, 100});
+        bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
 
-        const char* deathText = "YOU DIED!";
+        const char* deathText = isFrench ? "VOUS ÊTES MORT!" : "YOU DIED!";
         int fontSize = 72;
         int textWidth = _raylib.measureText(deathText, fontSize);
         _raylib.drawText(

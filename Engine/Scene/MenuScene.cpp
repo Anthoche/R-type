@@ -24,8 +24,7 @@ namespace scene {
 		_raylib.setTargetFPS(60);
 
 		_registry = ecs::registry{};
-
-		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -38,16 +37,25 @@ namespace scene {
 
 		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type",
 			RAYWHITE, -0.5f, _titleSize, _font);
-		game::entities::create_button(_registry, "button_play", "Play",
+
+		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+
+		game::entities::create_button(_registry, "button_play",
+			isFrench ? "Jouer" : "Play",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
-		game::entities::create_button(_registry, "button_settings", "Settings",
-			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
-		game::entities::create_button(_registry, "button_quit", "Quit",
+		game::entities::create_button(_registry, "button_settings",
+			isFrench ? "Options" : "Settings",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-		
+
+		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
+
+		game::entities::create_button(_registry, "button_quit",
+			isFrench ? "Quitter" : "Quit",
+			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+
 		_game.getGameClient().sendHello();
 	}
 
@@ -210,4 +218,5 @@ namespace scene {
 			close();
 		}
 	}
+
 }

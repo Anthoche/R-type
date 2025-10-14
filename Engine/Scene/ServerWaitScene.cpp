@@ -13,7 +13,8 @@
 #include "RenderUtils.hpp"
 
 namespace scene {
-	ServerWaitScene::ServerWaitScene(Game &game) : AScene(960, 540, "R-Type - Waiting for server..."), _game(game) {
+	ServerWaitScene::ServerWaitScene(Game &game)
+		: AScene(960, 540, "R-Type - Waiting for server..."), _game(game) {
 		_startTime = 0;
 		_endTime = 0;
 		_attemptsCount = 0;
@@ -24,7 +25,7 @@ namespace scene {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
-		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -33,13 +34,19 @@ namespace scene {
 		_registry.register_component<component::hoverable>();
 		_registry.register_component<component::type>();
 
-		std::string title = "Waiting for server connection...";
+		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+
+		std::string title = isFrench
+			? "En attente de la connexion au serveur..."
+			: "Waiting for server connection...";
 		int titleFontSize = 30;
 		Vector2 titleSize = _raylib.measureTextEx(_font, title.c_str(), titleFontSize, -0.75f);
 		float titleCenterY = getElementCenter(_height, titleSize.y) - 100;
 		float titleCenterX = getElementCenter(_width, titleSize.x);
 
-		std::string subtitle = std::format("Next attempt in {:.1f} second(s)", 10.f);
+		std::string subtitle = isFrench
+			? std::format("Nouvelle tentative dans {:.1f} seconde(s)", 10.f)
+			: std::format("Next attempt in {:.1f} second(s)", 10.f);
 		int subtitleFontSize = 18;
 		Vector2 subtitleSize = _raylib.measureTextEx(_font, subtitle.c_str(), subtitleFontSize, -0.5f);
 		float subtitleCenterY = getElementCenter(_height, subtitleSize.y) - 50;
@@ -54,24 +61,25 @@ namespace scene {
 
 		Color accentColor = Color{26, 170, 177, 255};
 
-		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title, RAYWHITE, -0.75f, titleFontSize, _font);
-		game::entities::create_text(_registry, {subtitleCenterX, subtitleCenterY}, subtitle, RAYWHITE, -0.5f, subtitleFontSize, _font);
+		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title,
+			RAYWHITE, -0.75f, titleFontSize, _font);
+		game::entities::create_text(_registry, {subtitleCenterX, subtitleCenterY}, subtitle,
+			RAYWHITE, -0.5f, subtitleFontSize, _font);
 
-		game::entities::create_button(_registry, "button_play", "Play", playButtonPos, buttonSize, accentColor, RAYWHITE);
-		game::entities::create_button(_registry, "button_quit", "Quit", quitButtonPos, buttonSize, RED, RAYWHITE);
+		game::entities::create_button(_registry, "button_play",
+			isFrench ? "Jouer" : "Play",
+			playButtonPos, buttonSize, accentColor, RAYWHITE);
+		game::entities::create_button(_registry, "button_quit",
+			isFrench ? "Quitter" : "Quit",
+			quitButtonPos, buttonSize, RED, RAYWHITE);
 	}
 
 	void ServerWaitScene::render() {
 		double remainingTime = getRemainingTime();
+		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
 
 		if (_attemptsCount < 3 && remainingTime <= 0.1) {
 			_attemptsCount += 1;
-/* 			try {
-				_game.getGameClient().connect();
-				std::cout << "Connected to server." << std::endl;
-			} catch (std::exception const &e) {
-				std::cerr << "Error: " << e.what() << std::endl;
-			} */
 			resetTimer();
 		}
 
@@ -97,16 +105,22 @@ namespace scene {
 				float spacing = text[i]->spacing;
 				Color color = drawables[i]->color;
 				Color textColor = text[i]->color;
-				drawButton(_raylib, pos, size, content, _font, fontSize, spacing, color, textColor, hoverable[i]->isHovered,
-							clickable[i]->isClicked, clickable[i]->enabled);
+				drawButton(_raylib, pos, size, content, _font, fontSize, spacing,
+						color, textColor, hoverable[i]->isHovered,
+						clickable[i]->isClicked, clickable[i]->enabled);
 			}
+
 			if (types[i]->value == component::entity_type::TEXT) {
 				if (text[i]->font_size == 18) {
 					if (_attemptsCount >= 3) {
-						text[i]->content = "Connection au serveur impossible";
+						text[i]->content = isFrench
+							? "Connexion au serveur impossible"
+							: "Unable to connect to server";
 						text[i]->color = RED;
 					} else {
-						text[i]->content = std::format("Next attempt in {:.1f} second(s)", remainingTime);
+						text[i]->content = isFrench
+							? std::format("Nouvelle tentative dans {:.1f} seconde(s)", remainingTime)
+							: std::format("Next attempt in {:.1f} second(s)", remainingTime);
 					}
 					Vector2 size = _raylib.measureTextEx(_font, text[i]->content.c_str(), text[i]->font_size, text[i]->spacing);
 					pos.x = getElementCenter(_width, size.x);
@@ -114,16 +128,12 @@ namespace scene {
 				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
 			}
 		}
+
 		_raylib.endDrawing();
 	}
 
 	void ServerWaitScene::handleEvents() {
 		resetButtonStates();
-
-		switch (_raylib.getKeyPressed()) {
-			default:
-				break;
-		}
 
 		Vector2 mousePos = _raylib.getMousePosition();
 		auto &positions = _registry.get_components<component::position>();
@@ -132,7 +142,8 @@ namespace scene {
 		auto &hoverable = _registry.get_components<component::hoverable>();
 
 		for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
-			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) continue;
+			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i])
+				continue;
 
 			if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
@@ -154,7 +165,6 @@ namespace scene {
 		return _endTime - currentTime;
 	}
 
-
 	void ServerWaitScene::resetTimer() {
 		_startTime = _raylib.getTime();
 		_endTime = _startTime + 10.0f;
@@ -169,15 +179,7 @@ namespace scene {
 			if (!positions[i] || !clickable[i] || !hoverable[i]) continue;
 			clickable[i]->isClicked = false;
 			hoverable[i]->isHovered = false;
-
 			clickable[i]->enabled = true;
-/* 			if (clickable[i]->id == "button_play") {
-				if (_game.getGameClient().isConnected()) {
-					clickable[i]->enabled = true;
-				} else {
-					clickable[i]->enabled = false;
-				}
-			} */
 		}
 	}
 
@@ -188,4 +190,4 @@ namespace scene {
 			close();
 		}
 	}
-}
+} // namespace scene

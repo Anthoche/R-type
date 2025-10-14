@@ -104,6 +104,12 @@ namespace game::scene {
          */
         const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
 
+        /**
+         * @brief Provides access to the main Game instance.
+         * @return A reference to the current Game object.
+         */
+        Game &getGame() { return _game; }
+
     private:
         // --- Game logic ---
         /**

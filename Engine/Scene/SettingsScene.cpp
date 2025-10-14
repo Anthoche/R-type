@@ -13,13 +13,11 @@
 
 namespace scene {
 	SettingsScene::SettingsScene(Game &game)
-		: AScene(960, 540, "R-Type - Settings"), _game(game) {
-		_sceneTitle = "R-Type";
-	}
+		: AScene(960, 540, "R-Type - Settings"), _game(game) {}
 
 	void SettingsScene::init() {
+		_registry.clear();
 		_isOpen = true;
-
 		setupScene();
 		registerComponents();
 		createTitle();
@@ -43,13 +41,13 @@ namespace scene {
 	}
 
 	void SettingsScene::createTitle() {
-		Vector2 titleSize = _raylib.measureTextEx(_font, "R-Type", _titleSize, -0.5f);
-		Vector2 titlePos = { (_width - titleSize.x) / 2.0f, 50.0f };
+		Vector2 titleSize = _raylib.measureTextEx(_font, _sceneTitle.c_str(), _titleSize, -0.5f);
+		Vector2 titlePos = {(_width - titleSize.x) / 2.0f, 50.0f};
 
 		game::entities::create_text(
 			_registry,
 			titlePos,
-			"R-Type",
+			_sceneTitle,
 			RAYWHITE,
 			-0.5f,
 			_titleSize,
@@ -58,12 +56,13 @@ namespace scene {
 	}
 
 	void SettingsScene::createButtons() {
-		float y = 220.f;
+		float y = 190.f;
 
 		std::vector<ButtonCreator> creators = {
 			&SettingsScene::createDifficultyButton,
 			&SettingsScene::createLivesButton,
-			&SettingsScene::createSoundButton
+			&SettingsScene::createSoundButton,
+			&SettingsScene::createLanguageButton
 		};
 
 		for (size_t i = 0; i < _buttons.size(); ++i) {
@@ -87,23 +86,42 @@ namespace scene {
 	}
 
 	void SettingsScene::createDifficultyButton(Vector2 pos, std::size_t i) {
+		float textWidth = _raylib.measureTextEx(_font, _values[i].c_str(), _buttonTextSize - 4, -1.0f).x;
+		float padding = 40.f;
+		float buttonWidth = std::max(120.f, textWidth + padding);
+
 		game::entities::create_button(
 			_registry, "button_difficulty", _values[i],
-			pos, {120.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+			pos, {buttonWidth, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
 		);
 	}
 
 	void SettingsScene::createLivesButton(Vector2 pos, std::size_t i) {
+		float textWidth = _raylib.measureTextEx(_font, _values[i].c_str(), _buttonTextSize - 4, -1.0f).x;
+		float padding = 40.f;
+		float buttonWidth = std::max(100.f, textWidth + padding);
+
 		game::entities::create_button(
 			_registry, "button_lives", _values[i],
-			pos, {100.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+			pos, {buttonWidth, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
 		);
 	}
 
 	void SettingsScene::createSoundButton(Vector2 pos, std::size_t i) {
+		float textWidth = _raylib.measureTextEx(_font, _values[i].c_str(), _buttonTextSize - 4, -1.0f).x;
+		float padding = 40.f;
+		float buttonWidth = std::max(100.f, textWidth + padding);
+
 		game::entities::create_button(
 			_registry, "button_sound", _values[i],
-			pos, {100.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+			pos, {buttonWidth, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+		);
+	}
+
+	void SettingsScene::createLanguageButton(Vector2 pos, std::size_t i) {
+		game::entities::create_button(
+			_registry, "button_language", _values[i],
+			pos, {150.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
 		);
 	}
 
@@ -120,13 +138,41 @@ namespace scene {
 	}
 
 	void SettingsScene::createBackButton() {
-		Vector2 backPos = {40.f, static_cast<float>(_height - 80)};
-		Vector2 backSize = {150.f, 50.f};
+		std::string label = (_currentLanguage == Game::Language::FRENCH ? "< Retour" : "< Back");
 
-		game::entities::create_button(
-			_registry, "button_back", "< Back", backPos, backSize, DARKGRAY, RAYWHITE, 23
-		);
+		auto &texts = _registry.get_components<component::text>();
+		auto &clickable = _registry.get_components<component::clickable>();
+		auto &drawables = _registry.get_components<component::drawable>();
+
+		bool found = false;
+		for (std::size_t i = 0; i < clickable.size(); ++i) {
+			if (clickable[i] && clickable[i]->id == "button_back") {
+				texts[i]->content = label;
+
+				float textWidth = _raylib.measureTextEx(_font, label.c_str(), texts[i]->font_size, texts[i]->spacing).x;
+				float padding = 40.f;
+				drawables[i]->width = std::max(150.f, textWidth + padding);
+
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			float textWidth = _raylib.measureTextEx(_font, label.c_str(), 23, -1.0f).x;
+			float padding = 40.f;
+			float buttonWidth = std::max(150.f, textWidth + padding);
+
+			Vector2 backPos = {40.f, static_cast<float>(_height - 80)};
+			Vector2 backSize = {buttonWidth, 50.f};
+
+			game::entities::create_button(
+				_registry, "button_back",
+				label, backPos, backSize, DARKGRAY, RAYWHITE, 23
+			);
+		}
 	}
+
 
 	void SettingsScene::render() {
 		_raylib.beginDrawing();
@@ -181,21 +227,18 @@ namespace scene {
 		auto &hoverable = _registry.get_components<component::hoverable>();
 
 		for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
-			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) 
+			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i])
 				continue;
 
 			if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				hoverable[i]->isHovered = true;
-			if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+				if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
 			}
 		}
-		// if (_raylib.isKeyPressed(KEY_ESCAPE)) {
-		//    _game.getSceneHandler().open("menu");
-		// }
 	}
 
 	void SettingsScene::handleButtonClick(std::string const &id) {
@@ -203,18 +246,16 @@ namespace scene {
 			_game.getSceneHandler().open("menu");
 			return;
 		}
-
-		if (id == "button_sound") {
-			toggleSound();
-		} else if (id == "button_lives") {
-			cycleLives();
-		} else if (id == "button_difficulty") {
-			cycleDifficulty();
-		}
+		if (id == "button_sound") toggleSound();
+		else if (id == "button_lives") cycleLives();
+		else if (id == "button_difficulty") cycleDifficulty();
+		else if (id == "button_language") toggleLanguage();
 	}
 
 	void SettingsScene::toggleSound() {
-		_values[2] = (_values[2] == "On") ? "Off" : "On";
+		_values[2] = (_values[2] == "On" || _values[2] == "Active")
+			? (_currentLanguage == Game::Language::ENGLISH ? "Off" : "Desactive")
+			: (_currentLanguage == Game::Language::ENGLISH ? "On" : "Active");
 		updateButtonText("button_sound", _values[2]);
 	}
 
@@ -230,13 +271,96 @@ namespace scene {
 		updateButtonText("button_difficulty", _values[0]);
 	}
 
+	void SettingsScene::toggleLanguage() {
+		if (_currentLanguage == Game::Language::ENGLISH) {
+			_currentLanguage = Game::Language::FRENCH;
+			translateToFrench();
+		} else {
+			_currentLanguage = Game::Language::ENGLISH;
+			translateToEnglish();
+		}
+
+		updateAllTexts();
+		updateAllButtonValues();
+		createBackButton();
+		_game.setLanguage(_currentLanguage);
+	}
+
+	void SettingsScene::translateToFrench() {
+		_buttons = {"1. Difficulte", "2. Vies", "3. Son", "4. Langue"};
+		_levels = {"Facile", "Moyen", "Difficile"};
+		_lives = {"3", "5", "7"};
+		_values[0] = _levels[_currentLevelIndex];
+		_values[1] = _lives[_currentLivesIndex];
+		_values[2] = (_values[2] == "On" ? "Active" : "Desactive");
+		_values[3] = "Francais";
+	}
+
+	void SettingsScene::translateToEnglish() {
+		_buttons = {"1. Difficulty", "2. Lives", "3. Sound", "4. Language"};
+		_levels = {"Easy", "Medium", "Hard"};
+		_lives = {"3", "5", "7"};
+		_values[0] = _levels[_currentLevelIndex];
+		_values[1] = _lives[_currentLivesIndex];
+		_values[2] = (_values[2] == "Active" ? "On" : "Off");
+		_values[3] = "English";
+	}
+
+	void SettingsScene::updateAllButtonValues() {
+		auto &clickable = _registry.get_components<component::clickable>();
+		auto &texts = _registry.get_components<component::text>();
+		auto &drawables = _registry.get_components<component::drawable>();
+
+		std::vector<std::string> buttonIds = {"button_difficulty", "button_lives", "button_sound", "button_language"};
+
+		for (size_t i = 0; i < buttonIds.size(); ++i) {
+			for (size_t j = 0; j < clickable.size(); ++j) {
+				if (clickable[j] && clickable[j]->id == buttonIds[i] && texts[j] && drawables[j]) {
+					texts[j]->content = _values[i];
+
+					float textWidth = _raylib.measureTextEx(_font, _values[i].c_str(), texts[j]->font_size, texts[j]->spacing).x;
+					float padding = 40.f;
+					drawables[j]->width = std::max(drawables[j]->width, textWidth + padding);
+				}
+			}
+		}
+	}
+
+
+	void SettingsScene::updateAllTexts() {
+		auto &texts = _registry.get_components<component::text>();
+		auto &types = _registry.get_components<component::type>();
+		auto &clickable = _registry.get_components<component::clickable>();
+
+		std::size_t buttonIndex = 0;
+		for (std::size_t i = 0; i < texts.size() && i < types.size(); ++i) {
+			if (!texts[i] || !types[i])
+				continue;
+
+			if (i < clickable.size() && clickable[i])
+				continue;
+
+			if (types[i]->value == component::entity_type::TEXT && texts[i]->content != _sceneTitle) {
+				if (buttonIndex < _buttons.size()) {
+					texts[i]->content = _buttons[buttonIndex];
+					++buttonIndex;
+				}
+			}
+		}
+	}
+
 	void SettingsScene::updateButtonText(const std::string &buttonId, const std::string &newText) {
 		auto &texts = _registry.get_components<component::text>();
 		auto &clickable = _registry.get_components<component::clickable>();
+		auto &drawables = _registry.get_components<component::drawable>();
 
 		for (std::size_t i = 0; i < clickable.size(); ++i) {
-			if (clickable[i] && clickable[i]->id == buttonId && texts[i]) {
+			if (clickable[i] && clickable[i]->id == buttonId && texts[i] && drawables[i]) {
 				texts[i]->content = newText;
+
+				float textWidth = _raylib.measureTextEx(_font, newText.c_str(), texts[i]->font_size, texts[i]->spacing).x;
+				float padding = 40.f;
+				drawables[i]->width = std::max(100.f, textWidth + padding);
 			}
 		}
 	}
@@ -256,9 +380,7 @@ namespace scene {
 			textColor = color;
 			color = temp;
 		}
-		if (isClicked) {
-			color.a -= 50;
-		}
+		if (isClicked) color.a -= 50;
 
 		_raylib.drawRectangleRounded(rect, 0.5, 10, color);
 		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, textColor);
@@ -269,8 +391,8 @@ namespace scene {
 		auto &hoverable = _registry.get_components<component::hoverable>();
 		auto &positions = _registry.get_components<component::position>();
 
-	for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
-			if (!positions[i] || !clickable[i] || !hoverable[i]) 
+		for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
+			if (!positions[i] || !clickable[i] || !hoverable[i])
 				continue;
 			clickable[i]->isClicked = false;
 			hoverable[i]->isHovered = false;
@@ -278,15 +400,17 @@ namespace scene {
 	}
 
 	void SettingsScene::onClose() {
-		_raylib.unloadFont(_font);
+		_raylib.unloadFont(_font); 
 	}
 
 	int SettingsScene::getCenterY(int screenHeight, int elementHeight) const {
 		return (screenHeight / 2) - (elementHeight / 2);
 	}
 
-	int SettingsScene::getButtonsCenterY(int screenHeight, int numberOfButtons, int buttonHeight, int buttonSpacing) const {
+	int SettingsScene::getButtonsCenterY(int screenHeight, int numberOfButtons, 
+										int buttonHeight, int buttonSpacing) const {
 		int totalHeight = (numberOfButtons * buttonHeight) + ((numberOfButtons - 1) * buttonSpacing);
+		
 		return getCenterY(screenHeight, totalHeight);
 	}
-}
+} // namespace scene

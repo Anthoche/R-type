@@ -12,8 +12,8 @@
 #include "RenderUtils.hpp"
 
 namespace scene {
-	WaitingScene::WaitingScene(Game &game) : AScene(960, 540, "R-Type - Waiting..."), _game(game) {
-	}
+	WaitingScene::WaitingScene(Game &game)
+		: AScene(960, 540, "R-Type - Waiting..."), _game(game) {}
 
 	void WaitingScene::render() {
 		_raylib.beginDrawing();
@@ -38,13 +38,17 @@ namespace scene {
 				float spacing = text[i]->spacing;
 				Color color = drawables[i]->color;
 				Color textColor = text[i]->color;
-				drawButton(_raylib, pos, size, content, _font, fontSize, spacing, color, textColor, hoverable[i]->isHovered,
-							clickable[i]->isClicked, clickable[i]->enabled);
+				drawButton(_raylib, pos, size, content, _font, fontSize, spacing,
+						color, textColor, hoverable[i]->isHovered,
+						clickable[i]->isClicked, clickable[i]->enabled);
 			}
+
 			if (types[i]->value == component::entity_type::TEXT) {
-				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
+				_raylib.drawTextEx(text[i]->font, text[i]->content, pos,
+								text[i]->font_size, text[i]->spacing, text[i]->color);
 			}
 		}
+
 		_raylib.endDrawing();
 	}
 
@@ -81,7 +85,7 @@ namespace scene {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
-		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -90,25 +94,38 @@ namespace scene {
 		_registry.register_component<component::hoverable>();
 		_registry.register_component<component::type>();
 
-		std::string title = "Waiting for players...";
+		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+		std::string title = isFrench ? "En attente des joueurs..." : "Waiting for players...";
 		int titleFontSize = 38;
 		Vector2 titleSize = _raylib.measureTextEx(_font, title.c_str(), titleFontSize, -0.5f);
 		float titleCenterY = getElementCenter(_height, titleSize.y) - 100;
 		float titleCenterX = _width / 2 - titleSize.x / 2;
 
-		Vector2 buttonSize = {180.f, 70.f};
-		Vector2 buttonBasePos = {getElementCenter(_width, buttonSize.x), getElementCenter(_height, buttonSize.y) + 50};
-		Vector2 playButtonPos = buttonBasePos;
+		std::string joinText = isFrench ? "Rejoindre" : "Join";
+		std::string quitText = isFrench ? "Quitter" : "Quit";
+		Vector2 joinTextSize = _raylib.measureTextEx(_font, joinText.c_str(), 23, -0.5f);
+		Vector2 quitTextSize = _raylib.measureTextEx(_font, quitText.c_str(), 23, -0.5f);
+
+		float paddingX = 120.f;
+		float paddingY = 40.f;
+		Vector2 joinButtonSize = {joinTextSize.x + paddingX, joinTextSize.y + paddingY};
+		Vector2 quitButtonSize = {quitTextSize.x + paddingX, quitTextSize.y + paddingY};
+
+		Vector2 buttonBasePos = {getElementCenter(_width, joinButtonSize.x),
+								getElementCenter(_height, joinButtonSize.y) + 50};
+		Vector2 joinButtonPos = buttonBasePos;
 		Vector2 quitButtonPos = buttonBasePos;
-		playButtonPos.x -= 110;
-		quitButtonPos.x += 110;
+		joinButtonPos.x -= (joinButtonSize.x / 2 + 30);
+		quitButtonPos.x += (quitButtonSize.x / 2 + 30);
 
 		Color accentColor = Color{26, 170, 177, 255};
 
-		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title, RAYWHITE, -0.5f, titleFontSize, _font);
-
-		game::entities::create_button(_registry, "button_join", "Join", playButtonPos, buttonSize, accentColor, RAYWHITE);
-		game::entities::create_button(_registry, "button_quit", "Quit", quitButtonPos, buttonSize, RED, RAYWHITE);
+		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title,
+									RAYWHITE, -0.5f, titleFontSize, _font);
+		game::entities::create_button(_registry, "button_join", joinText,
+									joinButtonPos, joinButtonSize, accentColor, RAYWHITE);
+		game::entities::create_button(_registry, "button_quit", quitText,
+									quitButtonPos, quitButtonSize, RED, RAYWHITE);
 	}
 
 	void WaitingScene::onClose() {
@@ -126,7 +143,8 @@ namespace scene {
 			hoverable[i]->isHovered = false;
 
 			if (clickable[i]->id == "button_join") {
-				if (_game.getGameStatus() == GameStatus::PENDING_START || _game.getGameStatus() == GameStatus::RUNNING) {
+				if (_game.getGameStatus() == GameStatus::PENDING_START ||
+					_game.getGameStatus() == GameStatus::RUNNING) {
 					clickable[i]->enabled = true;
 				} else {
 					clickable[i]->enabled = false;
@@ -142,4 +160,4 @@ namespace scene {
 			close();
 		}
 	}
-}
+} // namespace scene
