@@ -16,9 +16,10 @@ project(${OUTPUT} LANGUAGES CXX)
 enable_testing()
 
 # -------------------------
-# Find GoogleTest (installed via vcpkg)
+# Find GoogleTest (via setup-googletest)
 # -------------------------
-find_package(GTest CONFIG REQUIRED)
+find_package(GTest REQUIRED)
+include(GoogleTest) 
 
 # -------------------------
 # Source files to be tested
@@ -97,20 +98,19 @@ target_include_directories(${OUTPUT} PRIVATE
     ${ENTITIES_DIR}/Include
     ${SHARED_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${GTEST_INCLUDE_DIRS}
 )
-
 # -------------------------
-# Link with Criterion
+# Link with GoogleTest
 # -------------------------
 target_link_libraries(${OUTPUT}
-    GTest::gtest
-    GTest::gtest_main
+    ${GTEST_BOTH_LIBRARIES}
 )
 
 # -------------------------
 # Enable CTest integration
 # -------------------------
-include(GoogleTest)
 gtest_discover_tests(${OUTPUT}
     TEST_PREFIX "UnitTests."
+    PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
