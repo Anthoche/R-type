@@ -243,21 +243,6 @@ class ServerGame {
          */
         void update_enemy_straight(uint32_t id, float dt);
 
-        /**
-         * @brief Updates an enemy with zigzag movement pattern.
-         * @param id Enemy ID.
-         * @param dt Delta time in seconds.
-         */
-        void update_enemy_zigzag(uint32_t id, float dt);
-
-
-        void update_enemy_wave(uint32_t id, float dt);
-        
-        void update_enemy_diagonal(uint32_t id, float dt);
-        
-        void update_enemy_bomber(uint32_t id, float dt);
-        
-        void update_enemy_kamikaze(uint32_t id, float dt);
 
         /**
          * @brief Updates a boss enemy in phase 1 of its battle.
