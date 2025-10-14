@@ -78,8 +78,7 @@ private:
     Vector2 _buttonPosition{230.f, 200.f};
 
     // --- Language management ---
-    enum class Language { ENGLISH, FRENCH }; ///< Supported languages.
-    Language _currentLanguage = Language::ENGLISH;
+    Game::Language _currentLanguage = Game::Language::ENGLISH;
 
     // --- Buttons and values ---
     std::vector<std::string> _buttons{

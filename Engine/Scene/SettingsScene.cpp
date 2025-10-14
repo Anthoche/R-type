@@ -138,7 +138,7 @@ namespace scene {
 	}
 
 	void SettingsScene::createBackButton() {
-		std::string label = (_currentLanguage == Language::FRENCH ? "< Retour" : "< Back");
+		std::string label = (_currentLanguage == Game::Language::FRENCH ? "< Retour" : "< Back");
 
 		auto &texts = _registry.get_components<component::text>();
 		auto &clickable = _registry.get_components<component::clickable>();
@@ -254,8 +254,8 @@ namespace scene {
 
 	void SettingsScene::toggleSound() {
 		_values[2] = (_values[2] == "On" || _values[2] == "Active")
-			? (_currentLanguage == Language::ENGLISH ? "Off" : "Desactive")
-			: (_currentLanguage == Language::ENGLISH ? "On" : "Active");
+			? (_currentLanguage == Game::Language::ENGLISH ? "Off" : "Desactive")
+			: (_currentLanguage == Game::Language::ENGLISH ? "On" : "Active");
 		updateButtonText("button_sound", _values[2]);
 	}
 
@@ -272,17 +272,18 @@ namespace scene {
 	}
 
 	void SettingsScene::toggleLanguage() {
-		if (_currentLanguage == Language::ENGLISH) {
-			_currentLanguage = Language::FRENCH;
+		if (_currentLanguage == Game::Language::ENGLISH) {
+			_currentLanguage = Game::Language::FRENCH;
 			translateToFrench();
 		} else {
-			_currentLanguage = Language::ENGLISH;
+			_currentLanguage = Game::Language::ENGLISH;
 			translateToEnglish();
 		}
 
 		updateAllTexts();
 		updateAllButtonValues();
 		createBackButton();
+		_game.setLanguage(_currentLanguage);
 	}
 
 	void SettingsScene::translateToFrench() {

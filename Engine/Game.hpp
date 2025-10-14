@@ -69,9 +69,15 @@ class Game {
 		 */
 		void setGameStatus(const GameStatus &status);
 
+		enum class Language { ENGLISH, FRENCH };
+
+    	void setLanguage(Language lang) { _language = lang; }
+    	Language getLanguage() const { return _language; }
+
 	private:
 		GameStatus _status; ///< Status of the game
 		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
 		GameClient _client; ///< Network client handling server communication
 		std::thread _networkThread; ///< Thread for handling network communication
+		Language _language = Language::ENGLISH;
 };
