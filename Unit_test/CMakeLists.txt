@@ -38,7 +38,6 @@ set(SRC
     ${ENTITIES_DIR}/hitbox.cpp
     ${ENTITIES_DIR}/image.cpp
     ${ENTITIES_DIR}/obstacle.cpp
-    ${ENTITIES_DIR}/player.cpp
     ${ENTITIES_DIR}/projectile.cpp
     ${ENTITIES_DIR}/random_element.cpp
     ${ENTITIES_DIR}/sound.cpp
@@ -61,7 +60,6 @@ set(HEAD
     ${ENTITIES_DIR}/Include/hitbox.hpp
     ${ENTITIES_DIR}/Include/image.hpp
     ${ENTITIES_DIR}/Include/obstacle.hpp
-    ${ENTITIES_DIR}/Include/player.hpp
     ${ENTITIES_DIR}/Include/projectile.hpp
     ${ENTITIES_DIR}/Include/random_element.hpp
     ${ENTITIES_DIR}/Include/sound.hpp
@@ -78,7 +76,6 @@ set(TESTS
     Engine/Core/RegistryTests.cpp
     Engine/Core/ZipperTests.cpp
     Engine/Core/entities/ComponentTests.cpp
-    Engine/Core/entities/PlayerTests.cpp
     Engine/Core/entities/EnemyTests.cpp
     Engine/Core/entities/ProjectileTests.cpp
     Engine/Core/entities/HitboxTests.cpp

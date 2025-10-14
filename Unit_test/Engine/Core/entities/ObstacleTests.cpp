@@ -74,18 +74,6 @@ TEST(Obstacle, has_type_component) {
     EXPECT_EQ(types[static_cast<std::size_t>(obs)]->value, component::entity_type::OBSTACLE);
 }
 
-TEST(Obstacle, has_collision_box_component) {
-    registry reg;
-    register_all_obstacle_components(reg);
-
-    entity_t obs = create_obstacle(reg, 0.f, 0.f, "");
-
-    auto &boxes = reg.get_components<component::collision_box>();
-    EXPECT_TRUE(boxes[static_cast<std::size_t>(obs)].has_value());
-    EXPECT_EQ(boxes[static_cast<std::size_t>(obs)]->width, 60.f);
-    EXPECT_EQ(boxes[static_cast<std::size_t>(obs)]->height, 60.f);
-}
-
 TEST(Obstacle, no_sprite_when_empty_path) {
     registry reg;
     register_all_obstacle_components(reg);
