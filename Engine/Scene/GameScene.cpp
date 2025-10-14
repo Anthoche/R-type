@@ -257,30 +257,21 @@ namespace game::scene {
             ecs::entity_t entity = _registry.entity_from_index(i);
 
             switch (types[i]->value) {
-                case component::entity_type::PLAYER:
-                    render_player(entity, *positions[i], *drawables[i]);
-                    break;
-
-                case component::entity_type::ENEMY:
-                    render_enemy(entity, *positions[i], *drawables[i]);
-                    break;
-
                 case component::entity_type::OBSTACLE:
                     render_obstacle(entity, *positions[i], *drawables[i]);
                     break;
-
-                case component::entity_type::BACKGROUND:
-                    render_background(entity, *positions[i], *drawables[i]);
+                case component::entity_type::ENEMY:
+                    render_enemy(entity, *positions[i], *drawables[i]);
                     break;
-
                 case component::entity_type::POWERUP:
                     render_powerup(entity, *positions[i], *drawables[i]);
                     break;
-
                 case component::entity_type::PROJECTILE:
                     render_projectile(entity, *positions[i], *drawables[i]);
                     break;
-
+                case component::entity_type::PLAYER:
+                    render_player(entity, *positions[i], *drawables[i]);
+                    break;
                 default:
                     break;
             }
