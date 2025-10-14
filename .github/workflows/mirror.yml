@@ -20,13 +20,13 @@ jobs:
           tag: v1.14.0
 
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S Unit_test -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --target UnitTests -j
 
       - name: Run tests
-        run: ./build/tests --gtest_output=xml:test-results.xml
+        run: ctest --test-dir build -V --output-junit test-results.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
