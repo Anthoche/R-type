@@ -22,6 +22,11 @@ find_package(GTest REQUIRED)
 include(GoogleTest) 
 
 # -------------------------
+# Find raylib for entity headers that include <raylib.h>
+# -------------------------
+find_package(raylib QUIET)
+
+# -------------------------
 # Source files to be tested
 # -------------------------
 set(SRC
@@ -106,6 +111,11 @@ target_include_directories(${OUTPUT} PRIVATE
 target_link_libraries(${OUTPUT}
     ${GTEST_BOTH_LIBRARIES}
 )
+
+# Link raylib if found (some entity headers depend on it)
+if (raylib_FOUND)
+    target_link_libraries(${OUTPUT} raylib)
+endif()
 
 # -------------------------
 # Enable CTest integration

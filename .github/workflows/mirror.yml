@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install raylib (Ubuntu)
+        run: sudo apt-get update && sudo apt-get install -y libraylib-dev
+
       - name: Setup GoogleTest
         uses: Bacondish2023/setup-googletest@v1
         with:
