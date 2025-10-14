@@ -117,7 +117,6 @@ namespace game::parsing
     ecs::entity_t parse_enemy(ecs::registry &reg, const nlohmann::json &enemy_data)
     {
         try {
-            // Support both formats
             float x, y;
             if (enemy_data.contains("position") && enemy_data["position"].is_object()) {
                 x = enemy_data["position"]["x"];
@@ -135,14 +134,32 @@ namespace game::parsing
                 std::cerr << "[WARNING] Enemy image file not found: " << image_path << std::endl;
             }
 
-            std::cout << "[DEBUG] Parsed enemy at (" << x << ", " << y << ")" << std::endl;
+            component::movement_pattern pattern;
+            pattern.pattern = enemy_data.value("pattern", "straight");
+            pattern.amplitude = enemy_data.value("amplitude", 0.0f);
+            pattern.frequency = enemy_data.value("frequency", 0.0f);
+            pattern.radius = enemy_data.value("radius", 0.0f);
+            pattern.dive_speed = enemy_data.value("dive_speed", 0.0f);
+            pattern.climb_speed = enemy_data.value("climb_speed", 0.0f);
+            pattern.t1 = enemy_data.value("t1", 0.0f);
+            pattern.t2 = enemy_data.value("t2", 0.0f);
+            pattern.homing_strength = enemy_data.value("homing_strength", 0.0f);
+            pattern.base_speed = enemy_data.value("base_speed", 0.0f);
+            pattern.accel_frequency = enemy_data.value("accel_frequency", 0.0f);
+            pattern.accel_amplitude = enemy_data.value("accel_amplitude", 0.0f);
+            pattern.fire_rate = enemy_data.value("fire_rate", 0.0f);
 
-            return game::entities::create_enemy(reg, x, y, image_path);
+            std::cout << "[DEBUG] Parsed enemy '" << pattern.pattern
+                    << "' at (" << x << ", " << y << ")" << std::endl;
+
+            // Création de l'entité complète avec pattern
+            return game::entities::create_enemy(reg, x, y, image_path, pattern);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse enemy: ") + e.what());
         }
     }
+
 
     ecs::entity_t parse_obstacle(ecs::registry &reg, const nlohmann::json &obstacle_data)
     {

@@ -10,18 +10,19 @@
 
 namespace game::entities {
 
-ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::string &imagePath) {
+ecs::entity_t create_enemy(ecs::registry &reg, float x, float y,
+                           const std::string &imagePath,
+                           const component::movement_pattern &patternData)
+{
     auto enemy = reg.spawn_entity();
 
     reg.emplace_component<component::position>(enemy, x, y);
-
     reg.emplace_component<component::velocity>(enemy, -100.f, 0.f);
-
     reg.emplace_component<component::health>(enemy, 50, 50);
-
     reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
-
     reg.emplace_component<component::collision_box>(enemy, 40.f, 28.f);
+
+    reg.emplace_component<component::movement_pattern>(enemy, patternData);
 
     component::drawable drawable;
     drawable.width = 40.f;
@@ -29,7 +30,6 @@ ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::stri
     drawable.color = RED;
     reg.add_component<component::drawable>(enemy, std::move(drawable));
 
-    // Attach hitbox
     create_hitbox_for(reg, enemy);
 
     if (!imagePath.empty()) {
@@ -41,6 +41,7 @@ ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::stri
 
     return enemy;
 }
+
 
 void setup_enemy_ai_system(ecs::registry &reg) {
     reg.add_system<component::velocity, component::type>(

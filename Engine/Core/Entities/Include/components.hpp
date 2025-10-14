@@ -198,4 +198,27 @@ namespace component {
     struct client_id {
         uint32_t id;
     };
+
+        /**
+     * @struct movement_pattern
+     * @brief Defines the movement behavior of an enemy (zigzag, dive, etc.)
+     */
+    struct movement_pattern {
+        std::string pattern{"straight"};  ///< Type of movement pattern
+
+        // Optional parameters depending on pattern
+        float amplitude{0.f};      ///< Used by zigzag patterns
+        float frequency{0.f};      ///< Used by zigzag patterns
+        float radius{0.f};         ///< Used by circular patterns
+        float dive_speed{0.f};     ///< Used by dive_attack
+        float climb_speed{0.f};    ///< Used by dive_attack
+        float t1{0.f};             ///< Dive start time
+        float t2{0.f};             ///< Dive end time
+        float homing_strength{0.f};///< Used by homing_soft
+        float base_speed{0.f};     ///< Used by speed_wave
+        float accel_frequency{0.f};
+        float accel_amplitude{0.f};
+        float fire_rate{0.f};      ///< Optional shooting rate for AI
+    };
+
 }
