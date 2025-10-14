@@ -15,10 +15,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install vcpkg
-        run: git clone https://github.com/microsoft/vcpkg && ./vcpkg/bootstrap-vcpkg.sh
+        run: |
+          git clone https://github.com/microsoft/vcpkg
+          ./vcpkg/bootstrap-vcpkg.sh
 
       - name: Install GTest
-        run: ./vcpkg install gtest
+        run: ./vcpkg/vcpkg install gtest
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
