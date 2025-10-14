@@ -6,7 +6,7 @@
 */
 
 #include <cstdint>
-#include <criterion/criterion.h>
+#include <gtest/gtest.h>
 #include "sparse_array.hpp"
 #include "zipper.hpp"
 
@@ -26,7 +26,7 @@ struct Velocity {
 // -------------------------
 // Dereferencing (*, ->)
 // -------------------------
-Test(Zipper, dereference_returns_tuple) {
+TEST(Zipper, dereference_returns_tuple) {
     sparse_array<Position> positions;
     sparse_array<Velocity> velocities;
 
@@ -37,16 +37,16 @@ Test(Zipper, dereference_returns_tuple) {
     auto it = zip.begin();
 
     auto [pOpt, vOpt] = *it;
-    cr_assert(pOpt);
-    cr_assert_eq(pOpt->x, 10);
-    cr_assert(vOpt);
-    cr_assert_eq(vOpt->dy, 40);
+    EXPECT_TRUE(pOpt.has_value());
+    EXPECT_EQ(pOpt->x, 10);
+    EXPECT_TRUE(vOpt.has_value());
+    EXPECT_EQ(vOpt->dy, 40);
 }
 
 // -------------------------
 // Equality / inequality
 // -------------------------
-Test(Zipper, equality_operators) {
+TEST(Zipper, equality_operators) {
     sparse_array<Position> positions;
     sparse_array<Velocity> velocities;
 
@@ -59,6 +59,6 @@ Test(Zipper, equality_operators) {
     auto it2 = zip.begin();
     auto itEnd = zip.end();
 
-    cr_assert(it1 == it2, "two should be equal");
-    cr_assert(it1 != itEnd, "begin and end should differ");
+    EXPECT_TRUE(it1 == it2);
+    EXPECT_TRUE(it1 != itEnd);
 }

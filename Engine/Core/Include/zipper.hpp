@@ -12,6 +12,8 @@
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
+#include <algorithm>
+#include <initializer_list>
 
 namespace ecs::containers {
 

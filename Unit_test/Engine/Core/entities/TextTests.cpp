@@ -5,7 +5,7 @@
 ** TextTest.cpp
 */
 
-#include <criterion/criterion.h>
+#include <gtest/gtest.h>
 #include "text.hpp"
 #include "components.hpp"
 #include "registry.hpp"
@@ -20,7 +20,7 @@ static void register_all_text_components(registry &reg) {
     reg.register_component<component::type>();
 }
 
-Test(Text, has_position_and_text_component) {
+TEST(Text, has_position_and_text_component) {
     registry reg;
     register_all_text_components(reg);
 
@@ -36,20 +36,20 @@ Test(Text, has_position_and_text_component) {
     auto &drawables = reg.get_components<component::drawable>();
     auto &types = reg.get_components<component::type>();
 
-    cr_assert(positions[static_cast<std::size_t>(e)].has_value());
-    cr_assert_eq(positions[static_cast<std::size_t>(e)]->x, 50.f);
-    cr_assert_eq(positions[static_cast<std::size_t>(e)]->y, 100.f);
+    EXPECT_TRUE(positions[static_cast<std::size_t>(e)].has_value());
+    EXPECT_EQ(positions[static_cast<std::size_t>(e)]->x, 50.f);
+    EXPECT_EQ(positions[static_cast<std::size_t>(e)]->y, 100.f);
 
-    cr_assert(texts[static_cast<std::size_t>(e)].has_value());
-    cr_assert_str_eq(texts[static_cast<std::size_t>(e)]->content.c_str(), "Hello World");
-    cr_assert_eq(texts[static_cast<std::size_t>(e)]->font_size, 24);
-    cr_assert_eq(texts[static_cast<std::size_t>(e)]->color.r, 255);
-    cr_assert_eq(texts[static_cast<std::size_t>(e)]->color.g, 0);
-    cr_assert_eq(texts[static_cast<std::size_t>(e)]->color.b, 0);
-    cr_assert_eq(texts[static_cast<std::size_t>(e)]->color.a, 255);
+    EXPECT_TRUE(texts[static_cast<std::size_t>(e)].has_value());
+    EXPECT_STREQ(texts[static_cast<std::size_t>(e)]->content.c_str(), "Hello World");
+    EXPECT_EQ(texts[static_cast<std::size_t>(e)]->font_size, 24);
+    EXPECT_EQ(texts[static_cast<std::size_t>(e)]->color.r, 255);
+    EXPECT_EQ(texts[static_cast<std::size_t>(e)]->color.g, 0);
+    EXPECT_EQ(texts[static_cast<std::size_t>(e)]->color.b, 0);
+    EXPECT_EQ(texts[static_cast<std::size_t>(e)]->color.a, 255);
 
-    cr_assert(drawables[static_cast<std::size_t>(e)].has_value());
+    EXPECT_TRUE(drawables[static_cast<std::size_t>(e)].has_value());
 
-    cr_assert(types[static_cast<std::size_t>(e)].has_value());
-    cr_assert_eq(types[static_cast<std::size_t>(e)]->value, component::entity_type::TEXT);
+    EXPECT_TRUE(types[static_cast<std::size_t>(e)].has_value());
+    EXPECT_EQ(types[static_cast<std::size_t>(e)]->value, component::entity_type::TEXT);
 }

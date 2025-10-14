@@ -5,7 +5,7 @@
 ** HitboxTest.cpp
 */
 
-#include <criterion/criterion.h>
+#include <gtest/gtest.h>
 #include "hitbox.hpp"
 #include "components.hpp"
 #include "registry.hpp"
@@ -20,7 +20,7 @@ static void register_all_hitbox_components(registry &reg) {
     reg.register_component<component::hitbox_link>();
 }
 
-Test(Hitbox, sync_position_with_owner) {
+TEST(Hitbox, sync_position_with_owner) {
     registry reg;
     register_all_hitbox_components(reg);
     setup_hitbox_sync_system(reg);
@@ -39,7 +39,7 @@ Test(Hitbox, sync_position_with_owner) {
     reg.run_systems();
 
     auto &hitPos = positions[static_cast<std::size_t>(hit)];
-    cr_assert(hitPos.has_value());
-    cr_assert_eq(hitPos->x, 50.f);
-    cr_assert_eq(hitPos->y, 60.f);
+    EXPECT_TRUE(hitPos.has_value());
+    EXPECT_EQ(hitPos->x, 50.f);
+    EXPECT_EQ(hitPos->y, 60.f);
 }
