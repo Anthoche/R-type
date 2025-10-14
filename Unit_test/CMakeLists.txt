@@ -71,6 +71,7 @@ set(TESTS
     Engine/Core/EntityTests.cpp
     Engine/Core/RegistryTests.cpp
     Engine/Core/ZipperTests.cpp
+    Engine/Core/entities/ComponentTests.cpp
     Engine/Core/entities/PlayerTests.cpp
     Engine/Core/entities/EnemyTests.cpp
     Engine/Core/entities/ProjectileTests.cpp
