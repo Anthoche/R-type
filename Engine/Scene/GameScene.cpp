@@ -23,7 +23,7 @@ namespace game::scene {
         _startTime = _raylib.getTime();
         _raylib.enableCursor();
         _raylib.setTargetFPS(60);
-        
+
         // Enregistrement des composants
         _registry.register_component<component::position>();
         _registry.register_component<component::dynamic_position>();
@@ -50,13 +50,13 @@ namespace game::scene {
         game::entities::setup_player_control_system(_registry);
         game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
         game::entities::setup_hitbox_sync_system(_registry);
-        
+
         // Création des entités statiques (background, UI, etc.)
         game::entities::create_background(_registry, 400.f, 300.f, 800.f, 600.f, "assets/background.png", 1.f);
         game::entities::create_sound(_registry, "assets/music.ogg", 0.5f, true, true);
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
         game::entities::create_random_element(_registry, 600.f, 450.f, 64.f, 64.f, "assets/items/star.png", "assets/sfx/pickup.wav", 0.8f, false, false);
-        
+
         // Indexer les entités existantes dans le registre
         index_existing_entities();
         load_entity_textures();
@@ -114,7 +114,7 @@ namespace game::scene {
 
     void GameScene::load_entity_textures() {
         auto &sprites = _registry.get_components<component::sprite>();
-        
+
         for (std::size_t i = 0; i < sprites.size(); ++i) {
             if (sprites[i] && !sprites[i]->image_path.empty()) {
                 ecs::entity_t entity = _registry.entity_from_index(i);
@@ -123,10 +123,10 @@ namespace game::scene {
                     try {
                         Texture2D texture = _raylib.loadTexture(sprites[i]->image_path);
                         _entityTextures[entity.value()] = texture;
-                        std::cout << "[DEBUG] Loaded texture for entity " << entity.value() 
+                        std::cout << "[DEBUG] Loaded texture for entity " << entity.value()
                                 << " from " << sprites[i]->image_path << std::endl;
                     } catch (const std::exception &e) {
-                        std::cerr << "[ERROR] Failed to load texture for entity " << entity.value() 
+                        std::cerr << "[ERROR] Failed to load texture for entity " << entity.value()
                                 << " from " << sprites[i]->image_path << ": " << e.what() << std::endl;
                     }
                 }
@@ -232,37 +232,37 @@ namespace game::scene {
         auto &positions = _registry.get_components<component::position>();
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
-        
+
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
-            
+
             ecs::entity_t entity = _registry.entity_from_index(i);
-            
+
             switch (types[i]->value) {
                 case component::entity_type::PLAYER:
                     render_player(entity, *positions[i], *drawables[i]);
                     break;
-                    
+
                 case component::entity_type::ENEMY:
                     render_enemy(entity, *positions[i], *drawables[i]);
                     break;
-                    
+
                 case component::entity_type::OBSTACLE:
                     render_obstacle(entity, *positions[i], *drawables[i]);
                     break;
-                    
+
                 case component::entity_type::BACKGROUND:
                     render_background(entity, *positions[i], *drawables[i]);
                     break;
-                    
+
                 case component::entity_type::POWERUP:
                     render_powerup(entity, *positions[i], *drawables[i]);
                     break;
-                    
+
                 case component::entity_type::PROJECTILE:
                     render_projectile(entity, *positions[i], *drawables[i]);
                     break;
-                    
+
                 default:
                     break;
             }
@@ -442,7 +442,7 @@ namespace game::scene {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             obs = _game.getGameClient().obstacles;
         }
-        
+
         for (auto const &kv: obs) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
@@ -460,7 +460,7 @@ namespace game::scene {
     void GameScene::render_network_enemies() {
         const float ENEMY_WIDTH = 30.f;
         const float ENEMY_HEIGHT = 30.f;
-        
+
         for (auto const &kv : _game.getGameClient().enemies) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
@@ -511,7 +511,7 @@ namespace game::scene {
 
     void GameScene::render_death_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{255, 0, 0, 100});
-        
+
         const char* deathText = "YOU DIED!";
         int fontSize = 72;
         int textWidth = _raylib.measureText(deathText, fontSize);
@@ -536,8 +536,7 @@ namespace game::scene {
         update();
         float input_x = 0.f;
         float input_y = 0.f;
-        static float lastShotTime = 0.f;
-        float globalScore = 0.0f;
+        int globalScore = 0;
         uint32_t myClientId = 0;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
@@ -550,7 +549,7 @@ namespace game::scene {
         if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP)) {
             input_y = -1.f;
             moovePlayer[myClientId] = 33.0f;
-        } else if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN)) {
+        } else if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEfix Y_DOWN)) {
             moovePlayer[myClientId] = -33.0f;
             input_y = 1.f;
         } else {
@@ -560,20 +559,43 @@ namespace game::scene {
             input_x = -1.f;
         if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT))
             input_x = 1.f;
-        if (_raylib.isKeyPressed(KEY_SPACE)) {
-            float currentTime = _raylib.getTime();
-            if (currentTime - lastShotTime >= SHOOT_COOLDOWN) {
-                handle_shoot();
-                lastShotTime = currentTime;
-            }
+        if (_raylib.isKeyPressed(KEY_SPACE))
+            handle_shoot(SHOOT_COOLDOWN);
+
+        if (_raylib.isGamepadAvailable(0)) {
+            float leftStickX = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
+            float leftStickY = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
+
+            if (leftStickY > 0.2f || leftStickY < -0.2f)
+                input_y = leftStickY;
+            if (leftStickX > 0.2f || leftStickX < -0.2f)
+                input_x = leftStickX;
+
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
+                input_y = 1.f;
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
+                input_y = -1.f;
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))
+                input_x = 1.f;
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
+                input_x = -1.f;
+
+            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
+                handle_shoot(SHOOT_COOLDOWN);
         }
         handle_input(input_x, input_y);
     }
 
-    void GameScene::handle_shoot() {
-        _game.getGameClient().sendShoot();
+    void GameScene::handle_shoot(float cooldown) {
+        static float lastShotTime = 0.f;
+        
+        float currentTime = _raylib.getTime();
+        if (currentTime - lastShotTime >= cooldown) {
+            _game.getGameClient().sendShoot();
+            lastShotTime = currentTime;
+        }
     }
-    
+
     void GameScene::handle_input(float input_x, float input_y) {
         if (_isDead)
             return;
@@ -584,9 +606,9 @@ namespace game::scene {
         auto myPlayerIt = _playerEntities.find(myClientId);
         if (myPlayerIt == _playerEntities.end())
             return;
-        
+
         ecs::entity_t myPlayer = myPlayerIt->second;
-        
+
         if (myPlayer.value() < positions.size() && positions[myPlayer.value()] &&
             myPlayer.value() < controls.size() && controls[myPlayer.value()]) {
             float speed = controls[myPlayer.value()]->speed;
