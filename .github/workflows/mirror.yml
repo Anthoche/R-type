@@ -2,10 +2,12 @@ name: Mirror Repository
 
 on:
   push:
-    branches: [ '*' ]
+    branches:
+      - '**'
   pull_request:
-    branches: ['main']
-  workflow_dispatch:
+    branches:
+      - 'main'
+  workflow_dispatch: {}
 
 jobs:
   test:
