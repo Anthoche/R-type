@@ -223,6 +223,8 @@ namespace game::scene {
         _ui.render();
         if (_isDead) {
             render_death_screen();
+        } else if (_isWin) {
+            render_win_screen();
         }
         _raylib.endDrawing();
     }
@@ -518,6 +520,21 @@ namespace game::scene {
             _height / 2 - fontSize / 2,
             fontSize,
             RED
+        );
+    }
+
+    void GameScene::render_win_screen() {
+        _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
+        
+        const char* deathText = "YOU WIN!";
+        int fontSize = 72;
+        int textWidth = _raylib.measureText(deathText, fontSize);
+        _raylib.drawText(
+            deathText,
+            (_width - textWidth) / 2,
+            _height / 2 - fontSize / 2,
+            fontSize,
+            GREEN
         );
     }
 

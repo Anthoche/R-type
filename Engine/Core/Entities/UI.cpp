@@ -64,7 +64,8 @@ void UI::render() {
             playerID = myClientId;
         }
     }
-    
+    if (playerHealth < 0)
+		playerHealth = 0;
     int playerLives = (playerHealth + 24) / 25;
     int currentLive = 1;
 

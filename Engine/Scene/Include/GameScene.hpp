@@ -131,6 +131,9 @@ namespace game::scene {
          */
         void setup_ecs_collision_system();
 
+        /**
+         * @brief Setup the enemy AI system for entities.
+         */
         void setup_enemy_ai_system();
 
         /**
@@ -182,8 +185,14 @@ namespace game::scene {
          */
         void unload_entity_textures();
 
+        /**
+         * @brief Load all textures for projectiles.
+         */
         void load_projectile_textures();
 
+        /**
+         * @brief Unload all loaded projectile textures.
+         */
         void unload_projectile_textures();
 
         /**
@@ -199,6 +208,7 @@ namespace game::scene {
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
         bool _isDead = false; ///< Flag indicating if the local player is dead.
+        bool _isWin = false; ///< Flag indicating if the local player has won.
         std::unordered_map<uint32_t, Texture2D> _entityTextures; ///< Map: entity ID -> loaded texture.
         std::unordered_map<std::string, Texture2D> _projectileTextures; ///< Map: projectile type -> loaded texture.
         std::unordered_map<uint32_t, float> moovePlayer; ///< Map: client ID -> movement offset for sprite rendering.
@@ -239,6 +249,7 @@ namespace game::scene {
         void render_network_projectiles();
         void render_network_enemy_projectiles();
         void render_death_screen();
+        void render_win_screen();
 
         // --- Utilitaires ---
         Color get_color_for_id(uint32_t id);
