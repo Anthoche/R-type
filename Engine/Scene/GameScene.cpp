@@ -458,9 +458,8 @@ namespace game::scene {
             input_x = -1.f;
         if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT))
             input_x = 1.f;
-        if (_raylib.isKeyPressed(KEY_SPACE)) {
+        if (_raylib.isKeyPressed(KEY_SPACE))
             handle_shoot();
-        }
 
         if (_raylib.isGamepadAvailable(0)) {
             float leftStickX = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
@@ -480,9 +479,8 @@ namespace game::scene {
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                 input_x = -1.f;
 
-            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
                 handle_shoot();
-            }
         }
         handle_input(input_x, input_y);
     }

@@ -74,6 +74,7 @@ class MenuScene: public AScene {
         int const _buttonSpacing = 35;
         float _buttonCenterY{};
         Vector2 _buttonPosition{};
+        int _selectedButtonIndex = -1;
 
         void resetButtonStates();
         void handleButtonClick(std::string const &id);
