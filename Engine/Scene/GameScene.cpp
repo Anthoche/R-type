@@ -612,7 +612,6 @@ namespace game::scene {
 
         if (_raylib.isKeyPressed(KEY_SPACE)) {
             handle_shoot(SHOOT_COOLDOWN);
-            _raylib.playSound(_shootSound);
         }
 
         if (_raylib.isGamepadAvailable(0)) {
@@ -648,6 +647,7 @@ namespace game::scene {
         if (currentTime - lastShotTime >= cooldown) {
             _game.getGameClient().sendShoot();
             lastShotTime = currentTime;
+            _raylib.playSound(_shootSound);
         }
     }
 

@@ -244,7 +244,7 @@ namespace game::parsing
         }
     }
 
-    ecs::entity_t parse_text(ecs::registry &reg, const nlohmann::json &text_data)
+    void parse_text(ecs::registry &reg, const nlohmann::json &text_data)
     {
         try {
             // Support both formats
@@ -268,9 +268,6 @@ namespace game::parsing
             }
 
             std::cout << "[DEBUG] Parsed text: '" << content << "' at (" << x << ", " << y << ")" << std::endl;
-
-            // Uncomment when create_text is implemented
-            // return game::entities::create_text(reg, x, y, content, font_size, font_path);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse text: ") + e.what());

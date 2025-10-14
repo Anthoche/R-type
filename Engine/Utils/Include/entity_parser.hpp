@@ -22,5 +22,5 @@ namespace game::parsing
     ecs::entity_t parse_obstacle(ecs::registry &reg, const json &obstacle_data);
     ecs::entity_t parse_random_element(ecs::registry &reg, const json &element_data);
     ecs::entity_t parse_sound(ecs::registry &reg, const json &sound_data);
-    ecs::entity_t parse_text(ecs::registry &reg, const json &text_data);
+    void parse_text(ecs::registry &reg, const json &text_data);
 } // namespace game::parsing
