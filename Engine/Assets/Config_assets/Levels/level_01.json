@@ -1,5 +1,13 @@
 {
   "level": {
+        "sounds": [
+      {
+        "sound_path": "../Engine/Assets/sounds/BATTLE PRESSURE.mp3",
+        "volume": 0.5,
+        "loop": true,
+        "autoplay": true
+      }
+    ],
     "backgrounds": [
       {
         "x": 400.0,

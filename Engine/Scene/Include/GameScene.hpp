@@ -204,6 +204,12 @@ namespace game::scene {
 
         // --- Entities ---
         ecs::entity_t _player; ///< Local player entity.
+        Music _music; ///< Background music instance.
+        Sound _shootSound; ///< Sound effect for shooting.
+        Sound _victorySound; ///< Sound effect for victory.
+        Sound _defeatSound; ///< Sound effect for defeat.
+        bool _victorySoundPlayed = false; ///< Flag to track if victory sound has been played.
+        bool _defeatSoundPlayed = false; ///< Flag to track if defeat sound has been played.
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
@@ -242,6 +248,7 @@ namespace game::scene {
         void render_text(ecs::entity_t entity, const component::position &pos);
         void render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
         void render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void load_music();
 
         // --- Rendu des entités réseau ---
         void render_network_obstacles();

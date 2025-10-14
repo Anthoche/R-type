@@ -52,14 +52,14 @@ namespace game::scene {
         game::entities::setup_hitbox_sync_system(_registry);
         
         // Création des entités statiques (background, UI, etc.)
-        game::entities::create_sound(_registry, "assets/music.ogg", 0.5f, true, true);
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
-        game::entities::create_random_element(_registry, 600.f, 450.f, 64.f, 64.f, "assets/items/star.png", "assets/sfx/pickup.wav", 0.8f, false, false);
+        game::entities::create_sound(_registry, "../Engine/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
         
         // Indexer les entités existantes dans le registre
         index_existing_entities();
         load_entity_textures();
         load_projectile_textures();
+        load_music();
     }
 
     void GameScene::index_existing_entities() {
@@ -157,8 +157,6 @@ namespace game::scene {
         return nullptr;
     }
 
-
-
     void GameScene::update() {
         if (!_game_running) return;
 
@@ -214,6 +212,7 @@ namespace game::scene {
         _raylib.clearBackground(GRAY);
         _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
         
+        _raylib.updateMusicStream(_music);
         render_entities();
         render_network_obstacles();
         render_network_enemies();
@@ -225,6 +224,16 @@ namespace game::scene {
             render_death_screen();
         } else if (_isWin) {
             render_win_screen();
+        }
+        if (_isDead && !_defeatSoundPlayed) {
+            _raylib.stopMusicStream(_music);
+            _raylib.playSound(_defeatSound);
+            _defeatSoundPlayed = true;
+        }
+        if (_isWin && !_victorySoundPlayed) {
+            _raylib.stopMusicStream(_music);
+            _raylib.playSound(_victorySound);
+            _victorySoundPlayed = true;
         }
         _raylib.endDrawing();
     }
@@ -266,6 +275,32 @@ namespace game::scene {
                     break;
             }
         }
+    }
+
+    void GameScene::load_music() {
+        _raylib.initAudioDevice();
+
+        auto &audios = _registry.get_components<component::audio>();
+
+        for (std::size_t i = 0; i < audios.size(); ++i) {
+            if (!audios[i]) continue;
+
+            const auto &audio = *audios[i];
+            if (!std::filesystem::exists(audio.sound_path))
+                continue;
+            _music = _raylib.loadMusicStream(audio.sound_path);
+            _music.looping = audio.loop;
+            _raylib.setMusicVolume(_music, audio.volume);
+            _raylib.playMusicStream(_music);
+            _raylib.updateMusicStream(_music);
+            break;
+        }
+         _shootSound = _raylib.loadSound("../Engine/Assets/sounds/shoot.wav");
+        _raylib.setSoundVolume(_shootSound, 0.8f);
+        _victorySound = _raylib.loadSound("../Engine/Assets/sounds/victory.wav");
+        _raylib.setSoundVolume(_victorySound, 0.8f);
+        _defeatSound = _raylib.loadSound("../Engine/Assets/sounds/defeat.wav");
+        _raylib.setSoundVolume(_defeatSound, 0.8f);
     }
 
     void GameScene::render_network_projectiles() {
@@ -579,6 +614,7 @@ namespace game::scene {
             if (currentTime - lastShotTime >= SHOOT_COOLDOWN) {
                 handle_shoot();
                 lastShotTime = currentTime;
+                _raylib.playSound(_shootSound);
             }
         }
         handle_input(input_x, input_y);
@@ -671,6 +707,12 @@ namespace game::scene {
     }
 
     void GameScene::onClose() {
+        _raylib.unloadSound(_shootSound);
+        _raylib.unloadSound(_victorySound);
+        _raylib.unloadSound(_defeatSound);
+        _raylib.stopMusicStream(_music);
+        _raylib.unloadMusicStream(_music);
+        _raylib.closeAudioDevice();
         _game_running = false;
         _ui.unload();
         unload_entity_textures();

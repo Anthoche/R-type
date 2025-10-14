@@ -512,6 +512,32 @@ class Raylib {
 		 */
 		void setMusicVolume(Music const &music, float volume);
 
+        /**
+         * @brief play a sound from VRAM.
+         * @param sound The sound to play.
+         */
+        void playSound(Sound const &sound);
+
+        /**
+         * Changes sound volume
+         * @param sound The sound to change volume
+         * @param volume The volume value
+         */
+        void setSoundVolume(Sound const &sound, float volume);
+
+        /**
+         * @brief Loads a sound from file
+         * @param fileName The file path to the sound.
+         * @return The loaded sound
+         */
+        Sound loadSound(std::string const &fileName);
+
+        /**
+         * @brief Unload and free a sound from VRAM.
+         * @param sound The sound to unload.
+         */ 
+        void unloadSound(Sound const &sound);
+
 		/**
 		 * @brief Load shader from files and bind default locations
 		 * @param vsFileName File name for vertex shader
