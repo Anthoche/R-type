@@ -77,14 +77,17 @@ class SettingsScene : public AScene {
         Vector2 _buttonPosition{230.f, 200.f};
 
         // --- Buttons and options ---
-        std::vector<std::string> _buttons{"1. Difficulty", "2. Lives", "3. Sound"};
-        std::vector<std::string> _values{"Medium", "3", "On"};
+        std::vector<std::string> _buttons{"1. Difficulty", "2. Lives", "3. Sound", "4. Language"};
+        std::vector<std::string> _values{"Medium", "3", "On", "English"};
 
         std::vector<std::string> _levels{"Easy", "Medium", "Hard"};
         std::size_t _currentLevelIndex{0};
 
         std::vector<std::string> _lives{"3", "5", "7"};
         std::size_t _currentLivesIndex{0};
+
+        std::vector<std::string> _languages{"English", "Francais"};
+        std::size_t _currentLanguageIndex{0};
 
         bool _soundOn = true;
 
@@ -164,6 +167,9 @@ class SettingsScene : public AScene {
         */
         void createSoundButton(Vector2 pos, std::size_t i);
 
+
+        void createLanguageButton(Vector2 pos, std::size_t i);
+
         /**
         * @brief Create a default text entity (for options without buttons).
         */
@@ -183,6 +189,8 @@ class SettingsScene : public AScene {
         * @brief Cycle through the available difficulty levels.
         */
         void cycleDifficulty();
+
+        void cycleLanguage();
 
         /**
         * @brief Update the text of a button by its ID.

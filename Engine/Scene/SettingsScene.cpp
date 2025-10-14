@@ -63,7 +63,8 @@ namespace scene {
 		std::vector<ButtonCreator> creators = {
 			&SettingsScene::createDifficultyButton,
 			&SettingsScene::createLivesButton,
-			&SettingsScene::createSoundButton
+			&SettingsScene::createSoundButton,
+		    &SettingsScene::createLanguageButton
 		};
 
 		for (size_t i = 0; i < _buttons.size(); ++i) {
@@ -104,6 +105,13 @@ namespace scene {
 		game::entities::create_button(
 			_registry, "button_sound", _values[i],
 			pos, {100.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+		);
+	}
+
+	void SettingsScene::createLanguageButton(Vector2 pos, std::size_t i) {
+		game::entities::create_button(
+			_registry, "button_language", _values[i],
+			pos, {160.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
 		);
 	}
 
@@ -193,9 +201,6 @@ namespace scene {
 				}
 			}
 		}
-		// if (_raylib.isKeyPressed(KEY_ESCAPE)) {
-		//    _game.getSceneHandler().open("menu");
-		// }
 	}
 
 	void SettingsScene::handleButtonClick(std::string const &id) {
@@ -210,6 +215,8 @@ namespace scene {
 			cycleLives();
 		} else if (id == "button_difficulty") {
 			cycleDifficulty();
+		} else if (id == "button_language") {
+    		cycleLanguage();
 		}
 	}
 
@@ -228,6 +235,12 @@ namespace scene {
 		_currentLevelIndex = (_currentLevelIndex + 1) % _levels.size();
 		_values[0] = _levels[_currentLevelIndex];
 		updateButtonText("button_difficulty", _values[0]);
+	}
+
+	void SettingsScene::cycleLanguage() {
+    	_currentLanguageIndex = (_currentLanguageIndex + 1) % _languages.size();
+    	_values[3] = _languages[_currentLanguageIndex];
+    	updateButtonText("button_language", _values[3]);
 	}
 
 	void SettingsScene::updateButtonText(const std::string &buttonId, const std::string &newText) {
