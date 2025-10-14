@@ -103,6 +103,9 @@ namespace game::scene {
          */
         const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
 
+
+        Game &getGame() { return _game; }
+
     private:
         // --- Game logic ---
         /**
