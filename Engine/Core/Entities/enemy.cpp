@@ -43,19 +43,7 @@ ecs::entity_t create_enemy(ecs::registry &reg, float x, float y,
 }
 
 
-void setup_enemy_ai_system(ecs::registry &reg) {
-    reg.add_system<component::velocity, component::type>(
-        [](ecs::registry &reg,
-           ecs::sparse_array<component::velocity> &vel,
-           ecs::sparse_array<component::type> &type) {
-            (void)reg;
-            for (std::size_t i = 0; i < vel.size() && i < type.size(); ++i) {
-                if (vel[i] && type[i] && type[i]->value == component::entity_type::ENEMY) {
-                    if (vel[i]->vx > -100.f) vel[i]->vx = -100.f;
-                }
-            }
-        });
-}
+void setup_enemy_ai_system(ecs::registry &reg) {}
 
 }
 

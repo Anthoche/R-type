@@ -60,6 +60,21 @@ namespace game::serializer {
             j["collision_width"] = cbox->width;
             j["collision_height"] = cbox->height;
         }
+        if (auto pattern = reg.get_components<component::movement_pattern>()[static_cast<std::size_t>(entity)]) {
+            j["pattern"] = pattern->pattern;
+            j["amplitude"] = pattern->amplitude;
+            j["frequency"] = pattern->frequency;
+            j["radius"] = pattern->radius;
+            j["dive_speed"] = pattern->dive_speed;
+            j["climb_speed"] = pattern->climb_speed;
+            j["t1"] = pattern->t1;
+            j["t2"] = pattern->t2;
+            j["homing_strength"] = pattern->homing_strength;
+            j["base_speed"] = pattern->base_speed;
+            j["accel_frequency"] = pattern->accel_frequency;
+            j["accel_amplitude"] = pattern->accel_amplitude;
+            j["fire_rate"] = pattern->fire_rate;
+        }
         return j;
     }
 

@@ -199,7 +199,7 @@ namespace component {
         uint32_t id;
     };
 
-        /**
+    /**
      * @struct movement_pattern
      * @brief Defines the movement behavior of an enemy (zigzag, dive, etc.)
      */

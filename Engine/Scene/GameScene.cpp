@@ -40,6 +40,8 @@ namespace game::scene {
         _registry.register_component<component::text>();
         _registry.register_component<component::previous_position>();
         _registry.register_component<component::client_id>();
+        _registry.register_component<component::movement_pattern>();
+
         _ui.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 
@@ -123,8 +125,6 @@ namespace game::scene {
                     try {
                         Texture2D texture = _raylib.loadTexture(sprites[i]->image_path);
                         _entityTextures[entity.value()] = texture;
-                        std::cout << "[DEBUG] Loaded texture for entity " << entity.value() 
-                                << " from " << sprites[i]->image_path << std::endl;
                     } catch (const std::exception &e) {
                         std::cerr << "[ERROR] Failed to load texture for entity " << entity.value() 
                                 << " from " << sprites[i]->image_path << ": " << e.what() << std::endl;
@@ -132,6 +132,7 @@ namespace game::scene {
                 }
             }
         }
+        std::cout << "[DEBUG] Loaded all entity textures" << std::endl;
     }
 
     void GameScene::unload_projectile_textures() {

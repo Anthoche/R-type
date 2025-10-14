@@ -42,25 +42,30 @@ void ServerGame::update_enemies(float dt) {
     std::lock_guard<std::mutex> lock(mtx);
     std::vector<ecs::entity_t> enemiesCopy = _enemies;
 
+    auto &patterns = registry_server.get_components<component::movement_pattern>();
+
     for (auto entity : enemiesCopy) {
         auto pos = get_component_ptr<component::position>(registry_server, entity);
         if (!pos) continue;
 
         uint32_t id = static_cast<uint32_t>(entity);
-        std::string pattern = "default";
-        auto it = enemyPatterns.find(id);
-        if (it != enemyPatterns.end()) pattern = it->second;
-
+        std::size_t idx = static_cast<std::size_t>(entity);
+        
+        if (idx >= patterns.size() || !patterns[idx]) {
+            update_enemy_default(id, dt);
+            continue;
+        }
+        std::string pattern = patterns[idx]->pattern;
         if (pattern == "straight") update_enemy_straight(id, dt);
         else if (pattern == "zigzag") update_enemy_zigzag(id, dt);
-        else if (pattern == "circle") update_enemy_circle(id, dt);
-        else if (pattern == "turret") update_enemy_turret(id, dt);
+        else if (pattern == "wave") update_enemy_wave(id, dt);
+        else if (pattern == "diagonal") update_enemy_diagonal(id, dt);
+        else if (pattern == "bomber") update_enemy_bomber(id, dt);
+        else if (pattern == "kamikaze") update_enemy_kamikaze(id, dt);
         else if (pattern == "boss_phase1") update_enemy_boss_phase1(id, dt);
         else update_enemy_default(id, dt);
-        update_enemy_turret(id, dt);
 
-        pos = get_component_ptr<component::position>(registry_server, entity);
-        if (pos) broadcast_enemy_update(id, pos->x, pos->y);
+        if (pos) ;
     }
 }
 
@@ -71,9 +76,13 @@ void ServerGame::update_enemy_default(uint32_t id, float dt) {
     if (!pos) return;
 
     float vx = -50.f, vy = 0.f;
-    if (vel) { vx = vel->vx; vy = vel->vy; }
+    if (vel) {
+        vx = vel->vx;
+        vy = vel->vy;
+    }
     pos->x += vx * dt;
     pos->y += vy * dt;
+    broadcast_enemy_update(id, pos->x, pos->y);
 }
 
 void ServerGame::update_enemy_straight(uint32_t id, float dt) {
@@ -87,70 +96,82 @@ void ServerGame::update_enemy_zigzag(uint32_t id, float dt) {
     if (!pos) return;
 
     float baseVx = -80.f;
-    if (vel) baseVx = vel->vx;
+    if (vel)
+        baseVx = vel->vx;
 
     const float amplitude = 30.f;
     const float wavelength = 50.f;
     pos->x += baseVx * dt;
     pos->y += std::sin(pos->x / wavelength) * amplitude * dt;
+    broadcast_enemy_update(id, pos->x, pos->y);
 }
 
-void ServerGame::update_enemy_circle(uint32_t id, float dt) {
-    static std::unordered_map<uint32_t, float> angles;
-    static std::unordered_map<uint32_t, std::pair<float, float>> centers;
-
+void ServerGame::update_enemy_wave(uint32_t id, float dt) {
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
-    auto vel = get_component_ptr<component::velocity>(registry_server, entity);
     if (!pos) return;
 
-    if (centers.find(id) == centers.end()) {
-        centers[id] = std::make_pair(pos->x, pos->y);
-        angles[id] = 0.f;
-    }
+    static std::unordered_map<uint32_t, float> timers;
+    timers[id] += dt;
 
-    float radius = 100.f;
-    float speed = 1.f;
-    if (vel) {
-        float mag = std::sqrt(vel->vx*vel->vx + vel->vy*vel->vy);
-        if (mag > 10.f) radius = mag;
-        speed = radius / 50.f;
-    }
+    float vx = -80.f;
+    float amplitude = 40.f;
+    float frequency = 2.0f;
 
-    angles[id] += speed * dt;
-    const auto &c = centers[id];
-    pos->x = c.first + std::cos(angles[id]) * radius;
-    pos->y = c.second + std::sin(angles[id]) * radius;
-}
-
-void ServerGame::update_enemy_turret(uint32_t id, float dt) {
-    static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
-    static const float SHOOT_COOLDOWN = 2.0f;
-    
-    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
-    auto pos = get_component_ptr<component::position>(registry_server, entity);
-    auto vel = get_component_ptr<component::velocity>(registry_server, entity);
-    if (!pos) return;
-
-    float vx = -30.f, vy = 0.f;
-    if (vel) { vx = vel->vx; vy = vel->vy; }
     pos->x += vx * dt;
-    pos->y += vy * dt;
-    
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    
-    if (lastShootTime.find(id) == lastShootTime.end()) {
-        lastShootTime[id] = currentTime;
-    }
-    
-    auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
-        currentTime - lastShootTime[id]
-    ).count();
-    
-    if (elapsed >= SHOOT_COOLDOWN) {
-        shoot_enemy_projectile(id, pos->x, pos->y, -200.f, 0.f);
-        lastShootTime[id] = currentTime;
-    }
+    pos->y += std::sin(timers[id] * frequency) * amplitude * dt;
+    broadcast_enemy_update(id, pos->x, pos->y);
+}
+
+void ServerGame::update_enemy_diagonal(uint32_t id, float dt) {
+    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
+    auto pos = get_component_ptr<component::position>(registry_server, entity);
+    if (!pos) return;
+
+    static std::unordered_map<uint32_t, float> dirY;
+    if (dirY.find(id) == dirY.end()) dirY[id] = 1.f;
+
+    pos->x -= 100.f * dt;
+    pos->y += dirY[id] * 80.f * dt;
+
+    if (pos->y < 100.f || pos->y > 700.f)
+        dirY[id] *= -1.f;
+    broadcast_enemy_update(id, pos->x, pos->y);
+
+}
+
+void ServerGame::update_enemy_bomber(uint32_t id, float dt) {
+    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
+    auto pos = get_component_ptr<component::position>(registry_server, entity);
+    if (!pos) return;
+
+    static std::unordered_map<uint32_t, float> timers;
+    timers[id] += dt;
+
+    float vx = -40.f;
+    float amplitude = 60.f;
+    float frequency = 1.2f;
+
+    pos->x += vx * dt;
+    pos->y += std::sin(timers[id] * frequency) * amplitude * dt;
+    broadcast_enemy_update(id, pos->x, pos->y);
+}
+
+void ServerGame::update_enemy_kamikaze(uint32_t id, float dt) {
+    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
+    auto pos = get_component_ptr<component::position>(registry_server, entity);
+    if (!pos) return;
+
+    static std::unordered_map<uint32_t, float> timers;
+    timers[id] += dt;
+
+    float entrySpeed = -300.f;
+    float slowSpeed = -80.f;
+    float vx = (timers[id] < 1.0f) ? entrySpeed : slowSpeed;
+
+    pos->x += vx * dt;
+    pos->y += std::sin(timers[id] * 3.f) * 40.f * dt;
+    broadcast_enemy_update(id, pos->x, pos->y);
 }
 
 void ServerGame::update_enemy_boss_phase1(uint32_t id, float dt) {
@@ -166,6 +187,7 @@ void ServerGame::update_enemy_boss_phase1(uint32_t id, float dt) {
     const float freq = 0.5f;
     pos->x += vx * dt;
     pos->y += std::sin(pos->x * freq) * amplitude * dt;
+    broadcast_enemy_update(id, pos->x, pos->y);
 }
 
 void ServerGame::check_player_enemy_collisions() {
