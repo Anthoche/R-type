@@ -74,8 +74,9 @@ namespace game::scene {
 
         /**
          * @brief handle shoot input.
+         * @param cooldown Cooldown for shoot
          */
-        void handle_shoot();
+        void handle_shoot(float cooldown);
 
         /**
          * @brief Handle player input.

@@ -536,8 +536,7 @@ namespace game::scene {
         update();
         float input_x = 0.f;
         float input_y = 0.f;
-        static float lastShotTime = 0.f;
-        float globalScore = 0.0f;
+        int globalScore = 0;
         uint32_t myClientId = 0;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
@@ -550,7 +549,7 @@ namespace game::scene {
         if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP)) {
             input_y = -1.f;
             moovePlayer[myClientId] = 33.0f;
-        } else if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN)) {
+        } else if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEfix Y_DOWN)) {
             moovePlayer[myClientId] = -33.0f;
             input_y = 1.f;
         } else {
@@ -561,7 +560,7 @@ namespace game::scene {
         if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT))
             input_x = 1.f;
         if (_raylib.isKeyPressed(KEY_SPACE))
-            handle_shoot();
+            handle_shoot(SHOOT_COOLDOWN);
 
         if (_raylib.isGamepadAvailable(0)) {
             float leftStickX = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
@@ -582,17 +581,16 @@ namespace game::scene {
                 input_x = -1.f;
 
             if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
-                handle_shoot();
+                handle_shoot(SHOOT_COOLDOWN);
         }
         handle_input(input_x, input_y);
     }
 
-    void GameScene::handle_shoot() {
+    void GameScene::handle_shoot(float cooldown) {
         static float lastShotTime = 0.f;
-        const float SHOOT_COOLDOWN = 0.3f;
         
         float currentTime = _raylib.getTime();
-        if (currentTime - lastShotTime >= SHOOT_COOLDOWN) {
+        if (currentTime - lastShotTime >= cooldown) {
             _game.getGameClient().sendShoot();
             lastShotTime = currentTime;
         }
