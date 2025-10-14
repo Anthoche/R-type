@@ -58,11 +58,11 @@ class MenuScene: public AScene {
          */
         void onClose() override;
 
-    /**
-     * @brief Update the menu buttons' text based on the selected language.
-     * @param isFrench True if French, false if English.
-     */
-            void updateLanguage(bool isFrench);
+        /**
+        * @brief Update the menu buttons' text based on the selected language.
+        * @param isFrench True if French, false if English.
+        */
+        void updateLanguage(bool isFrench);
 
     private:
         Game &_game; ///< Reference to the game instance.
