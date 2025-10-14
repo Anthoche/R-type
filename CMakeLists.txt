@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    CACHE STRING "Vcpkg toolchain file")
+set(VCPKG_TOOLCHAIN_CANDIDATE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+if(EXISTS "${VCPKG_TOOLCHAIN_CANDIDATE}")
+    set(CMAKE_TOOLCHAIN_FILE "${VCPKG_TOOLCHAIN_CANDIDATE}" CACHE STRING "Vcpkg toolchain file")
+endif()
 
 project(rtype LANGUAGES CXX)
 
@@ -14,9 +16,10 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE
-        "${CMAKE_SOURCE_DIR}/external/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        CACHE STRING "Vcpkg toolchain file")
+    set(VCPKG_TOOLCHAIN_FALLBACK "${CMAKE_SOURCE_DIR}/external/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    if(EXISTS "${VCPKG_TOOLCHAIN_FALLBACK}")
+        set(CMAKE_TOOLCHAIN_FILE "${VCPKG_TOOLCHAIN_FALLBACK}" CACHE STRING "Vcpkg toolchain file")
+    endif()
 endif()
 
 # -------------------------
