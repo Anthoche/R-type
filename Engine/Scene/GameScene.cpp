@@ -12,7 +12,7 @@
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
-        : AScene(800, 600, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib) {
+        : AScene(1920, 1080, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib) {
         _raylib = Raylib();
         _game_running = true;
         _startTime = 0.f;
@@ -23,7 +23,7 @@ namespace game::scene {
         _startTime = _raylib.getTime();
         _raylib.enableCursor();
         _raylib.setTargetFPS(60);
-        
+
         // Enregistrement des composants
         _registry.register_component<component::position>();
         _registry.register_component<component::dynamic_position>();
@@ -50,17 +50,16 @@ namespace game::scene {
         game::entities::setup_player_control_system(_registry);
         game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
         game::entities::setup_hitbox_sync_system(_registry);
-        
+
         // Création des entités statiques (background, UI, etc.)
-        game::entities::create_background(_registry, 400.f, 300.f, 800.f, 600.f, "assets/background.png", 1.f);
-        game::entities::create_sound(_registry, "assets/music.ogg", 0.5f, true, true);
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
-        game::entities::create_random_element(_registry, 600.f, 450.f, 64.f, 64.f, "assets/items/star.png", "assets/sfx/pickup.wav", 0.8f, false, false);
+        game::entities::create_sound(_registry, "../Engine/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
         
         // Indexer les entités existantes dans le registre
         index_existing_entities();
         load_entity_textures();
         load_projectile_textures();
+        load_music();
     }
 
     void GameScene::index_existing_entities() {
@@ -114,7 +113,7 @@ namespace game::scene {
 
     void GameScene::load_entity_textures() {
         auto &sprites = _registry.get_components<component::sprite>();
-        
+
         for (std::size_t i = 0; i < sprites.size(); ++i) {
             if (sprites[i] && !sprites[i]->image_path.empty()) {
                 ecs::entity_t entity = _registry.entity_from_index(i);
@@ -123,10 +122,10 @@ namespace game::scene {
                     try {
                         Texture2D texture = _raylib.loadTexture(sprites[i]->image_path);
                         _entityTextures[entity.value()] = texture;
-                        std::cout << "[DEBUG] Loaded texture for entity " << entity.value() 
+                        std::cout << "[DEBUG] Loaded texture for entity " << entity.value()
                                 << " from " << sprites[i]->image_path << std::endl;
                     } catch (const std::exception &e) {
-                        std::cerr << "[ERROR] Failed to load texture for entity " << entity.value() 
+                        std::cerr << "[ERROR] Failed to load texture for entity " << entity.value()
                                 << " from " << sprites[i]->image_path << ": " << e.what() << std::endl;
                     }
                 }
@@ -157,8 +156,6 @@ namespace game::scene {
         }
         return nullptr;
     }
-
-
 
     void GameScene::update() {
         if (!_game_running) return;
@@ -213,17 +210,30 @@ namespace game::scene {
     void GameScene::render() {
         _raylib.beginDrawing();
         _raylib.clearBackground(GRAY);
-        _ui.render();
         _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
-
+        
+        _raylib.updateMusicStream(_music);
         render_entities();
         render_network_obstacles();
         render_network_enemies();
         render_network_projectiles();
         render_network_enemy_projectiles();
-
+        
+        _ui.render();
         if (_isDead) {
             render_death_screen();
+        } else if (_isWin) {
+            render_win_screen();
+        }
+        if (_isDead && !_defeatSoundPlayed) {
+            _raylib.stopMusicStream(_music);
+            _raylib.playSound(_defeatSound);
+            _defeatSoundPlayed = true;
+        }
+        if (_isWin && !_victorySoundPlayed) {
+            _raylib.stopMusicStream(_music);
+            _raylib.playSound(_victorySound);
+            _victorySoundPlayed = true;
         }
         _raylib.endDrawing();
     }
@@ -232,41 +242,66 @@ namespace game::scene {
         auto &positions = _registry.get_components<component::position>();
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
-        
+
+                for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
+            if (!positions[i] || !drawables[i] || !types[i])
+                continue;
+            if (types[i]->value == component::entity_type::BACKGROUND) {
+                ecs::entity_t entity = _registry.entity_from_index(i);
+                render_background(entity, *positions[i], *drawables[i]);
+            }
+        }        
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
-            
+
             ecs::entity_t entity = _registry.entity_from_index(i);
-            
+
             switch (types[i]->value) {
-                case component::entity_type::PLAYER:
-                    render_player(entity, *positions[i], *drawables[i]);
-                    break;
-                    
-                case component::entity_type::ENEMY:
-                    render_enemy(entity, *positions[i], *drawables[i]);
-                    break;
-                    
                 case component::entity_type::OBSTACLE:
                     render_obstacle(entity, *positions[i], *drawables[i]);
                     break;
-                    
-                case component::entity_type::BACKGROUND:
-                    render_background(entity, *positions[i], *drawables[i]);
+                case component::entity_type::ENEMY:
+                    render_enemy(entity, *positions[i], *drawables[i]);
                     break;
-                    
                 case component::entity_type::POWERUP:
                     render_powerup(entity, *positions[i], *drawables[i]);
                     break;
-                    
                 case component::entity_type::PROJECTILE:
                     render_projectile(entity, *positions[i], *drawables[i]);
                     break;
-                    
+                case component::entity_type::PLAYER:
+                    render_player(entity, *positions[i], *drawables[i]);
+                    break;
                 default:
                     break;
             }
         }
+    }
+
+    void GameScene::load_music() {
+        _raylib.initAudioDevice();
+
+        auto &audios = _registry.get_components<component::audio>();
+
+        for (std::size_t i = 0; i < audios.size(); ++i) {
+            if (!audios[i]) continue;
+
+            const auto &audio = *audios[i];
+            if (!std::filesystem::exists(audio.sound_path))
+                continue;
+            _music = _raylib.loadMusicStream(audio.sound_path);
+            _music.looping = audio.loop;
+            _raylib.setMusicVolume(_music, audio.volume);
+            _raylib.playMusicStream(_music);
+            _raylib.updateMusicStream(_music);
+            break;
+        }
+         _shootSound = _raylib.loadSound("../Engine/Assets/sounds/shoot.wav");
+        _raylib.setSoundVolume(_shootSound, 0.8f);
+        _victorySound = _raylib.loadSound("../Engine/Assets/sounds/victory.wav");
+        _raylib.setSoundVolume(_victorySound, 0.8f);
+        _defeatSound = _raylib.loadSound("../Engine/Assets/sounds/defeat.wav");
+        _raylib.setSoundVolume(_defeatSound, 0.8f);
     }
 
     void GameScene::render_network_projectiles() {
@@ -322,7 +357,7 @@ namespace game::scene {
             }
             float spriteOffsetY = 0.0f + (17.0f * (clientId % 4));
             Rectangle sourceRec = {66.0f + spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)_width / 40.0f, (float)_height / 40.0f};
             Vector2 origin = {0.0f, 0.0f};
             auto &sprites = _registry.get_components<component::sprite>();
             float rotation = 0.0f;
@@ -387,15 +422,15 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
+            _backgroundScrollX -= 0.2f;
+            if (_backgroundScrollX <= -(float)_width)
+                _backgroundScrollX = 0.0f;
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Rectangle destRec = {_backgroundScrollX, 0.0f, (float)_width, (float)_height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
-            auto &sprites = _registry.get_components<component::sprite>();
-            if (entity.value() < sprites.size() && sprites[entity.value()]) {
-                rotation = sprites[entity.value()]->rotation;
-            }
-            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, 0.0f, WHITE);
+            Rectangle destRec2 = {_backgroundScrollX + _width, 0.0f, (float)_width, (float)_height};
+            _raylib.drawTexturePro(*texture, sourceRec, destRec2, origin, 0.0f, WHITE);
         }
     }
 
@@ -442,7 +477,7 @@ namespace game::scene {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             obs = _game.getGameClient().obstacles;
         }
-        
+
         for (auto const &kv: obs) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
@@ -460,7 +495,7 @@ namespace game::scene {
     void GameScene::render_network_enemies() {
         const float ENEMY_WIDTH = 30.f;
         const float ENEMY_HEIGHT = 30.f;
-        
+
         for (auto const &kv : _game.getGameClient().enemies) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
@@ -525,6 +560,21 @@ namespace game::scene {
         );
     }
 
+    void GameScene::render_win_screen() {
+        _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
+        
+        const char* deathText = "YOU WIN!";
+        int fontSize = 72;
+        int textWidth = _raylib.measureText(deathText, fontSize);
+        _raylib.drawText(
+            deathText,
+            (_width - textWidth) / 2,
+            _height / 2 - fontSize / 2,
+            fontSize,
+            GREEN
+        );
+    }
+
     Color GameScene::get_color_for_id(uint32_t id) {
         static Color palette[] = {
             RAYWHITE, BLUE, GREEN, YELLOW, ORANGE,
@@ -537,8 +587,7 @@ namespace game::scene {
         update();
         float input_x = 0.f;
         float input_y = 0.f;
-        static float lastShotTime = 0.f;
-        float globalScore = 0.0f;
+        int globalScore = 0;
         uint32_t myClientId = 0;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
@@ -561,20 +610,48 @@ namespace game::scene {
             input_x = -1.f;
         if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT))
             input_x = 1.f;
+
         if (_raylib.isKeyPressed(KEY_SPACE)) {
-            float currentTime = _raylib.getTime();
-            if (currentTime - lastShotTime >= SHOOT_COOLDOWN) {
-                handle_shoot();
-                lastShotTime = currentTime;
+            handle_shoot(SHOOT_COOLDOWN);
+        }
+
+        if (_raylib.isGamepadAvailable(0)) {
+            float leftStickX = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
+            float leftStickY = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
+
+            if (leftStickY > 0.2f || leftStickY < -0.2f)
+                input_y = leftStickY;
+            if (leftStickX > 0.2f || leftStickX < -0.2f)
+                input_x = leftStickX;
+
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
+                input_y = 1.f;
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
+                input_y = -1.f;
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))
+                input_x = 1.f;
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
+                input_x = -1.f;
+
+            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+                handle_shoot(SHOOT_COOLDOWN);
+                _raylib.playSound(_shootSound);
             }
         }
         handle_input(input_x, input_y);
     }
 
-    void GameScene::handle_shoot() {
-        _game.getGameClient().sendShoot();
+    void GameScene::handle_shoot(float cooldown) {
+        static float lastShotTime = 0.f;
+        
+        float currentTime = _raylib.getTime();
+        if (currentTime - lastShotTime >= cooldown) {
+            _game.getGameClient().sendShoot();
+            lastShotTime = currentTime;
+            _raylib.playSound(_shootSound);
+        }
     }
-    
+
     void GameScene::handle_input(float input_x, float input_y) {
         if (_isDead)
             return;
@@ -585,9 +662,9 @@ namespace game::scene {
         auto myPlayerIt = _playerEntities.find(myClientId);
         if (myPlayerIt == _playerEntities.end())
             return;
-        
+
         ecs::entity_t myPlayer = myPlayerIt->second;
-        
+
         if (myPlayer.value() < positions.size() && positions[myPlayer.value()] &&
             myPlayer.value() < controls.size() && controls[myPlayer.value()]) {
             float speed = controls[myPlayer.value()]->speed;
@@ -658,6 +735,12 @@ namespace game::scene {
     }
 
     void GameScene::onClose() {
+        _raylib.unloadSound(_shootSound);
+        _raylib.unloadSound(_victorySound);
+        _raylib.unloadSound(_defeatSound);
+        _raylib.stopMusicStream(_music);
+        _raylib.unloadMusicStream(_music);
+        _raylib.closeAudioDevice();
         _game_running = false;
         _ui.unload();
         unload_entity_textures();

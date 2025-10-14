@@ -22,7 +22,7 @@ UI::UI(game::scene::GameScene &scene, ecs::registry &reg, Raylib &raylib) : _sce
 }
 
 void UI::init() {
-	Color textColor = BLACK;
+	Color textColor = WHITE;
 	_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
 	Image heartImage = LoadImage(ASSETS_PATH"/sprites/heart.png");
 	Image heartEmptyImage = LoadImage(ASSETS_PATH"/sprites/heart_empty.png");
@@ -93,7 +93,8 @@ void UI::render() {
             playerID = myClientId;
         }
     }
-    
+    if (playerHealth < 0)
+		playerHealth = 0;
     int playerLives = (playerHealth + 24) / 25;
     int currentLive = 1;
 
@@ -144,7 +145,7 @@ void UI::render() {
     {
         std::string healthText = std::format("HP: {}/{}", playerHealth, maxHealth);
         Vector2 healthPos = {_margin.x, _raylib.getRenderHeight() - _margin.y - 30.f};
-        Color healthColor = BLACK;
+        Color healthColor = WHITE;
         
         if (playerHealth <= 25) {
             healthColor = RED;

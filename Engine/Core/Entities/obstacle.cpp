@@ -23,11 +23,11 @@ ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, const std::s
 
     reg.emplace_component<component::type>(obstacle, component::entity_type::OBSTACLE);
 
-    reg.emplace_component<component::collision_box>(obstacle, 60.f, 60.f);
+    reg.emplace_component<component::collision_box>(obstacle, 130.f, 50.f);
 
     component::drawable drawable;
-    drawable.width = 60.f;
-    drawable.height = 60.f;
+    drawable.width = 130.f;
+    drawable.height = 50.f;
     drawable.color = GRAY;
     reg.add_component<component::drawable>(obstacle, std::move(drawable));
 

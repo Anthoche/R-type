@@ -5,6 +5,7 @@
     "raylib",
     "glfw3",
     "nlohmann-json",
-    "asio"
+    "asio",
+    "gtest"
   ]
 }

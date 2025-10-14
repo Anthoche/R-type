@@ -6,38 +6,35 @@
 */
 
 #include <cstdint>
-#include <criterion/criterion.h>
+#include <gtest/gtest.h>
 #include "registry.hpp"
 
-Test(Registry, spawn_kill_entity) {
+TEST(Registry, spawn_kill_entity) {
     ecs::registry reg;
 
     ecs::entity_t e1 = reg.spawn_entity();
     ecs::entity_t e2 = reg.spawn_entity();
-    cr_assert_neq(e1, e2, "id must be unique");
+    EXPECT_NE(e1, e2);
     reg.kill_entity(e1);
 
     ecs::entity_t e3 = reg.spawn_entity();
-    cr_assert_eq((std::size_t)e1, (
-        std::size_t)e3,
-        "id should be reused when spawning new entity");
+    EXPECT_EQ((std::size_t)e1, (std::size_t)e3);
 }
 
 // -------------------------
 // Spawn & Kill Entities
 // -------------------------
-Test(Registry, reuse_entity) {
+TEST(Registry, reuse_entity) {
     ecs::registry reg;
     ecs::entity_t e1 = reg.spawn_entity();
     ecs::entity_t e2 = reg.spawn_entity();
 
-    cr_assert_neq(e1, e2, "two spawned entities must have different ids");
+    EXPECT_NE(e1, e2);
 
     reg.kill_entity(e1);
     ecs::entity_t e3 = reg.spawn_entity();
 
-    cr_assert_eq((std::size_t)e1, (std::size_t)e3,
-        "killed id should be reused when spawning a new one");
+    EXPECT_EQ((std::size_t)e1, (std::size_t)e3);
 }
 
 // -------------------------
@@ -52,7 +49,7 @@ struct Position {
 // -------------------------
 // Remove component
 // -------------------------
-Test(Registry, remove_component) {
+TEST(Registry, remove_component) {
     ecs::registry reg;
 
     reg.register_component<Position>();
@@ -61,14 +58,13 @@ Test(Registry, remove_component) {
     reg.remove_component<Position>(e);
     auto &arr = reg.get_components<Position>();
 
-    cr_assert(!arr[static_cast<std::size_t>(e)].has_value(),
-        "entity should not have a position component after removal");
+    EXPECT_FALSE(arr[static_cast<std::size_t>(e)].has_value());
 }
 
 // -------------------------
 // Register and add component
 // -------------------------
-Test(Registry, add_component) {
+TEST(Registry, add_component) {
     ecs::registry reg;
 
     reg.register_component<Position>();
@@ -76,33 +72,32 @@ Test(Registry, add_component) {
     ecs::entity_t e = reg.spawn_entity();
     auto &pos = reg.add_component<Position>(e, {10, 20});
 
-    cr_assert(pos.has_value(), "position should exist after adding");
-    cr_assert_eq(pos->x, 10, "position.x should be correct");
-    cr_assert_eq(pos->y, 20, "position.y should be correct");
+    EXPECT_TRUE(pos.has_value());
+    EXPECT_EQ(pos->x, 10);
+    EXPECT_EQ(pos->y, 20);
 
     auto &arr = reg.get_components<Position>();
-    cr_assert(arr[static_cast<std::size_t>(e)].has_value(),
-        "entity should have a position component after adding");
+    EXPECT_TRUE(arr[static_cast<std::size_t>(e)].has_value());
 }
 
 // -------------------------
 // Emplace component
 // -------------------------
-Test(Registry, emplace_component) {
+TEST(Registry, emplace_component) {
     ecs::registry reg;
     reg.register_component<Position>();
     ecs::entity_t e = reg.spawn_entity();
     auto &pos = reg.emplace_component<Position>(e, 42, 99);
 
-    cr_assert(pos.has_value(), "position component should exist");
-    cr_assert_eq(pos->x, 42);
-    cr_assert_eq(pos->y, 99);
+    EXPECT_TRUE(pos.has_value());
+    EXPECT_EQ(pos->x, 42);
+    EXPECT_EQ(pos->y, 99);
 }
 
 // -------------------------
 // Add and run system
 // -------------------------
-Test(Registry, run_systems) {
+TEST(Registry, run_systems) {
     ecs::registry reg;
     reg.register_component<Position>();
     ecs::entity_t e = reg.spawn_entity();
@@ -121,7 +116,7 @@ Test(Registry, run_systems) {
     auto &arr = reg.get_components<Position>();
     auto &pos = arr[static_cast<std::size_t>(e)];
 
-    cr_assert(pos.has_value());
-    cr_assert_eq(pos->x, 11);
-    cr_assert_eq(pos->y, 21);
+    EXPECT_TRUE(pos.has_value());
+    EXPECT_EQ(pos->x, 11);
+    EXPECT_EQ(pos->y, 21);
 }

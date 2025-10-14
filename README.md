@@ -39,7 +39,7 @@ The project is divided into several modules:
 
 ### Testing
 
-* **Criterion** – Unit testing framework
+* **GoogleTest** – Unit testing framework
 
 ## 📁 Project Structure
 
@@ -90,21 +90,27 @@ cmake ..
 make
 ```
 
+### 2.1. Build Unit Tests of the project
+``` bash
+make tu
+```
+
 #### 3. Launch the project
 3.1 server:
 
 ```bash
-./rtype_server
+./rtype_server [PORT]
 ```
 
 3.2 client:
 
 ```bash
-./rtype_client [IP ADRESS] [NAME]
+./rtype_client [IP ADRESS] [PORT] [NAME]
 ```
 📝 Example:
 ```bash
-./rtype_client 127.0.0.1 Paco
+./rtype_server 4242
+./rtype_client 127.0.0.1 4242 Paco
 ```
 
 ## 📚 Documentation
@@ -127,7 +133,7 @@ Repository to run CI.
 - [Corto Morrow](https://github.com/NuggetReckt)
 
 <br>
-*Last update: September 2025*
+*Last update: October 2025*
 
 ---
 

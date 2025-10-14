@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    CACHE STRING "Vcpkg toolchain file")
+set(VCPKG_TOOLCHAIN_CANDIDATE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+if(EXISTS "${VCPKG_TOOLCHAIN_CANDIDATE}")
+    set(CMAKE_TOOLCHAIN_FILE "${VCPKG_TOOLCHAIN_CANDIDATE}" CACHE STRING "Vcpkg toolchain file")
+endif()
 
 project(rtype LANGUAGES CXX)
 
@@ -14,10 +16,16 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE
-        "${CMAKE_SOURCE_DIR}/external/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        CACHE STRING "Vcpkg toolchain file")
+    set(VCPKG_TOOLCHAIN_FALLBACK "${CMAKE_SOURCE_DIR}/external/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    if(EXISTS "${VCPKG_TOOLCHAIN_FALLBACK}")
+        set(CMAKE_TOOLCHAIN_FILE "${VCPKG_TOOLCHAIN_FALLBACK}" CACHE STRING "Vcpkg toolchain file")
+    endif()
 endif()
+
+# -------------------------
+# Custom option to build unit tests
+# -------------------------
+option(TU "Build unit tests (enable with -DTU=ON)" OFF)
 
 # -------------------------
 # Dependencies
@@ -154,11 +162,26 @@ target_link_libraries(r-type_server PRIVATE ecs nlohmann_json)
 if (WIN32)
     target_compile_definitions(r-type_server PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
 endif()
+
 # -------------------------
 # Unit tests
 # -------------------------
-enable_testing()
-add_subdirectory(Unit_test)
+if (TU)
+    message(STATUS "Building unit tests (TU=ON)")
+    enable_testing()
+    add_subdirectory(Unit_test)
+else()
+    message(STATUS "Skipping unit tests (use -DTU=ON to enable)")
+endif()
+
+# -------------------------
+# Custom target to rebuild with TU=ON
+# -------------------------
+add_custom_target(tu
+    COMMAND ${CMAKE_COMMAND} -DTU=ON -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ${CMAKE_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
+    COMMENT "Building project with unit tests enabled (-DTU=ON)"
+)
 
 # -------------------------
 # Installation
