@@ -76,7 +76,7 @@ void ServerGame::update_enemy_default(uint32_t id, float dt) {
 }
 
 void ServerGame::update_enemy_straight(uint32_t id, float dt) {
-    update_enemy_default(id, dt); // Straight = same as default
+    update_enemy_default(id, dt);
 }
 
 void ServerGame::update_enemy_zigzag(uint32_t id, float dt) {
