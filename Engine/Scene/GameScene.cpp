@@ -21,8 +21,9 @@ namespace game::scene {
     void GameScene::init() {
         _isOpen = true;
         _startTime = _raylib.getTime();
-        _raylib.enableCursor();
+        _raylib.disableCursor();
         _raylib.setTargetFPS(60);
+        toggleFullScreen();
 
         // Enregistrement des composants
         _registry.register_component<component::position>();
@@ -611,8 +612,15 @@ namespace game::scene {
         if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT))
             input_x = 1.f;
 
-        if (_raylib.isKeyPressed(KEY_SPACE)) {
-            handle_shoot(SHOOT_COOLDOWN);
+        switch (_raylib.getKeyPressed()) {
+            case KEY_SPACE:
+                handle_shoot(SHOOT_COOLDOWN);
+                break;
+            case KEY_F11:
+                toggleFullScreen();
+                break;
+            default:
+                break;
         }
 
         if (_raylib.isGamepadAvailable(0)) {
@@ -732,6 +740,21 @@ namespace game::scene {
                     }
                 }
             });
+    }
+
+    void GameScene::toggleFullScreen() {
+        int const currentMonitor = _raylib.getCurrentMonitor();
+
+        if (_raylib.isWindowFullscreen()) {
+            int posX = (_raylib.getMonitorWidth(currentMonitor) - getWindowWidth()) / 2;
+            int posY = (_raylib.getMonitorHeight(currentMonitor) - getWindowHeight()) / 2;
+            _raylib.setWindowSize(getWindowWidth() - 1, getWindowHeight() - 1);
+            _raylib.setWindowPosition(posX, posY);
+        } else {
+            _raylib.setWindowSize(getWindowWidth(), getWindowHeight());
+        }
+        _raylib.setWindowMonitor(currentMonitor);
+        _raylib.toggleFullscreen();
     }
 
     void GameScene::onClose() {

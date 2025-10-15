@@ -209,6 +209,8 @@ namespace game::scene {
          */
         Texture2D* get_entity_texture(ecs::entity_t entity);
 
+        void toggleFullScreen();
+
         // --- Entities ---
         ecs::entity_t _player; ///< Local player entity.
         Music _music; ///< Background music instance.
