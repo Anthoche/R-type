@@ -210,7 +210,9 @@ namespace game::scene {
     void GameScene::render() {
         _raylib.beginDrawing();
         _raylib.clearBackground(GRAY);
-        _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
+        if (!_isWin)
+            _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
+        _isWin = (30 <= _game.getGameClient().globalScore);
         
         _raylib.updateMusicStream(_music);
         render_entities();
@@ -594,7 +596,7 @@ namespace game::scene {
             globalScore = _game.getGameClient().globalScore;
             myClientId = _game.getGameClient().clientId;
         }
-        float t = std::clamp(globalScore / 150.0f, 0.0f, 1.0f);
+        float t = std::clamp(globalScore / 50.0f, 0.0f, 1.0f);
         float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
 
         if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP)) {
