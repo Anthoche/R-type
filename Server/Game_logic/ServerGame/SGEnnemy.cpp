@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <chrono>
 
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"
@@ -53,9 +54,9 @@ void ServerGame::update_enemies(float dt) {
         if (pattern == "straight") update_enemy_straight(id, dt);
         else if (pattern == "zigzag") update_enemy_zigzag(id, dt);
         else if (pattern == "circle") update_enemy_circle(id, dt);
-        else if (pattern == "turret") update_enemy_turret(id, dt);
         else if (pattern == "boss_phase1") update_enemy_boss_phase1(id, dt);
         else update_enemy_default(id, dt);
+        update_enemy_turret(id, dt);
 
         pos = get_component_ptr<component::position>(registry_server, entity);
         if (pos) broadcast_enemy_update(id, pos->x, pos->y);
@@ -75,7 +76,7 @@ void ServerGame::update_enemy_default(uint32_t id, float dt) {
 }
 
 void ServerGame::update_enemy_straight(uint32_t id, float dt) {
-    update_enemy_default(id, dt); // Straight = same as default
+    update_enemy_default(id, dt);
 }
 
 void ServerGame::update_enemy_zigzag(uint32_t id, float dt) {
@@ -122,6 +123,9 @@ void ServerGame::update_enemy_circle(uint32_t id, float dt) {
 }
 
 void ServerGame::update_enemy_turret(uint32_t id, float dt) {
+    static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
+    static const float SHOOT_COOLDOWN = 2.0f;
+    
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
@@ -131,6 +135,21 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt) {
     if (vel) { vx = vel->vx; vy = vel->vy; }
     pos->x += vx * dt;
     pos->y += vy * dt;
+    
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    
+    if (lastShootTime.find(id) == lastShootTime.end()) {
+        lastShootTime[id] = currentTime;
+    }
+    
+    auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
+        currentTime - lastShootTime[id]
+    ).count();
+    
+    if (elapsed >= SHOOT_COOLDOWN) {
+        shoot_enemy_projectile(id, pos->x, pos->y, -200.f, 0.f);
+        lastShootTime[id] = currentTime;
+    }
 }
 
 void ServerGame::update_enemy_boss_phase1(uint32_t id, float dt) {

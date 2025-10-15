@@ -39,7 +39,8 @@ namespace ecs {
 
         // --- Component registration ---
         template <class Component>
-        sparse_array<Component> &register_component() {
+        sparse_array<Component> &register_component()
+        {
             const std::type_index key = std::type_index(typeid(Component));
             auto it = _components_arrays.find(key);
             if (it == _components_arrays.end()) {
@@ -54,7 +55,8 @@ namespace ecs {
         }
 
         template <class Component>
-        sparse_array<Component> &get_components() {
+        sparse_array<Component> &get_components()
+        {
             const std::type_index key = std::type_index(typeid(Component));
             auto it = _components_arrays.find(key);
             if (it == _components_arrays.end()) {
@@ -64,7 +66,8 @@ namespace ecs {
         }
 
         template <class Component>
-        sparse_array<Component> const &get_components() const {
+        sparse_array<Component> const &get_components() const
+        {
             const std::type_index key = std::type_index(typeid(Component));
             auto it = _components_arrays.find(key);
             if (it == _components_arrays.end()) {
@@ -75,7 +78,8 @@ namespace ecs {
 
         // --- Systems ---
         template <class... Components, typename Function>
-        void add_system(Function &&f) {
+        void add_system(Function &&f)
+        {
             using Fn = std::decay_t<Function>;
             _systems.emplace_back([this, func = Fn(std::forward<Function>(f))](registry &r) {
                 func(r, static_cast<sparse_array<Components> &>(r.get_components<Components>())...);
@@ -90,27 +94,47 @@ namespace ecs {
         void kill_entity(entity_t const &e);
 
         template <typename Component>
-        typename sparse_array<Component>::reference_type add_component(entity_t const &to, Component &&c) {
+        typename sparse_array<Component>::reference_type add_component(entity_t const &to, Component &&c)
+        {
             auto &arr = get_components<Component>();
             return arr.insert_at(static_cast<std::size_t>(to), std::forward<Component>(c));
         }
 
         template <typename Component, typename... Params>
-        typename sparse_array<Component>::reference_type emplace_component(entity_t const &to, Params &&...p) {
+        typename sparse_array<Component>::reference_type emplace_component(entity_t const &to, Params &&...p)
+        {
             auto &arr = get_components<Component>();
             return arr.emplace_at(static_cast<std::size_t>(to), std::forward<Params>(p)...);
         }
 
         template <typename Component>
-        void remove_component(entity_t const &from) {
+        void remove_component(entity_t const &from)
+        {
             auto &arr = get_components<Component>();
             arr.erase(static_cast<std::size_t>(from));
         }
 
         /**
-         * @brief Récupère toutes les entités encore vivantes (non détruites).
+         * @brief Retrieve all alive (non-destroyed) entities.
          */
         std::vector<entity_t> alive_entities() const;
+
+        /**
+         * @brief Completely clears the registry: components, entities, systems, and IDs.
+         *
+         * This should be used when switching scenes or resetting the ECS world.
+         * All entities and components are destroyed, and entity IDs start from 0 again.
+         */
+        void clear()
+        {
+            _components_arrays.clear();
+            _systems.clear();
+            _erasers.clear();
+
+            _next_entity_id = 0;
+            while (!_free_ids.empty())
+                _free_ids.pop();
+        }
 
     private:
         std::unordered_map<std::type_index, std::any> _components_arrays; ///< Map from component type to sparse array

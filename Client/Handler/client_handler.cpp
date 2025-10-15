@@ -56,6 +56,15 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::PlayerDeath:
             handlePlayerDeath(buffer);
             break;
+        case MessageType::EnemyProjectileSpawn:
+            handleEnemyProjectileSpawn(buffer);
+            break;
+        case MessageType::EnemyProjectileUpdate:
+            handleEnemyProjectileUpdate(buffer);
+            break;
+        case MessageType::EnemyProjectileDespawn:
+            handleEnemyProjectileDespawn(buffer);
+            break;
         default:
             break;
     }
@@ -160,6 +169,65 @@ void GameClient::handleProjectileUpdate(const std::vector<uint8_t> &buffer) {
         std::get<0>(it->second) = x;
         std::get<1>(it->second) = y;
     }
+}
+
+void GameClient::handleEnemyProjectileSpawn(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(EnemyProjectileSpawnMessage)) return;
+    const EnemyProjectileSpawnMessage *msg = 
+        reinterpret_cast<const EnemyProjectileSpawnMessage *>(buffer.data());
+    
+    uint32_t projId = ntohl(msg->projectileId);
+    uint32_t ownerId = ntohl(msg->ownerId);
+    uint32_t xb = ntohl(msg->posXBits);
+    uint32_t yb = ntohl(msg->posYBits);
+    uint32_t vxb = ntohl(msg->velXBits);
+    uint32_t vyb = ntohl(msg->velYBits);
+    
+    float x, y, vx, vy;
+    std::memcpy(&x, &xb, sizeof(float));
+    std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&vx, &vxb, sizeof(float));
+    std::memcpy(&vy, &vyb, sizeof(float));
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    enemyProjectiles[projId] = std::make_tuple(x, y, vx, vy, ownerId);
+    
+    std::cout << "[Client] Enemy projectile spawned: id=" << projId 
+              << " from enemy=" << ownerId 
+              << " pos=(" << x << ", " << y << ")" << std::endl;
+}
+
+void GameClient::handleEnemyProjectileUpdate(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(EnemyProjectileUpdateMessage)) return;
+    const EnemyProjectileUpdateMessage *msg = 
+        reinterpret_cast<const EnemyProjectileUpdateMessage *>(buffer.data());
+    
+    uint32_t projId = ntohl(msg->projectileId);
+    uint32_t xb = ntohl(msg->posXBits);
+    uint32_t yb = ntohl(msg->posYBits);
+    
+    float x, y;
+    std::memcpy(&x, &xb, sizeof(float));
+    std::memcpy(&y, &yb, sizeof(float));
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    auto it = enemyProjectiles.find(projId);
+    if (it != enemyProjectiles.end()) {
+        std::get<0>(it->second) = x;
+        std::get<1>(it->second) = y;
+    }
+}
+
+void GameClient::handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(EnemyProjectileDespawnMessage)) return;
+    const EnemyProjectileDespawnMessage *msg = 
+        reinterpret_cast<const EnemyProjectileDespawnMessage *>(buffer.data());
+    uint32_t projId = ntohl(msg->projectileId);
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    enemyProjectiles.erase(projId);
+    
+    std::cout << "[Client] Enemy projectile despawned: id=" << projId << std::endl;
 }
 
 void GameClient::handleEnemySpawn(const std::vector<uint8_t> &buffer) {

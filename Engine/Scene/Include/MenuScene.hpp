@@ -58,6 +58,12 @@ class MenuScene: public AScene {
          */
         void onClose() override;
 
+        /**
+        * @brief Update the menu buttons' text based on the selected language.
+        * @param isFrench True if French, false if English.
+        */
+        void updateLanguage(bool isFrench);
+
     private:
         Game &_game; ///< Reference to the game instance.
 
@@ -74,6 +80,7 @@ class MenuScene: public AScene {
         int const _buttonSpacing = 35;
         float _buttonCenterY{};
         Vector2 _buttonPosition{};
+        int _selectedButtonIndex = -1;
 
         void resetButtonStates();
         void handleButtonClick(std::string const &id);

@@ -24,8 +24,7 @@ namespace scene {
 		_raylib.setTargetFPS(60);
 
 		_registry = ecs::registry{};
-
-		_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -38,16 +37,25 @@ namespace scene {
 
 		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type",
 			RAYWHITE, -0.5f, _titleSize, _font);
-		game::entities::create_button(_registry, "button_play", "Play",
+
+		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+
+		game::entities::create_button(_registry, "button_play",
+			isFrench ? "Jouer" : "Play",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
-		game::entities::create_button(_registry, "button_settings", "Settings",
-			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
-		game::entities::create_button(_registry, "button_quit", "Quit",
+		game::entities::create_button(_registry, "button_settings",
+			isFrench ? "Options" : "Settings",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
-		
+
+		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
+
+		game::entities::create_button(_registry, "button_quit",
+			isFrench ? "Quitter" : "Quit",
+			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+
 		_game.getGameClient().sendHello();
 	}
 
@@ -98,18 +106,48 @@ namespace scene {
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &clickable = _registry.get_components<component::clickable>();
 		auto &hoverable = _registry.get_components<component::hoverable>();
+		int buttonCount = 0;
 
 		for (std::size_t i = 0; i < positions.size() && i < clickable.size() && i < hoverable.size(); ++i) {
 			if (!positions[i] || !drawables[i] || !clickable[i] || !hoverable[i]) 
 				continue;
 			if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
+				_selectedButtonIndex = -1;
 				hoverable[i]->isHovered = true;
 				if (_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT)) {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
 			}
+			buttonCount++;
+		}
+
+		if (_raylib.isGamepadAvailable(0)) {
+			// Button selection
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+				if (_selectedButtonIndex >= buttonCount - 1) {
+					_selectedButtonIndex = 0;
+					return;
+				}
+				_selectedButtonIndex++;
+			}
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+				if (_selectedButtonIndex <= 0) {
+					_selectedButtonIndex = buttonCount - 1;
+					return;
+				}
+				_selectedButtonIndex--;
+			}
+
+			// Button action
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+				if (_selectedButtonIndex == -1 || _selectedButtonIndex >= buttonCount)
+					return;
+				handleButtonClick(clickable[_selectedButtonIndex + 1]->id);
+			}
+			if (_selectedButtonIndex != -1 && _selectedButtonIndex < buttonCount)
+				hoverable[_selectedButtonIndex + 1]->isHovered = true;
 		}
 	}
 
@@ -180,4 +218,5 @@ namespace scene {
 			close();
 		}
 	}
+
 }

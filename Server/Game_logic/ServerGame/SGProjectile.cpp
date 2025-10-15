@@ -127,7 +127,7 @@ void ServerGame::update_projectiles_server_only(float dt) {
         float vy = std::get<3>(kv.second);
         x += vx * dt;
         y += vy * dt;
-        if (x < -50.f || x > 850.f || y < -50.f || y > 650.f) {
+        if (x < -50.f || x > 1970.f || y < -50.f || y > 1130.f) {
             toRemove.push_back(id);
         }
     }
@@ -210,4 +210,152 @@ void ServerGame::check_projectile_collisions() {
         projectiles.erase(projId);
         broadcast_projectile_despawn(projId);
     }
+}
+
+void ServerGame::shoot_enemy_projectile(uint32_t enemyId, float x, float y, float vx, float vy) {
+    uint32_t projId = nextEnemyProjectileId++;
+    
+    float spawnX = x - 20.f;
+    float spawnY = y;
+    enemyProjectiles[projId] = std::make_tuple(spawnX, spawnY, vx, vy, enemyId);
+    broadcast_enemy_projectile_spawn(projId, enemyId, spawnX, spawnY, vx, vy);
+}
+
+void ServerGame::update_enemy_projectiles_server_only(float dt) {
+    std::vector<uint32_t> toRemove;
+
+    for (auto& kv : enemyProjectiles) {
+        uint32_t id = kv.first;
+        float& x = std::get<0>(kv.second);
+        float& y = std::get<1>(kv.second);
+        float vx = std::get<2>(kv.second);
+        float vy = std::get<3>(kv.second);
+        x += vx * dt;
+        y += vy * dt;
+        if (x < -50.f || x > 1970.f || y < -50.f || y > 1130.f) {
+            toRemove.push_back(id);
+        }
+    }
+    for (uint32_t id : toRemove) {
+        enemyProjectiles.erase(id);
+        broadcast_enemy_projectile_despawn(id);
+    }
+}
+
+void ServerGame::check_enemy_projectile_player_collisions() {
+    std::vector<uint32_t> projectilesToRemove;
+    std::vector<uint32_t> playersHit;
+    
+    const float PLAYER_WIDTH = 30.f;
+    const float PLAYER_HEIGHT = 30.f;
+    const float PROJ_WIDTH = 10.f;
+    const float PROJ_HEIGHT = 5.f;
+    const int DAMAGE = 15;
+    
+    for (const auto& projKv : enemyProjectiles) {
+        uint32_t projId = projKv.first;
+        float projX = std::get<0>(projKv.second);
+        float projY = std::get<1>(projKv.second);
+        
+        float projLeft = projX - PROJ_WIDTH * 0.5f;
+        float projRight = projX + PROJ_WIDTH * 0.5f;
+        float projTop = projY - PROJ_HEIGHT * 0.5f;
+        float projBottom = projY + PROJ_HEIGHT * 0.5f;
+        
+        for (const auto& playerKv : playerPositions) {
+            uint32_t playerId = playerKv.first;
+            
+            if (deadPlayers.find(playerId) != deadPlayers.end())
+                continue;
+            
+            float playerX = playerKv.second.first;
+            float playerY = playerKv.second.second;
+            
+            float playerLeft = playerX - PLAYER_WIDTH * 0.5f;
+            float playerRight = playerX + PLAYER_WIDTH * 0.5f;
+            float playerTop = playerY - PLAYER_HEIGHT * 0.5f;
+            float playerBottom = playerY + PLAYER_HEIGHT * 0.5f;
+            
+            if (check_aabb_overlap(projLeft, projRight, projTop, projBottom,
+                                  playerLeft, playerRight, playerTop, playerBottom)) {
+                projectilesToRemove.push_back(projId);
+                playersHit.push_back(playerId);
+                LOG_DEBUG("[Server] Enemy projectile " << projId << " hit player " << playerId);
+                break;
+            }
+        }
+    }
+    
+    for (uint32_t projId : projectilesToRemove) {
+        enemyProjectiles.erase(projId);
+        broadcast_enemy_projectile_despawn(projId);
+    }
+    
+    for (uint32_t playerId : playersHit) {
+        auto& healths = registry_server.get_components<component::health>();
+        auto& clientIds = registry_server.get_components<component::client_id>();
+        
+        for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+            if (clientIds[i] && clientIds[i]->id == playerId && healths[i]) {
+                healths[i]->current -= DAMAGE;
+                LOG_INFO("[Server] Player " << playerId << " hit by enemy projectile! Health: " 
+                        << healths[i]->current << "/" << healths[i]->max);
+                
+                if (healths[i]->current <= 0) {
+                    deadPlayers.insert(playerId);
+                    broadcast_player_death(playerId);
+                }
+                break;
+            }
+        }
+    }
+}
+
+void ServerGame::broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId,
+                                                   float x, float y, float vx, float vy) {
+    ProjectileSpawnMessage msg;
+    msg.type = MessageType::EnemyProjectileSpawn;
+    msg.projectileId = htonl(projId);
+    msg.ownerId = htonl(ownerId);
+
+    uint32_t xb, yb, vxb, vyb;
+    std::memcpy(&xb, &x, sizeof(float));
+    std::memcpy(&yb, &y, sizeof(float));
+    std::memcpy(&vxb, &vx, sizeof(float));
+    std::memcpy(&vyb, &vy, sizeof(float));
+
+    msg.posXBits = htonl(xb);
+    msg.posYBits = htonl(yb);
+    msg.velXBits = htonl(vxb);
+    msg.velYBits = htonl(vyb);
+
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::broadcast_enemy_projectile_positions() {
+    for (const auto& kv : enemyProjectiles) {
+        uint32_t id = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+
+        ProjectileUpdateMessage msg;
+        msg.type = MessageType::EnemyProjectileUpdate;
+        msg.projectileId = htonl(id);
+
+        uint32_t xb, yb;
+        std::memcpy(&xb, &x, sizeof(float));
+        std::memcpy(&yb, &y, sizeof(float));
+
+        msg.posXBits = htonl(xb);
+        msg.posYBits = htonl(yb);
+
+        connexion.broadcast(&msg, sizeof(msg));
+    }
+}
+
+void ServerGame::broadcast_enemy_projectile_despawn(uint32_t projId) {
+    ProjectileDespawnMessage msg;
+    msg.type = MessageType::EnemyProjectileDespawn;
+    msg.projectileId = htonl(projId);
+    connexion.broadcast(&msg, sizeof(msg));
 }

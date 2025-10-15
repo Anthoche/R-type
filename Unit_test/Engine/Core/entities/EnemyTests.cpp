@@ -5,7 +5,7 @@
 ** EnemyTest.cpp
 */
 
-#include <criterion/criterion.h>
+#include <gtest/gtest.h>
 #include "enemy.hpp"
 #include "components.hpp"
 #include "registry.hpp"
@@ -14,7 +14,7 @@
 using namespace ecs;
 using namespace game::entities;
 
-Test(Enemy, has_position_component) {
+TEST(Enemy, has_position_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::velocity>();
@@ -30,12 +30,12 @@ Test(Enemy, has_position_component) {
     auto &positions = reg.get_components<component::position>();
     auto &pos = positions[static_cast<std::size_t>(e)];
 
-    cr_assert(pos.has_value());
-    cr_assert_eq(pos->x, 150.0f);
-    cr_assert_eq(pos->y, 250.0f);
+    EXPECT_TRUE(pos.has_value());
+    EXPECT_EQ(pos->x, 150.0f);
+    EXPECT_EQ(pos->y, 250.0f);
 }
 
-Test(Enemy, has_velocity_component) {
+TEST(Enemy, has_velocity_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::velocity>();
@@ -51,12 +51,12 @@ Test(Enemy, has_velocity_component) {
     auto &velocities = reg.get_components<component::velocity>();
     auto &vel = velocities[static_cast<std::size_t>(e)];
 
-    cr_assert(vel.has_value());
-    cr_assert_eq(vel->vx, -100.0f);
-    cr_assert_eq(vel->vy, 0.0f);
+    EXPECT_TRUE(vel.has_value());
+    EXPECT_EQ(vel->vx, -100.0f);
+    EXPECT_EQ(vel->vy, 0.0f);
 }
 
-Test(Enemy, has_health_component) {
+TEST(Enemy, has_health_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::velocity>();
@@ -72,12 +72,12 @@ Test(Enemy, has_health_component) {
     auto &healths = reg.get_components<component::health>();
     auto &hp = healths[static_cast<std::size_t>(e)];
 
-    cr_assert(hp.has_value());
-    cr_assert_eq(hp->current, 50);
-    cr_assert_eq(hp->max, 50);
+    EXPECT_TRUE(hp.has_value());
+    EXPECT_EQ(hp->current, 50);
+    EXPECT_EQ(hp->max, 50);
 }
 
-Test(Enemy, has_type_component) {
+TEST(Enemy, has_type_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::velocity>();
@@ -93,11 +93,11 @@ Test(Enemy, has_type_component) {
     auto &types = reg.get_components<component::type>();
     auto &type_comp = types[static_cast<std::size_t>(e)];
 
-    cr_assert(type_comp.has_value());
-    cr_assert_eq(type_comp->value, component::entity_type::ENEMY);
+    EXPECT_TRUE(type_comp.has_value());
+    EXPECT_EQ(type_comp->value, component::entity_type::ENEMY);
 }
 
-Test(Enemy, no_sprite_when_empty_path) {
+TEST(Enemy, no_sprite_when_empty_path) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::velocity>();
@@ -113,10 +113,10 @@ Test(Enemy, no_sprite_when_empty_path) {
     auto &sprites = reg.get_components<component::sprite>();
     auto &spr = sprites[static_cast<std::size_t>(e)];
 
-    cr_assert(!spr.has_value(), "enemy should not have sprite if no path is given");
+    EXPECT_FALSE(spr.has_value());
 }
 
-Test(Enemy, has_sprite_when_path_given) {
+TEST(Enemy, has_sprite_when_path_given) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::velocity>();
@@ -132,12 +132,12 @@ Test(Enemy, has_sprite_when_path_given) {
     auto &sprites = reg.get_components<component::sprite>();
     auto &spr = sprites[static_cast<std::size_t>(e)];
 
-    cr_assert(spr.has_value());
-    cr_assert_str_eq(spr->image_path.c_str(), "assets/enemy.png");
-    cr_assert_eq(spr->scale, 1.0f);
+    EXPECT_TRUE(spr.has_value());
+    EXPECT_STREQ(spr->image_path.c_str(), "assets/enemy.png");
+    EXPECT_EQ(spr->scale, 1.0f);
 }
 
-Test(EnemyAI, clamp_velocity_x) {
+TEST(EnemyAI, clamp_velocity_x) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::velocity>();
@@ -157,6 +157,5 @@ Test(EnemyAI, clamp_velocity_x) {
 
     reg.run_systems();
 
-    cr_assert_eq(vels[static_cast<std::size_t>(e)]->vx, -100.0f,
-                 "enemy AI should clamp vx to -100.f if greater");
+    EXPECT_EQ(vels[static_cast<std::size_t>(e)]->vx, -100.0f);
 }

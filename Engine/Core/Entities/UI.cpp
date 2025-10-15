@@ -10,6 +10,7 @@
 #include "RenderUtils.hpp"
 #include "text.hpp"
 #include "Include/GameScene.hpp"
+#include "../../../Game.hpp"
 
 UI::UI(game::scene::GameScene &scene, ecs::registry &reg, Raylib &raylib) : _scene(scene), _reg(reg), _raylib(raylib) {
 	_margin = Vector2{25, 25};
@@ -21,7 +22,7 @@ UI::UI(game::scene::GameScene &scene, ecs::registry &reg, Raylib &raylib) : _sce
 }
 
 void UI::init() {
-	Color textColor = BLACK;
+	Color textColor = WHITE;
 	_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
 	Image heartImage = LoadImage(ASSETS_PATH"/sprites/heart.png");
 	Image heartEmptyImage = LoadImage(ASSETS_PATH"/sprites/heart_empty.png");
@@ -31,9 +32,37 @@ void UI::init() {
 	UnloadImage(heartImage);
 	UnloadImage(heartEmptyImage);
 
-	game::entities::create_text(_reg, BOTTOM_LEFT, {0, 0}, "Players: 0", textColor, _spacing, _fontSize, _font);
-	game::entities::create_text(_reg, BOTTOM_CENTER, {0, 0}, "Individual: 0", textColor, _spacing, _fontSize, _font);
-	game::entities::create_text(_reg, BOTTOM_RIGHT, {0, 0}, "Total: 0", textColor, _spacing, _fontSize, _font);
+	bool isFrench = (_scene.getGame().getLanguage() == Game::Language::FRENCH);
+	game::entities::create_text(
+		_reg, 
+		BOTTOM_LEFT, 
+		{0, 0}, 
+		isFrench ? "Joueurs: 0" : "Players: 0", 
+		textColor, 
+		_spacing, 
+		_fontSize, 
+		_font
+	);
+	game::entities::create_text(
+		_reg, 
+		BOTTOM_CENTER, 
+		{0, 0}, 
+		isFrench ? "Individuel: 0" : "Individual: 0", 
+		textColor, 
+		_spacing, 
+		_fontSize, 
+		_font
+	);
+	game::entities::create_text(
+		_reg, 
+		BOTTOM_RIGHT, 
+		{0, 0}, 
+		isFrench ? "Total: 0" : "Total: 0", 
+		textColor, 
+		_spacing, 
+		_fontSize, 
+		_font
+	);
 
 	float offsetX = 0;
 	for (size_t i = 0; i < maxPlayerLives; ++i) {
@@ -64,7 +93,8 @@ void UI::render() {
             playerID = myClientId;
         }
     }
-    
+    if (playerHealth < 0)
+		playerHealth = 0;
     int playerLives = (playerHealth + 24) / 25;
     int currentLive = 1;
 
@@ -115,7 +145,7 @@ void UI::render() {
     {
         std::string healthText = std::format("HP: {}/{}", playerHealth, maxHealth);
         Vector2 healthPos = {_margin.x, _raylib.getRenderHeight() - _margin.y - 30.f};
-        Color healthColor = BLACK;
+        Color healthColor = WHITE;
         
         if (playerHealth <= 25) {
             healthColor = RED;
@@ -126,6 +156,7 @@ void UI::render() {
         _raylib.drawTextEx(_font, healthText, healthPos, _fontSize, _spacing, healthColor);
     }
 }
+
 void UI::unload() {
 	_raylib.unloadFont(_font);
 	_raylib.unloadTexture(_fullHeart);

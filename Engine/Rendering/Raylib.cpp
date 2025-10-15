@@ -263,6 +263,18 @@ void Raylib::playMusicStream(Music const &music) {
 	PlayMusicStream(music);
 }
 
+void Raylib::playSound(Sound const &sound) {
+	PlaySound(sound);
+}
+
+void Raylib::setSoundVolume(Sound const &sound, float volume) {
+	SetSoundVolume(sound, volume);
+}
+
+Sound Raylib::loadSound(std::string const &fileName) {
+	return LoadSound(fileName.c_str());
+}
+
 void Raylib::updateMusicStream(Music const &music) {
 	UpdateMusicStream(music);
 }
@@ -273,6 +285,10 @@ void Raylib::stopMusicStream(Music const &music) {
 
 void Raylib::unloadMusicStream(Music const &music) {
 	UnloadMusicStream(music);
+}
+
+void Raylib::unloadSound(Sound const &sound) {
+	UnloadSound(sound);
 }
 
 void Raylib::setMusicVolume(Music const &music, float volume) {
@@ -357,6 +373,44 @@ bool Raylib::isKeyReleased(int key) {
 	return IsKeyReleased(key);
 }
 
+// Game controller input
+
+bool Raylib::isGamepadAvailable(int gamepad) {
+	return IsGamepadAvailable(gamepad);
+}
+
+std::string Raylib::getGamepadName(int gamepad) const {
+	return GetGamepadName(gamepad);
+}
+
+bool Raylib::isGamepadButtonPressed(int gamepad, int button) {
+	return IsGamepadButtonPressed(gamepad, button);
+}
+
+bool Raylib::isGamepadButtonDown(int gamepad, int button) {
+	return IsGamepadButtonDown(gamepad, button);
+}
+
+bool Raylib::isGamepadButtonReleased(int gamepad, int button) {
+	return IsGamepadButtonReleased(gamepad, button);
+}
+
+int Raylib::getGamepadButtonPressed() {
+	return GetGamepadButtonPressed();
+}
+
+int Raylib::getGamepadAxisCount(int gamepad) {
+	return GetGamepadAxisCount(gamepad);
+}
+
+float Raylib::getGamepadAxisMovement(int gamepad, int axis) {
+	return GetGamepadAxisMovement(gamepad, axis);
+}
+
+void Raylib::setGamepadVibration(int gamepad, float leftMotor, float rightMotor, float duration) {
+	SetGamepadVibration(gamepad, leftMotor, rightMotor, duration);
+}
+
 // RLGL
 
 void Raylib::pushMatrix() {
@@ -377,5 +431,5 @@ void Raylib::popMatrix() {
 
 //rtextures
 void Raylib::drawTexturePro(Texture2D texture, Rectangle sourceRec, Rectangle destRec, Vector2 origin, float rotation, Color tint) {
-    DrawTexturePro(texture, sourceRec, destRec, origin, rotation, tint);
+	DrawTexturePro(texture, sourceRec, destRec, origin, rotation, tint);
 }

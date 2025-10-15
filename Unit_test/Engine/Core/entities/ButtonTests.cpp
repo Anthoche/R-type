@@ -5,7 +5,7 @@
 ** test_button.cpp
 */
 
-#include <criterion/criterion.h>
+#include <gtest/gtest.h>
 #include "button.hpp"
 #include "components.hpp"
 #include "registry.hpp"
@@ -13,7 +13,7 @@
 using namespace ecs;
 using namespace game::entities;
 
-Test(Button, has_position_component) {
+TEST(Button, has_position_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -30,12 +30,12 @@ Test(Button, has_position_component) {
     auto &positions = reg.get_components<component::position>();
     auto &p = positions[static_cast<std::size_t>(btn)];
     
-    cr_assert(p.has_value(), "button should have a position component");
-    cr_assert_eq(p->x, 250.0f, "x position should be 250.0f");
-    cr_assert_eq(p->y, 350.0f, "y position should be 350.0f");
+    EXPECT_TRUE(p.has_value());
+    EXPECT_EQ(p->x, 250.0f);
+    EXPECT_EQ(p->y, 350.0f);
 }
 
-Test(Button, position_at_origin) {
+TEST(Button, position_at_origin) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -52,12 +52,12 @@ Test(Button, position_at_origin) {
     auto &positions = reg.get_components<component::position>();
     auto &p = positions[static_cast<std::size_t>(btn)];
     
-    cr_assert(p.has_value());
-    cr_assert_eq(p->x, 0.0f, "x should be 0");
-    cr_assert_eq(p->y, 0.0f, "y should be 0");
+    EXPECT_TRUE(p.has_value());
+    EXPECT_EQ(p->x, 0.0f);
+    EXPECT_EQ(p->y, 0.0f);
 }
 
-Test(Button, has_clickable_component) {
+TEST(Button, has_clickable_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -74,13 +74,13 @@ Test(Button, has_clickable_component) {
     auto &clickables = reg.get_components<component::clickable>();
     auto &c = clickables[static_cast<std::size_t>(btn)];
     
-    cr_assert(c.has_value(), "button should have a clickable component");
-    cr_assert_str_eq(c->id.c_str(), "clickable_btn", "clickable id should match");
-    cr_assert_eq(c->enabled, true, "button should be enabled by default");
-    cr_assert_eq(c->isClicked, false, "button should not be clicked initially");
+    EXPECT_TRUE(c.has_value());
+    EXPECT_STREQ(c->id.c_str(), "clickable_btn");
+    EXPECT_TRUE(c->enabled);
+    EXPECT_FALSE(c->isClicked);
 }
 
-Test(Button, has_hoverable_component) {
+TEST(Button, has_hoverable_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -97,12 +97,12 @@ Test(Button, has_hoverable_component) {
     auto &hoverables = reg.get_components<component::hoverable>();
     auto &h = hoverables[static_cast<std::size_t>(btn)];
     
-    cr_assert(h.has_value(), "button should have a hoverable component");
-    cr_assert_str_eq(h->id.c_str(), "hover_btn", "hoverable id should match");
-    cr_assert_eq(h->isHovered, false, "button should not be hovered initially");
+    EXPECT_TRUE(h.has_value());
+    EXPECT_STREQ(h->id.c_str(), "hover_btn");
+    EXPECT_FALSE(h->isHovered);
 }
 
-Test(Button, has_type_component) {
+TEST(Button, has_type_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -119,11 +119,11 @@ Test(Button, has_type_component) {
     auto &types = reg.get_components<component::type>();
     auto &t = types[static_cast<std::size_t>(btn)];
     
-    cr_assert(t.has_value(), "button should have a type component");
-    cr_assert_eq(t->value, component::entity_type::BUTTON, "type should be BUTTON");
+    EXPECT_TRUE(t.has_value());
+    EXPECT_EQ(t->value, component::entity_type::BUTTON);
 }
 
-Test(Button, has_drawable_component) {
+TEST(Button, has_drawable_component) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -141,16 +141,16 @@ Test(Button, has_drawable_component) {
     auto &drawables = reg.get_components<component::drawable>();
     auto &d = drawables[static_cast<std::size_t>(btn)];
     
-    cr_assert(d.has_value(), "button should have a drawable component");
-    cr_assert_eq(d->width, 300.0f, "width should be 300.0f");
-    cr_assert_eq(d->height, 80.0f, "height should be 80.0f");
-    cr_assert_eq(d->color.r, 255, "red channel should match");
-    cr_assert_eq(d->color.g, 128, "green channel should match");
-    cr_assert_eq(d->color.b, 64, "blue channel should match");
-    cr_assert_eq(d->color.a, 255, "alpha channel should match");
+    EXPECT_TRUE(d.has_value());
+    EXPECT_EQ(d->width, 300.0f);
+    EXPECT_EQ(d->height, 80.0f);
+    EXPECT_EQ(d->color.r, 255);
+    EXPECT_EQ(d->color.g, 128);
+    EXPECT_EQ(d->color.b, 64);
+    EXPECT_EQ(d->color.a, 255);
 }
 
-Test(Button, negative_position) {
+TEST(Button, negative_position) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -167,12 +167,12 @@ Test(Button, negative_position) {
     auto &positions = reg.get_components<component::position>();
     auto &p = positions[static_cast<std::size_t>(btn)];
     
-    cr_assert(p.has_value());
-    cr_assert_eq(p->x, -50.0f, "negative x should be allowed");
-    cr_assert_eq(p->y, -100.0f, "negative y should be allowed");
+    EXPECT_TRUE(p.has_value());
+    EXPECT_EQ(p->x, -50.0f);
+    EXPECT_EQ(p->y, -100.0f);
 }
 
-Test(Button, zero_size) {
+TEST(Button, zero_size) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -189,12 +189,12 @@ Test(Button, zero_size) {
     auto &drawables = reg.get_components<component::drawable>();
     auto &d = drawables[static_cast<std::size_t>(btn)];
     
-    cr_assert(d.has_value());
-    cr_assert_eq(d->width, 0.0f, "zero width should be allowed");
-    cr_assert_eq(d->height, 0.0f, "zero height should be allowed");
+    EXPECT_TRUE(d.has_value());
+    EXPECT_EQ(d->width, 0.0f);
+    EXPECT_EQ(d->height, 0.0f);
 }
 
-Test(Button, multiple_buttons_independent) {
+TEST(Button, multiple_buttons_independent) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -211,8 +211,7 @@ Test(Button, multiple_buttons_independent) {
     Vector2 size2 = {150.0f, 60.0f};
     entity_t btn2 = create_button(reg, "btn_2", "Second", pos2, size2, BLUE, BLACK);
     
-    cr_assert_neq(static_cast<std::size_t>(btn1), static_cast<std::size_t>(btn2),
-                  "buttons should have different IDs");
+    EXPECT_NE(static_cast<std::size_t>(btn1), static_cast<std::size_t>(btn2));
     
     auto &positions = reg.get_components<component::position>();
     auto &clickables = reg.get_components<component::clickable>();
@@ -225,13 +224,13 @@ Test(Button, multiple_buttons_independent) {
     auto &t1 = texts[static_cast<std::size_t>(btn1)];
     auto &t2 = texts[static_cast<std::size_t>(btn2)];
     
-    cr_assert(p1.has_value() && p2.has_value());
-    cr_assert_neq(p1->x, p2->x, "positions should differ");
-    cr_assert_str_neq(c1->id.c_str(), c2->id.c_str(), "IDs should differ");
-    cr_assert_str_neq(t1->content.c_str(), t2->content.c_str(), "text should differ");
+    EXPECT_TRUE(p1.has_value() && p2.has_value());
+    EXPECT_NE(p1->x, p2->x);
+    EXPECT_STRNE(c1->id.c_str(), c2->id.c_str());
+    EXPECT_STRNE(t1->content.c_str(), t2->content.c_str());
 }
 
-Test(Button, unique_ids) {
+TEST(Button, unique_ids) {
     registry reg;
     reg.register_component<component::position>();
     reg.register_component<component::clickable>();
@@ -250,6 +249,5 @@ Test(Button, unique_ids) {
     auto &c1 = clickables[static_cast<std::size_t>(btn1)];
     auto &c2 = clickables[static_cast<std::size_t>(btn2)];
     
-    cr_assert_str_neq(c1->id.c_str(), c2->id.c_str(), 
-                     "clickable IDs should be different");
+    EXPECT_STRNE(c1->id.c_str(), c2->id.c_str());
 }

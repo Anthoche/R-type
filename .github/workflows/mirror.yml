@@ -2,42 +2,93 @@ name: Mirror Repository
 
 on:
   push:
-    branches: [ '*' ]
-  workflow_dispatch:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - 'main'
+  workflow_dispatch: {}
 
 jobs:
-  mirror:
+  test:
+    name: Run Unit Tests (GTest)
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout source repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Configure Git
-      run: |
-        git config --global user.name "Mirror Bot"
-        git config --global user.email "mirror-bot@example.com"
-    
-    - name: Setup SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.GIT_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
-    
-    - name: Add remote mirror
-      run: |
-        git remote add mirror ${{ secrets.MIRROR_REPO_URL }}
-    
-    - name: Push to mirror
-      run: |
-        git push mirror --all --force
-        git push mirror --tags --force
-    
-    - name: Verify mirror
-      run: |
-        echo "Mirroring completed successfully"
-        echo "Source: ${{ github.repository }}"
-        echo "Target: ${{ secrets.MIRROR_REPO_URL }}"
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git make cmake gcc g++ \
+            libasound2-dev libx11-dev libxrandr-dev libxi-dev \
+            libxinerama-dev libxcursor-dev libgl1-mesa-dev libglu1-mesa-dev
+
+      - name: Install raylib from source
+        run: |
+          git clone --depth=1 https://github.com/raysan5/raylib.git
+          cd raylib
+          mkdir build && cd build
+          cmake -DBUILD_SHARED_LIBS=ON ..
+          sudo make install
+          cd ../..  # revenir à la racine
+
+      - name: Setup GoogleTest
+        uses: Bacondish2023/setup-googletest@v1
+        with:
+          tag: v1.14.0
+
+      - name: Configure CMake
+        run: cmake -S Unit_test -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --target UnitTests -j
+
+      - name: Run tests
+        run: ctest --test-dir build -V --output-junit test-results.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results.xml
+
+
+  mirror:
+    name: Mirror Repository
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "Mirror Bot"
+          git config --global user.email "mirror-bot@example.com"
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GIT_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Add remote mirror
+        run: git remote add mirror ${{ secrets.MIRROR_REPO_URL }}
+
+      - name: Push to mirror
+        run: |
+          git push mirror --all --force
+          git push mirror --tags --force
+
+      - name: Verify mirror
+        run: |
+          echo "Mirroring completed successfully"
+          echo "Source: ${{ github.repository }}"
+          echo "Target: ${{ secrets.MIRROR_REPO_URL }}"
