@@ -78,7 +78,7 @@ void Connexion::disconnectClient(uint32_t id) {
 
 bool Connexion::acceptTcpClient(uint32_t id, uint16_t port) {
     try {
-        auto client = std::make_shared<TCP_socketServer>(port);
+        auto client = std::make_shared<TCP_socket>(port);
         if (!client->acceptClient())
             return false;
         tcpClients[id] = client;

@@ -1,3 +1,10 @@
+/*
+** EPITECH PROJECT, 2025
+** R-type
+** File description:
+** UDP_socket (Unified Client/Server)
+*/
+
 #include "Include/UDP_socket.hpp"
 #include <stdexcept>
 #include <cstring>
@@ -5,7 +12,24 @@
 
 using asio::ip::udp;
 
-UDP_socket::UDP_socket(uint16_t port): ioContext(), socket(ioContext) {
+// Client mode constructor (no binding)
+UDP_socket::UDP_socket() : socket(ioContext), isServerMode(false) {
+    try {
+        asio::error_code ec;
+        socket.open(udp::v4(), ec);
+        if (ec) throw std::runtime_error("Failed to open UDP socket: " + ec.message());
+
+        socket.non_blocking(true, ec);
+        if (ec) throw std::runtime_error("Failed to set non-blocking mode: " + ec.message());
+
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] UDP_socket client ctor: " << e.what() << std::endl;
+        throw;
+    }
+}
+
+// Server mode constructor (with binding)
+UDP_socket::UDP_socket(uint16_t port) : ioContext(), socket(ioContext), isServerMode(true) {
     udp::endpoint ep(udp::v4(), port);
     asio::error_code ec;
 
@@ -20,7 +44,7 @@ UDP_socket::UDP_socket(uint16_t port): ioContext(), socket(ioContext) {
         if (ec) throw std::runtime_error("Failed to set non-blocking mode: " + ec.message());
 
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] UDP_socket ctor: " << e.what() << std::endl;
+        std::cerr << "[ERROR] UDP_socket server ctor: " << e.what() << std::endl;
         throw;
     }
 }
@@ -48,11 +72,10 @@ std::pair<std::vector<uint8_t>, asio::ip::udp::endpoint> UDP_socket::receive() {
 
 bool UDP_socket::try_receive(std::vector<uint8_t>& outData, asio::ip::udp::endpoint& outEndpoint) {
     std::array<uint8_t, 2048> buf{};
-    udp::endpoint sender;
     asio::error_code ec;
 
     try {
-        std::size_t len = socket.receive_from(asio::buffer(buf), sender, 0, ec);
+        std::size_t len = socket.receive_from(asio::buffer(buf), outEndpoint, 0, ec);
 
         if (ec) {
             if (ec == asio::error::would_block || ec == asio::error::try_again)
@@ -61,7 +84,6 @@ bool UDP_socket::try_receive(std::vector<uint8_t>& outData, asio::ip::udp::endpo
         }
 
         outData.assign(buf.data(), buf.data() + len);
-        outEndpoint = sender;
         return true;
     } catch (const std::exception& e) {
         std::cerr << "[ERROR] try_receive(): " << e.what() << std::endl;
@@ -80,6 +102,11 @@ void UDP_socket::sendTo(const void* data, size_t size, const asio::ip::udp::endp
 }
 
 void UDP_socket::broadcast(const void* data, size_t size) {
+    if (!isServerMode) {
+        std::cerr << "[WARN] broadcast() called on client-mode socket, ignoring." << std::endl;
+        return;
+    }
+
     std::lock_guard<std::mutex> lock(clientsMutex);
     asio::error_code ec;
 
@@ -87,6 +114,7 @@ void UDP_socket::broadcast(const void* data, size_t size) {
         try {
             auto pos = addrStr.find(':');
             if (pos == std::string::npos) continue;
+            
             std::string ip = addrStr.substr(0, pos);
             uint16_t port = static_cast<uint16_t>(std::stoi(addrStr.substr(pos + 1)));
             auto addr = asio::ip::make_address(ip, ec);
@@ -103,6 +131,11 @@ void UDP_socket::broadcast(const void* data, size_t size) {
 }
 
 void UDP_socket::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t clientId) {
+    if (!isServerMode) {
+        std::cerr << "[WARN] addClient() called on client-mode socket, ignoring." << std::endl;
+        return;
+    }
+
     std::string addrStr = endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
 
     std::lock_guard<std::mutex> lock(clientsMutex);
@@ -110,6 +143,11 @@ void UDP_socket::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t cli
 }
 
 void UDP_socket::disconnectClient(uint32_t clientId) {
+    if (!isServerMode) {
+        std::cerr << "[WARN] disconnectClient() called on client-mode socket, ignoring." << std::endl;
+        return;
+    }
+
     std::lock_guard<std::mutex> lock(clientsMutex);
 
     for (auto it = clients.begin(); it != clients.end();) {
@@ -123,6 +161,10 @@ void UDP_socket::disconnectClient(uint32_t clientId) {
 }
 
 size_t UDP_socket::getClientCount() const {
+    if (!isServerMode) {
+        return 0;
+    }
+
     std::lock_guard<std::mutex> lock(clientsMutex);
     return clients.size();
 }

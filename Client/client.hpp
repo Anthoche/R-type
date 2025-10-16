@@ -8,9 +8,9 @@
 #pragma once
 
 #include "../Shared/protocol.hpp"
-#include "Network_client/Include/UDP_socket.hpp"
-#include "Network_client/Include/TCP_socketClient.hpp"
-#include "../../Core/Include/registry.hpp"
+#include "../Shared/Sockets/Include/UDP_socket.hpp"
+#include "../Shared/Sockets/Include/TCP_socket.hpp"
+#include "../Engine/Core/Include/registry.hpp"
 #include <asio.hpp>
 #include <cstring>
 #include <iostream>
@@ -37,13 +37,13 @@ class Game;
  */
 class GameClient {
     private:
-        UDP_socket socket; ///< UDP socket used for communication with the server.
+        UDP_socket socket; ///< UDP socket used for communication with the server (client mode).
         asio::ip::udp::endpoint serverEndpoint; ///< Server endpoint for UDP messages.
         std::string clientName; ///< Name of the current client.
         std::thread rxThread; ///< Thread used for receiving messages.
         std::atomic<bool> running{false}; ///< Flag to control client activity.
         Game &_game; ///< Reference to the associated Game instance.
-        std::unique_ptr<TCP_socketClient> tcpClient; ///< TCP client for reliable data transfer.
+        std::unique_ptr<TCP_socket> tcpClient; ///< TCP client for reliable data transfer (client mode).
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
@@ -129,7 +129,7 @@ class GameClient {
         /**
          * @brief Initializes a TCP connection to the server.
          *
-         * Uses the client’s assigned ID to compute a unique TCP port.
+         * Uses the client's assigned ID to compute a unique TCP port.
          */
         void initTcpConnection();
 

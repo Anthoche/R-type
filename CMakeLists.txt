@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.16)
-
 set(VCPKG_TOOLCHAIN_CANDIDATE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
 if(EXISTS "${VCPKG_TOOLCHAIN_CANDIDATE}")
     set(CMAKE_TOOLCHAIN_FILE "${VCPKG_TOOLCHAIN_CANDIDATE}" CACHE STRING "Vcpkg toolchain file")
@@ -50,16 +49,38 @@ set(ENGINE_PHYSICS_DIR ${ENGINE_DIR}/Physics)
 set(ENGINE_UTILS_DIR ${ENGINE_DIR}/Utils)
 
 # -------------------------
+# Shared Sockets library (UDP & TCP unified)
+# -------------------------
+add_library(shared_sockets STATIC
+    ${SHARED_DIR}/Sockets/UDP_socket.cpp
+    ${SHARED_DIR}/Sockets/TCP_socket.cpp
+)
+
+target_include_directories(shared_sockets PUBLIC
+    ${SHARED_DIR}/Sockets/Include
+    ${SHARED_DIR}
+)
+
+target_link_libraries(shared_sockets PUBLIC
+    nlohmann_json::nlohmann_json
+    asio::asio
+)
+
+if (WIN32)
+    target_compile_definitions(shared_sockets PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
+endif()
+
+# -------------------------
 # ECS library (Engine/Core)
 # -------------------------
 add_library(ecs STATIC
     ${ENGINE_CORE_DIR}/entity.cpp
     ${ENGINE_CORE_DIR}/registry.cpp
-    ${ENGINE_CORE_DIR}/Entities/Include/button.hpp
 )
 
 target_include_directories(ecs PUBLIC
     ${ENGINE_CORE_DIR}/Include
+    ${ENGINE_ENTITIES_DIR}/Include
     ${SHARED_DIR}
 )
 
@@ -69,8 +90,6 @@ target_include_directories(ecs PUBLIC
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
     ${CLIENT_DIR}/client.cpp
-    ${CLIENT_DIR}/Network_client/UDP_socket.cpp
-    ${CLIENT_DIR}/Network_client/TCP_socketClient.cpp
     ${CLIENT_DIR}/Handler/client_handler.cpp
     ${ENGINE_DIR}/Game.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
@@ -84,7 +103,6 @@ add_executable(r-type_client
     ${ENGINE_ENTITIES_DIR}/button.cpp
     ${ENGINE_ENTITIES_DIR}/random_element.cpp
     ${ENGINE_ENTITIES_DIR}/image.cpp
-    ${ENGINE_ENTITIES_DIR}/UI.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
@@ -93,6 +111,7 @@ add_executable(r-type_client
     ${ENGINE_SCENE_DIR}/AScene.cpp
     ${ENGINE_SCENE_DIR}/SceneHandler.cpp
     ${ENGINE_DIR}/Scene/GameScene.cpp
+    ${ENGINE_DIR}/Scene/UI.cpp
     ${ENGINE_DIR}/Scene/MenuScene.cpp
     ${ENGINE_DIR}/Scene/SettingsScene.cpp
     ${ENGINE_DIR}/Scene/WaitingScene.cpp
@@ -103,18 +122,25 @@ add_executable(r-type_client
 target_include_directories(r-type_client PRIVATE
     ${CLIENT_DIR}
     ${CLIENT_DIR}/Handler
-    ${CLIENT_DIR}/Network_client
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_RENDERING_DIR}
     ${ENGINE_SCENE_DIR}
-    ${ENGINE_DIR}/Scene
+    ${ENGINE_DIR}/Scene/Include
     ${ENGINE_UTILS_DIR}/Include
+    ${ENGINE_PHYSICS_DIR}/Include
     ${SHARED_DIR}
-    ${ASIO_INCLUDE_DIR}
+    ${SHARED_DIR}/Sockets/Include
 )
 
-target_link_libraries(r-type_client PRIVATE ecs raylib glfw nlohmann_json asio)
+target_link_libraries(r-type_client PRIVATE
+    ecs
+    shared_sockets
+    raylib
+    glfw
+    nlohmann_json::nlohmann_json
+    asio::asio
+)
 
 if (WIN32)
     target_compile_definitions(r-type_client PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
@@ -127,8 +153,6 @@ add_executable(r-type_server
     ${SERVER_DIR}/main.cpp
     ${SERVER_DIR}/server.cpp
     ${SERVER_DIR}/Network_handler/connexion.cpp
-    ${SERVER_DIR}/Network_handler/UDP_socket.cpp
-    ${SERVER_DIR}/Network_handler/TCP_socketServer.cpp
     ${SERVER_DIR}/Game_logic/game_setup.cpp
     ${SERVER_DIR}/Game_logic/ServerGame.cpp
     ${SERVER_DIR}/Game_logic/ServerGame/SGPlayer.cpp
@@ -149,15 +173,22 @@ add_executable(r-type_server
 )
 
 target_include_directories(r-type_server PRIVATE
+    ${SERVER_DIR}
     ${SERVER_DIR}/Network_handler/Include
     ${SERVER_DIR}/Game_logic/Include
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_UTILS_DIR}/Include
     ${SHARED_DIR}
-    ${ASIO_INCLUDE_DIR}
+    ${SHARED_DIR}/Sockets/Include
 )
-target_link_libraries(r-type_server PRIVATE ecs nlohmann_json)
+
+target_link_libraries(r-type_server PRIVATE
+    ecs
+    shared_sockets
+    nlohmann_json::nlohmann_json
+    asio::asio
+)
 
 if (WIN32)
     target_compile_definitions(r-type_server PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
@@ -186,7 +217,7 @@ add_custom_target(tu
 # -------------------------
 # Installation
 # -------------------------
-install(TARGETS r-type_client r-type_server ecs
+install(TARGETS r-type_client r-type_server ecs shared_sockets
     RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib

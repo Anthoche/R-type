@@ -9,7 +9,7 @@
 	#define RTYPE_UI_HPP
 
 #include "DynamicPosition.hpp"
-#include "../Game.hpp"
+#include "../../Game.hpp"
 #include "registry.hpp"
 #include "Raylib.hpp"
 

@@ -10,7 +10,7 @@
 #include <asio.hpp>
 
 GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
-    : clientName(name), _game(game), serverIpStr(serverIp) {
+    : socket(), clientName(name), _game(game), serverIpStr(serverIp) {
     try {
         serverEndpoint = asio::ip::udp::endpoint(
             asio::ip::address::from_string(serverIp), 
@@ -49,7 +49,7 @@ void GameClient::initTcpConnection() {
     if (clientId == 0) return;
 
     uint16_t tcpPort = 5000 + clientId;
-    tcpClient = std::make_unique<TCP_socketClient>();
+    tcpClient = std::make_unique<TCP_socket>(); // Mode client (constructeur par défaut)
 
     if (!tcpClient->connectToServer(serverIpStr, tcpPort)) {
         std::cerr << "[Client] Impossible de se connecter en TCP" << std::endl;
@@ -107,7 +107,7 @@ void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
             std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
             return;
         }
-         std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
+        std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
         game::serializer::deserialize_entities(*registry, fullRegistry);
     }
 }

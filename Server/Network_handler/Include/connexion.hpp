@@ -8,7 +8,7 @@
 #pragma once
 
 #include "UDP_socket.hpp"
-#include "TCP_socketServer.hpp"
+#include "TCP_socket.hpp"
 #include "../../../Shared/protocol.hpp"
 #include <vector>
 #include <unordered_map>
@@ -121,5 +121,5 @@ class Connexion {
         UDP_socket socket; ///< UDP socket instance for message transmission.
         std::unordered_map<std::string, uint32_t> clients; ///< Maps client addresses to their IDs.
         std::unordered_map<std::string, asio::ip::udp::endpoint> endpoints; ///< Maps client addresses to UDP endpoints.
-        std::unordered_map<uint32_t, std::shared_ptr<TCP_socketServer>> tcpClients; ///< TCP connections for reliable messages.
+        std::unordered_map<uint32_t, std::shared_ptr<TCP_socket>> tcpClients; ///< TCP connections for reliable messages.
 };
