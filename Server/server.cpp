@@ -4,8 +4,9 @@
 ** File description:
 ** server
 */
-#include "server.hpp"
-#include "Game_logic/Include/ServerGame.hpp"
+#include "Include/server.hpp"
+#include "Include/IServerGame.hpp"
+#include "../Game/Game_logic/Rtype_game.hpp"
 #include <chrono>
 #include <thread>
 #include <cstring>

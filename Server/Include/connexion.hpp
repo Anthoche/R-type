@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include "UDP_socket.hpp"
-#include "TCP_socket.hpp"
-#include "../../../Shared/protocol.hpp"
+#include "../../Shared/Sockets/Include/UDP_socket.hpp"
+#include "../../Shared/Sockets/Include/TCP_socket.hpp"
+#include "../../Shared/protocol.hpp"
 #include <vector>
 #include <unordered_map>
 #include <asio.hpp>

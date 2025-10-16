@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "Network_handler/Include/connexion.hpp"
+#include "connexion.hpp"
+#include "IServerGame.hpp"
 #include "../Shared/protocol.hpp"
 #include <asio.hpp>
 #include <thread>

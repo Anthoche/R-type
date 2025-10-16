@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
+
+# -------------------------
+# Toolchain (vcpkg support)
+# -------------------------
 set(VCPKG_TOOLCHAIN_CANDIDATE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
 if(EXISTS "${VCPKG_TOOLCHAIN_CANDIDATE}")
     set(CMAKE_TOOLCHAIN_FILE "${VCPKG_TOOLCHAIN_CANDIDATE}" CACHE STRING "Vcpkg toolchain file")
@@ -10,7 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
@@ -22,7 +26,7 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 # -------------------------
-# Custom option to build unit tests
+# Build options
 # -------------------------
 option(TU "Build unit tests (enable with -DTU=ON)" OFF)
 
@@ -35,10 +39,11 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
 
 # -------------------------
-# Directories
+# Project directories
 # -------------------------
 set(CLIENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Client)
 set(SERVER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Server)
+set(GAME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Game)
 set(SHARED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shared)
 set(ENGINE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Engine)
 set(ENGINE_CORE_DIR ${ENGINE_DIR}/Core)
@@ -49,7 +54,7 @@ set(ENGINE_PHYSICS_DIR ${ENGINE_DIR}/Physics)
 set(ENGINE_UTILS_DIR ${ENGINE_DIR}/Utils)
 
 # -------------------------
-# Shared Sockets library (UDP & TCP unified)
+# Shared sockets library
 # -------------------------
 add_library(shared_sockets STATIC
     ${SHARED_DIR}/Sockets/UDP_socket.cpp
@@ -66,12 +71,12 @@ target_link_libraries(shared_sockets PUBLIC
     asio::asio
 )
 
-if (WIN32)
+if(WIN32)
     target_compile_definitions(shared_sockets PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
 endif()
 
 # -------------------------
-# ECS library (Engine/Core)
+# ECS core
 # -------------------------
 add_library(ecs STATIC
     ${ENGINE_CORE_DIR}/entity.cpp
@@ -85,7 +90,37 @@ target_include_directories(ecs PUBLIC
 )
 
 # -------------------------
-# r-type_client (with Raylib)
+# Game Logic library (auto-discovered)
+# -------------------------
+file(GLOB_RECURSE GAME_LOGIC_SOURCES
+    "${GAME_DIR}/Game_logic/*.cpp"
+    "${GAME_DIR}/Game_logic/**/*.cpp"
+)
+
+message(STATUS "Game logic sources found:")
+foreach(src ${GAME_LOGIC_SOURCES})
+    message(STATUS "  - ${src}")
+endforeach()
+
+add_library(game_logic STATIC
+    ${GAME_LOGIC_SOURCES}
+)
+
+target_include_directories(game_logic PUBLIC
+    ${GAME_DIR}/Game_logic
+    ${ENGINE_CORE_DIR}/Include
+    ${ENGINE_ENTITIES_DIR}/Include
+    ${ENGINE_UTILS_DIR}/Include
+    ${SHARED_DIR}
+)
+
+target_link_libraries(game_logic PUBLIC
+    ecs
+    nlohmann_json::nlohmann_json
+)
+
+# -------------------------
+# r-type_client executable
 # -------------------------
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
@@ -142,23 +177,18 @@ target_link_libraries(r-type_client PRIVATE
     asio::asio
 )
 
-if (WIN32)
+if(WIN32)
     target_compile_definitions(r-type_client PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
 endif()
 
 # -------------------------
-# r-type_server (no Raylib)
+# r-type_server executable
 # -------------------------
 add_executable(r-type_server
     ${SERVER_DIR}/main.cpp
     ${SERVER_DIR}/server.cpp
-    ${SERVER_DIR}/Network_handler/connexion.cpp
-    ${SERVER_DIR}/Game_logic/game_setup.cpp
-    ${SERVER_DIR}/Game_logic/ServerGame.cpp
-    ${SERVER_DIR}/Game_logic/ServerGame/SGPlayer.cpp
-    ${SERVER_DIR}/Game_logic/ServerGame/SGEnnemy.cpp
-    ${SERVER_DIR}/Game_logic/ServerGame/SGObstacle.cpp
-    ${SERVER_DIR}/Game_logic/ServerGame/SGProjectile.cpp
+    ${SERVER_DIR}/connexion.cpp
+    ${SERVER_DIR}/game_setup.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
@@ -173,9 +203,7 @@ add_executable(r-type_server
 )
 
 target_include_directories(r-type_server PRIVATE
-    ${SERVER_DIR}
-    ${SERVER_DIR}/Network_handler/Include
-    ${SERVER_DIR}/Game_logic/Include
+    ${SERVER_DIR}/include
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_UTILS_DIR}/Include
@@ -185,19 +213,20 @@ target_include_directories(r-type_server PRIVATE
 
 target_link_libraries(r-type_server PRIVATE
     ecs
+    game_logic
     shared_sockets
     nlohmann_json::nlohmann_json
     asio::asio
 )
 
-if (WIN32)
+if(WIN32)
     target_compile_definitions(r-type_server PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
 endif()
 
 # -------------------------
 # Unit tests
 # -------------------------
-if (TU)
+if(TU)
     message(STATUS "Building unit tests (TU=ON)")
     enable_testing()
     add_subdirectory(Unit_test)
@@ -206,7 +235,7 @@ else()
 endif()
 
 # -------------------------
-# Custom target to rebuild with TU=ON
+# Custom target to build with tests
 # -------------------------
 add_custom_target(tu
     COMMAND ${CMAKE_COMMAND} -DTU=ON -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ${CMAKE_SOURCE_DIR}
@@ -217,7 +246,7 @@ add_custom_target(tu
 # -------------------------
 # Installation
 # -------------------------
-install(TARGETS r-type_client r-type_server ecs shared_sockets
+install(TARGETS r-type_client r-type_server ecs shared_sockets game_logic
     RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
@@ -227,9 +256,9 @@ install(TARGETS r-type_client r-type_server ecs shared_sockets
 # Assets setup
 # -------------------------
 execute_process(
-    # COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/assets.zip # /!\ DO NOT DELETE, to be used after
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/Engine/Assets/ ./assets # Temporary solution to get access to assets directory
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/Engine/Assets/
+        ${CMAKE_BINARY_DIR}/assets
 )
 
 target_compile_definitions(r-type_client PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/assets")
