@@ -5,13 +5,13 @@
 ** SceneHandler
 */
 
-#ifndef SCENEHANDLER_HPP
-    #define SCENEHANDLER_HPP
+# pragma once
 
-    #include <map>
-    #include <memory>
-    #include "IScene.hpp"
-    #include "../Raylib.hpp"
+#include <map>
+#include <memory>
+#include "../../../Engine/Rendering/scene/Include/ASceneHandler.hpp"
+#include "../../../Engine/Rendering/scene/Include/AScene.hpp"
+
 
 class Game;
 
@@ -19,7 +19,7 @@ class Game;
  * @class SceneHandler
  * @brief Manages multiple windows within the GUI.
  *
- * This class handles the creation, opening, and closing of windows,
+ * This class handles the creation,/ opening, and closing of windows,
  * maintaining a map of scene names to their objects and visibility states.
  */
 class SceneHandler {
@@ -98,5 +98,3 @@ class SceneHandler {
         std::shared_ptr<IScene> getScene(std::string const &name);
 
 };
-
-#endif //SCENEHANDLER_HPP

@@ -51,8 +51,8 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
 
 void ServerGame::run() {
     LOG("[Server] Starting game loop...");
-    load_players("../Engine/Assets/Config_assets/Players/players.json");
-    load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
+    load_players(ASSETS_PATH "/Config_assets/Players/players.json");
+    load_level(ASSETS_PATH "/Config_assets/Levels/level_01.json");
     initialize_player_positions();
     index_existing_entities();
 
@@ -111,7 +111,6 @@ void ServerGame::load_players(const std::string &path) {
     try {
         auto json = load_json_from_file(path);
         game::storage::store_players(registry_server, json);
-        LOG_DEBUG("===== Loaded Players =====");
         auto &positions = registry_server.get_components<component::position>();
         auto &clientIds = registry_server.get_components<component::client_id>();
         for (std::size_t i = 0; i < positions.size(); ++i) {
@@ -119,7 +118,6 @@ void ServerGame::load_players(const std::string &path) {
                 auto &pos = positions[i].value();
                 auto &cid = clientIds[i].value();
                 ecs::entity_t entity = registry_server.entity_from_index(i);
-                LOG("Player entity " << entity << " client_id=" << cid.id << " pos=(" << pos.x << ", " << pos.y << ")");
             }
         }
     } catch (const std::exception &e) {
@@ -131,13 +129,11 @@ void ServerGame::load_level(const std::string &path) {
     try {
         auto json = load_json_from_file(path);
         game::storage::store_level_entities(registry_server, json);
-        LOG_DEBUG("===== Loaded Level Entities =====");
         auto &positions = registry_server.get_components<component::position>();
         for (std::size_t i = 0; i < positions.size(); ++i) {
             if (positions[i].has_value()) {
                 auto &pos = positions[i].value();
                 ecs::entity_t entity = registry_server.entity_from_index(i);
-                LOG("Entity " << entity << " pos=(" << pos.x << ", " << pos.y << ")");
             }
         }
     } catch (const std::exception &e) {

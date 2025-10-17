@@ -5,13 +5,12 @@
 ** Ui
 */
 
-#ifndef RTYPE_UI_HPP
-	#define RTYPE_UI_HPP
+
+#pragma once
 
 #include "DynamicPosition.hpp"
-#include "../../Game.hpp"
-#include "registry.hpp"
-#include "Raylib.hpp"
+#include "../../../Engine/Game.hpp"
+#include "../../../Engine/Rendering/Raylib.hpp"
 
 namespace game::scene {
 	class GameScene;
@@ -124,6 +123,4 @@ class UI {
 		 * @return A Vector2 containing the final screen coordinates.
 		 */
 		Vector2 getRealPos(DynamicPosition pos, Vector2 offset, Vector2 size) const;
-	};
-
-#endif //RTYPE_UI_HPP
+};

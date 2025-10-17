@@ -8,8 +8,8 @@
 #ifndef RTYPE_SERVERWAITSCENE_HPP
 	#define RTYPE_SERVERWAITSCENE_HPP
 
-    #include "../../Rendering/scene/AScene.hpp"
-    #include "../Game.hpp"
+    #include "../../../Engine/Rendering/scene/Include/AScene.hpp"
+    #include "../../../Engine/Game.hpp"
 
 namespace scene {
 

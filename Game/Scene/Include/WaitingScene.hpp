@@ -8,7 +8,7 @@
 #ifndef RTYPE_WAITINGSCENE_HPP
 	#define RTYPE_WAITINGSCENE_HPP
 
-    #include "../../Rendering/scene/AScene.hpp"
+    #include "../../../Engine/Rendering/scene/Include/AScene.hpp"
     #include "../Game.hpp"
 
 namespace scene {

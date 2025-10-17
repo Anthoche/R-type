@@ -5,12 +5,12 @@
 ** WindowHandler
 */
 
-#include "SceneHandler.hpp"
-#include "../../Scene/Include/MenuScene.hpp"
-#include "../../Scene/Include/GameScene.hpp"
-#include "../../Scene/Include/ServerWaitScene.hpp"
-#include "../../Scene/Include/WaitingScene.hpp"
-#include "../../Scene/Include/SettingsScene.hpp"
+#include "Include/SceneHandler.hpp"
+#include "Include/MenuScene.hpp"
+#include "Include/GameScene.hpp"
+#include "Include/ServerWaitScene.hpp"
+#include "Include/WaitingScene.hpp"
+#include "Include/SettingsScene.hpp"
 
 
 SceneHandler::SceneHandler(Game &game) : _game(game) {

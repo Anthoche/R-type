@@ -12,7 +12,7 @@
 
 #include "GameStatus.hpp"
 #include "../Client/client.hpp"
-#include "Rendering/scene/SceneHandler.hpp"
+#include "../Game/Scene/Include/SceneHandler.hpp"
 
 /**
  * @class Game

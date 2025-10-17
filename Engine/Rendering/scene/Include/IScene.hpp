@@ -5,10 +5,9 @@
 ** IScene
 */
 
-#ifndef ISCENE_HPP
-    #define ISCENE_HPP
+#pragma once
 
-    #include <string>
+#include <string>
 
 /**
  * @class IScene
@@ -77,5 +76,3 @@ class IScene {
          */
         virtual bool isOpen() const = 0;
 };
-
-#endif //ISCENE_HPP

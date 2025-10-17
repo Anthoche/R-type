@@ -6,7 +6,6 @@
 */
 
 #include "Include/GameScene.hpp"
-#include "../Physics/Include/Collision.hpp"
 #include <iostream>
 #include <cmath>
 
@@ -108,8 +107,8 @@ namespace game::scene {
     }
 
     void GameScene::load_projectile_textures() {
-        _projectileTextures["player_missile"] = _raylib.loadTexture("../Engine/Assets/sprites/r-typesheet1.png");
-        _projectileTextures["enemy_missile"] = _raylib.loadTexture("../Engine/Assets/sprites/r-typesheet1.png");
+        _projectileTextures["player_missile"] = _raylib.loadTexture("../Game/Assets/sprites/r-typesheet1.png");
+        _projectileTextures["enemy_missile"] = _raylib.loadTexture("../Game/Assets/sprites/r-typesheet1.png");
     }
 
     void GameScene::load_entity_textures() {

@@ -5,12 +5,26 @@
 ** AScene
 */
 
-#ifndef ASCENE_HPP
-    #define ASCENE_HPP
+#pragma once
 
-    #include "IScene.hpp"
-    #include "../../Core/Include/registry.hpp"
-    #include "../Raylib.hpp"
+#include "IScene.hpp"
+#include "../../Core/Include/registry.hpp"
+#include "../../Core/Include/entity.hpp"
+#include "../../Raylib.hpp"
+#include "../../Core/Entities/Include/components.hpp"
+#include "../../Core/Entities/Include/background.hpp"
+#include "../../Core/Entities/Include/button.hpp"
+#include "../../Core/Entities/Include/enemy.hpp"
+#include "../../Core/Entities/Include/hitbox.hpp"
+#include "../../Core/Entities/Include/image.hpp"
+#include "../../Core/Entities/Include/obstacle.hpp"
+#include "../../Core/Entities/Include/player.hpp"
+#include "../../Core/Entities/Include/projectile.hpp"
+#include "../../Core/Entities/Include/random_element.hpp"
+#include "../../Core/Entities/Include/sound.hpp"
+#include "../../Core/Entities/Include/text.hpp"
+#include "../../Physics/Include/Collision.hpp"
+
 
 /**
  * @class AScene
@@ -124,5 +138,3 @@ class AScene : public IScene {
          */
         bool isOpen() const override;
 };
-
-#endif //ASCENE_HPP

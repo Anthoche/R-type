@@ -4,20 +4,11 @@
 ** File description:
 ** GameScene
 */
-#ifndef GAMESCENE_HPP
-#define GAMESCENE_HPP
 
-#include "../../Engine/Rendering/scene/AScene.hpp"
-#include "../../Engine/Core/Include/entity.hpp"
-#include "../../Engine/Core/Entities/Include/player.hpp"
-#include "../../Engine/Core/Entities/Include/enemy.hpp"
-#include "../../Engine/Core/Entities/Include/obstacle.hpp"
-#include "../../Engine/Core/Entities/Include/hitbox.hpp"
-#include "../../Engine/Core/Entities/Include/background.hpp"
-#include "../../Engine/Core/Entities/Include/sound.hpp"
-#include "../../Engine/Core/Entities/Include/text.hpp"
-#include "../../Engine/Core/Entities/Include/random_element.hpp"
-#include "../../Physics/Include/Collision.hpp"
+
+#pragma once
+
+#include "../../Engine/Rendering/scene/Include/AScene.hpp"
 #include "../Game.hpp"
 #include <unordered_map>
 #include "UI.hpp"
@@ -271,5 +262,3 @@ namespace game::scene {
         Color get_color_for_id(uint32_t id);
     };
 } // namespace game::scene
-
-#endif // GAMESCENE_HPP
