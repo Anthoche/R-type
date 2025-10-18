@@ -273,4 +273,160 @@ namespace game::parsing
             throw std::runtime_error(std::string("Failed to parse text: ") + e.what());
         }
     }
+
+    ecs::entity_t parse_item(ecs::registry &reg, const json &item_data)
+    {
+        try {
+            float x = item_data.value("x", 0.f);
+            float y = item_data.value("y", 0.f);
+            float z = item_data.value("z", 0.f);
+            std::string image_path = item_data.value("image_path", "");
+            return game::entities::create_item(reg, x, y, z, image_path);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse item: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_powerup(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            std::string image_path = data.value("image_path", "");
+            std::string effect = data.value("effect", "none");
+            float value = data.value("value", 0.f);
+            return game::entities::create_powerup(reg, x, y, z, image_path, effect, value);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse powerup: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_trap(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            std::string image_path = data.value("image_path", "");
+            float damage = data.value("damage", 10.f);
+            return game::entities::create_trap(reg, x, y, z, image_path, damage);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse trap: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_gate(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            std::string image_path = data.value("image_path", "");
+            bool locked = data.value("locked", false);
+            std::string target_scene = data.value("target_scene", "");
+            return game::entities::create_gate(reg, x, y, z, image_path, locked, target_scene);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse gate: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_weapon(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            std::string image_path = data.value("image_path", "");
+            float damage = data.value("damage", 20.f);
+            float cooldown = data.value("cooldown", 1.0f);
+            return game::entities::create_weapon(reg, x, y, z, image_path, damage, cooldown);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse weapon: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_png(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            std::string image_path = data.value("image_path", "");
+            return game::entities::create_png(reg, x, y, z, image_path);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse PNG: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_platform(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            float width = data.value("width", 200.f);
+            float height = data.value("height", 40.f);
+            std::string image_path = data.value("image_path", "");
+            return game::entities::create_platform(reg, x, y, z, width, height, image_path);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse platform: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_decoration(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            std::string image_path = data.value("image_path", "");
+            return game::entities::create_decoration(reg, x, y, z, image_path);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse decoration: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_spawner(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            std::string spawn_type = data.value("spawn_type", "enemy");
+            float interval = data.value("interval", 3.f);
+            return game::entities::create_spawner(reg, x, y, z, spawn_type, interval);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse spawner: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_checkpoint(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            std::string id = data.value("id", "checkpoint");
+            return game::entities::create_checkpoint(reg, x, y, z, id);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse checkpoint: ") + e.what());
+        }
+    }
+
+    ecs::entity_t parse_triggerzone(ecs::registry &reg, const json &data)
+    {
+        try {
+            float x = data.value("x", 0.f);
+            float y = data.value("y", 0.f);
+            float z = data.value("z", 0.f);
+            float width = data.value("width", 100.f);
+            float height = data.value("height", 100.f);
+            std::string event = data.value("event", "");
+            return game::entities::create_triggerzone(reg, x, y, z, width, height, event);
+        } catch (const std::exception &e) {
+            throw std::runtime_error(std::string("Failed to parse trigger zone: ") + e.what());
+        }
+    }
+
 } // namespace game::parsing

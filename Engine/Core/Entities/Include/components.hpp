@@ -14,37 +14,65 @@
 #include <string>
 #include <cstdint>
 
+
 /**
  * @namespace component
- * @brief Contains all ECS components used in the R-Type game.
+ * @brief Contains all ECS components for the game.
  */
 namespace component {
 
+    // =========================
+    // POSITION / TRANSFORM
+    // =========================
+
     /**
      * @struct position
-     * @brief Represents the position of an entity in 2D space.
+     * @brief Represents the position of an entity in 3D space.
      */
     struct position {
-        float x{0.f}; ///< X coordinate
-        float y{0.f}; ///< Y coordinate
+        float x{0.f};
+        float y{0.f};
+        float z{0.f}; ///< Added Z for 3D positioning
     };
 
     /**
      * @struct previous_position
-     * @brief Stores previous frame position for collision resolution.
+     * @brief Stores previous frame position for physics/collision resolution in 3D.
      */
     struct previous_position {
         float x{0.f};
         float y{0.f};
+        float z{0.f};
     };
 
     /**
      * @struct velocity
-     * @brief Represents the velocity of an entity in 2D space.
+     * @brief Represents velocity in 3D space.
      */
     struct velocity {
-        float vx{0.f}; ///< Velocity along X
-        float vy{0.f}; ///< Velocity along Y
+        float vx{0.f};
+        float vy{0.f};
+        float vz{0.f};
+    };
+
+    /**
+     * @struct rotation
+     * @brief Represents rotation of an entity in 3D space (Euler angles in degrees).
+     */
+    struct rotation {
+        float pitch{0.f}; ///< Rotation around X
+        float yaw{0.f};   ///< Rotation around Y
+        float roll{0.f};  ///< Rotation around Z
+    };
+
+    /**
+     * @struct scale
+     * @brief Scale factor for an entity in 3D.
+     */
+    struct scale {
+        float x{1.f};
+        float y{1.f};
+        float z{1.f};
     };
 
     struct dynamic_position {
@@ -53,149 +81,159 @@ namespace component {
         float offsetY{0.f};
     };
 
-	/**
-	* @struct drawable
-	* @brief Represents a renderable entity with size and color.
-	*/
+    // =========================
+    // RENDERABLE / VISUAL
+    // =========================
+
+    /**
+     * @struct drawable
+     * @brief 2D or 3D renderable entity (size, color).
+     */
     struct drawable {
-        float width{32.f};  ///< Width of the entity
-        float height{32.f}; ///< Height of the entity
-        Color color{WHITE}; ///< Color in RGBA
+        float width{32.f};
+        float height{32.f};
+        float depth{32.f}; ///< For 3D objects
+        Color color{WHITE};
     };
 
     /**
      * @struct sprite
-     * @brief Optional sprite to render an image for an entity.
+     * @brief Optional 2D sprite component.
      */
     struct sprite {
-        std::string image_path{}; ///< Filepath to the image/texture
-        Texture2D texture{}; //TEMPORAIRE
-        float scale{1.f};         ///< Uniform scale for rendering
-        float rotation{0.f};      ///< Rotation in degrees
+        std::string image_path{};
+        Texture2D texture{};
+        float scale{1.f};
+        float rotation{0.f};
     };
 
     /**
-     * @struct audio
-     * @brief Optional audio component to attach a sound/music to an entity.
+     * @struct model3D
+     * @brief Optional 3D model for the entity.
      */
+    struct model3D {
+        std::string model_path{};
+        Model model{};
+        float scale{1.f};
+        rotation rotation_angles{};
+    };
+
+    // =========================
+    // AUDIO
+    // =========================
+
     struct audio {
-        std::string sound_path{}; ///< Filepath to the sound/music
-        float volume{1.f};        ///< Playback volume [0..1]
-        bool loop{false};         ///< Should the audio loop
-        bool autoplay{false};     ///< Start playing on creation
+        std::string sound_path{};
+        float volume{1.f};
+        bool loop{false};
+        bool autoplay{false};
     };
 
-	/**
-	* @struct text
-	* @brief Text content and styling for on-screen labels.
-	*/
-	struct text {
-		std::string content{}; ///< UTF-8 text to display
-		int font_size{24}; ///< Font size in pixels
-		float spacing{1.f}; ///< Glyph spacing in pixels
-		Color color; ///< RGBA color
-		Font font{}; ///< Font to use for rendering
-	};
+    // =========================
+    // TEXT / UI
+    // =========================
 
-    /**
-     * @struct font
-     * @brief Optional font resource for text rendering.
-     */
+    struct text {
+        std::string content{};
+        int font_size{24};
+        float spacing{1.f};
+        Color color{WHITE};
+        Font font{};
+    };
+
     struct font {
-        std::string font_path{};  ///< Filepath to TTF/OTF font
+        std::string font_path{};
     };
 
-    /**
-     * @struct clickable
-     * @brief Marks an entity as clickable (for UI elements like buttons).
-     */
     struct clickable {
         std::string id{};
         bool enabled{true};
         bool isClicked{false};
     };
 
-    /**
-     * @struct hoverable
-     * @brief Marks an entity as hoverable (for UI elements like buttons).
-     */
     struct hoverable {
         std::string id{};
         bool isHovered{false};
     };
 
-    /**
-     * @struct controllable
-     * @brief Marks an entity as player-controllable.
-     */
+    // =========================
+    // INPUT / CONTROL
+    // =========================
+
     struct controllable {
-        float speed{200.f}; ///< Movement speed
+        float speed{200.f};
+        bool can_jump{false};
+        bool can_fly{false};
     };
 
-    /**
-     * @struct health
-     * @brief Represents health points of an entity.
-     */
+    // =========================
+    // COMBAT / STATS
+    // =========================
+
     struct health {
-        int current{100}; ///< Current health
-        int max{100};     ///< Maximum health
+        int current{100};
+        int max{100};
     };
 
-    /**
-     * @struct damage
-     * @brief Represents damage dealt by an entity.
-     */
     struct damage {
-        int amount{10}; ///< Damage amount
+        int amount{10};
     };
 
-    /**
-     * @enum entity_type
-     * @brief Defines the type of an entity for game logic.
-     */
-    enum class entity_type {
-        PLAYER,    ///< Player entity
-        ENEMY,     ///< Enemy entity
-        BULLET,    ///< Projectile
-        POWERUP,   ///< Power-up item
-        OBSTACLE,  ///< Obstacle in the game
-        BACKGROUND,///< Background entity
-        SOUND,     ///< Sound-only entity
-        TEXT,      ///< Text label entity
-        BUTTON,     ///< Button entity (UI)
-        PROJECTILE,  ///< projectile entity
-        IMAGE,     ///< Image entity
-        RANDOM_ELEMENT ///< Random element entity
-    };
+    // =========================
+    // COLLISION / PHYSICS
+    // =========================
 
-    /**
-     * @struct type
-     * @brief Component to store the entity type.
-     */
-    struct type {
-        entity_type value{entity_type::PLAYER}; ///< Type of the entity
-    };
-
-    /**
-     * @struct collision_box
-     * @brief Defines the collision bounds of an entity.
-     */
     struct collision_box {
-        float width{32.f};  ///< Width of the collision box
-        float height{32.f}; ///< Height of the collision box
+        float width{32.f};
+        float height{32.f};
+        float depth{32.f};
     };
 
-    /**
-     * @struct hitbox_link
-     * @brief Associates a hitbox entity to its owner entity with an optional offset.
-     */
     struct hitbox_link {
-        ecs::entity_t owner{0}; ///< Owner entity that this hitbox follows
-        float offsetX{0.f};     ///< X offset relative to owner position
-        float offsetY{0.f};     ///< Y offset relative to owner position
+        ecs::entity_t owner{0};
+        float offsetX{0.f};
+        float offsetY{0.f};
+        float offsetZ{0.f};
     };
+
+    // =========================
+    // GAME LOGIC / TYPES
+    // =========================
+
+    enum class entity_type {
+        PLAYER,
+        ENEMY,
+        OBSTACLE,
+        POWERUP,
+        ITEM,
+        TRAP,
+        GATE,
+        WEAPON,
+        PLATFORM,
+        DECORATION,
+        CHECKPOINT,
+        SPAWNER,
+        TRIGGERZONE,
+        BACKGROUND,
+        SOUND,
+        TEXT,
+        BUTTON,
+        PROJECTILE,
+        IMAGE,
+        RANDOM_ELEMENT,
+        PNG
+    };
+
+    struct type {
+        entity_type value{entity_type::PLAYER};
+    };
+
+    // =========================
+    // NETWORK / CLIENT
+    // =========================
 
     struct client_id {
-        uint32_t id;
+        uint32_t id{0};
     };
+
 }

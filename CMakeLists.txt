@@ -138,7 +138,7 @@ target_compile_definitions(game_logic PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/as
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
     ${CLIENT_DIR}/client.cpp
-    ${CLIENT_DIR}/Handler/client_handler.cpp
+    ${CLIENT_DIR}/Handler/ClientHandler.cpp
     ${ENGINE_DIR}/Game.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/enemy.cpp
