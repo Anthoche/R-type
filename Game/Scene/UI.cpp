@@ -66,7 +66,7 @@ void UI::init() {
 
 	float offsetX = 0;
 	for (size_t i = 0; i < maxPlayerLives; ++i) {
-		game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector2{offsetX, 0});
+		game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector3{offsetX, 0.f, 0.f});
 		offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
 	}
 }

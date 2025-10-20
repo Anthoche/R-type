@@ -66,13 +66,13 @@ namespace scene {
 		game::entities::create_text(_registry, {subtitleCenterX, subtitleCenterY}, subtitle,
 			RAYWHITE, -0.5f, subtitleFontSize, _font);
 
-		game::entities::create_button(_registry, "button_play",
-			isFrench ? "Jouer" : "Play",
-			playButtonPos, buttonSize, accentColor, RAYWHITE);
-		game::entities::create_button(_registry, "button_quit",
-			isFrench ? "Quitter" : "Quit",
-			quitButtonPos, buttonSize, RED, RAYWHITE);
+		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : "Play",
+			playButtonPos.x, playButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, RAYWHITE);
+
+		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : "Quit",
+			quitButtonPos.x, quitButtonPos.y, 0.f, buttonSize.x, buttonSize.y, RED, RAYWHITE);
 	}
+
 
 	void ServerWaitScene::render() {
 		double remainingTime = getRemainingTime();

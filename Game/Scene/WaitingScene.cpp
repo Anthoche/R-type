@@ -123,9 +123,14 @@ namespace scene {
 		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title,
 									RAYWHITE, -0.5f, titleFontSize, _font);
 		game::entities::create_button(_registry, "button_join", joinText,
-									joinButtonPos, joinButtonSize, accentColor, RAYWHITE);
+                             joinButtonPos.x, joinButtonPos.y, 0.f,
+                             joinButtonSize.x, joinButtonSize.y,
+                             accentColor, RAYWHITE, 23);
 		game::entities::create_button(_registry, "button_quit", quitText,
-									quitButtonPos, quitButtonSize, RED, RAYWHITE);
+									quitButtonPos.x, quitButtonPos.y, 0.f,
+									quitButtonSize.x, quitButtonSize.y,
+									RED, RAYWHITE, 23);
+
 	}
 
 	void WaitingScene::onClose() {

@@ -254,38 +254,28 @@ namespace game::parsing
         }
     }
 
-    ecs::entity_t parse_text(ecs::registry &reg, const nlohmann::json &text_data)
+    void parse_text(ecs::registry &reg, const nlohmann::json &text_data)
     {
         try {
-            float x = 0.0f, y = 0.0f;
+            // Support both formats
+            float x, y;
             if (text_data.contains("position") && text_data["position"].is_object()) {
-                const auto &pos = text_data["position"];
-                x = pos.value("x", 0.0f);
-                y = pos.value("y", 0.0f);
+                x = text_data["position"]["x"];
+                y = text_data["position"]["y"];
             } else {
-                x = text_data.value("x", 0.0f);
-                y = text_data.value("y", 0.0f);
+                check_field(text_data, "x", nlohmann::json::value_t::number_float);
+                check_field(text_data, "y", nlohmann::json::value_t::number_float);
+                x = text_data.at("x");
+                y = text_data.at("y");
             }
 
             std::string content = text_data.value("content", "");
             int font_size = text_data.value("font_size", 12);
             std::string font_path = text_data.value("font_path", "");
 
-            Font font;
-            if (!font_path.empty()) {
-                if (!std::ifstream(font_path).good()) {
-                    std::cerr << "[WARNING] Font file not found: " << font_path << std::endl;
-                }
+            if (!font_path.empty() && !std::ifstream(font_path).good()) {
+                std::cerr << "[WARNING] Font file not found: " << font_path << std::endl;
             }
-
-            Color color = WHITE;
-            if (text_data.contains("color") && text_data["color"].is_array() && text_data["color"].size() == 4) {
-                color.r = text_data["color"][0];
-                color.g = text_data["color"][1];
-                color.b = text_data["color"][2];
-                color.a = text_data["color"][3];
-            }
-            game::entities::create_text(reg, Vector2{x, y}, content, color, font_size);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse text: ") + e.what());
@@ -449,7 +439,7 @@ namespace game::parsing
             if (!model_path.empty() && !std::ifstream(model_path).good()) {
                 std::cerr << "[WARNING] PNG model file not found: " << model_path << std::endl;
             }
-            return game::entities::create_png(reg, x, y, z, width, height, depth, image_path, model_path);
+            //return game::entities::create_png(reg, x, y, z, width, height, depth, image_path, model_path);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse PNG: ") + e.what());

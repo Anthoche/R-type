@@ -150,7 +150,7 @@ add_executable(r-type_client
     ${ENGINE_ENTITIES_DIR}/image.cpp
     ${ENGINE_ENTITIES_DIR}/item.cpp
     ${ENGINE_ENTITIES_DIR}/obstacle.cpp
-    ${ENGINE_ENTITIES_DIR}/plateform.cpp
+    ${ENGINE_ENTITIES_DIR}/platform.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/png.cpp
     ${ENGINE_ENTITIES_DIR}/powerup.cpp
@@ -220,7 +220,7 @@ add_executable(r-type_server
     ${ENGINE_ENTITIES_DIR}/image.cpp
     ${ENGINE_ENTITIES_DIR}/item.cpp
     ${ENGINE_ENTITIES_DIR}/obstacle.cpp
-    ${ENGINE_ENTITIES_DIR}/plateform.cpp
+    ${ENGINE_ENTITIES_DIR}/platform.cpp
     ${ENGINE_ENTITIES_DIR}/player.cpp
     ${ENGINE_ENTITIES_DIR}/png.cpp
     ${ENGINE_ENTITIES_DIR}/powerup.cpp

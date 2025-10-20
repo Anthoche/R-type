@@ -44,15 +44,7 @@ namespace scene {
 		Vector2 titleSize = _raylib.measureTextEx(_font, _sceneTitle.c_str(), _titleSize, -0.5f);
 		Vector2 titlePos = {(_width - titleSize.x) / 2.0f, 50.0f};
 
-		game::entities::create_text(
-			_registry,
-			titlePos,
-			_sceneTitle,
-			RAYWHITE,
-			-0.5f,
-			_titleSize,
-			_font
-		);
+		game::entities::create_text(_registry, titlePos, _sceneTitle, RAYWHITE, -0.5f, _titleSize, _font);
 	}
 
 	void SettingsScene::createButtons() {
@@ -90,9 +82,8 @@ namespace scene {
 		float padding = 40.f;
 		float buttonWidth = std::max(120.f, textWidth + padding);
 
-		game::entities::create_button(
-			_registry, "button_difficulty", _values[i],
-			pos, {buttonWidth, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+		game::entities::create_button(_registry, "button_difficulty", _values[i],
+			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
 		);
 	}
 
@@ -101,9 +92,8 @@ namespace scene {
 		float padding = 40.f;
 		float buttonWidth = std::max(100.f, textWidth + padding);
 
-		game::entities::create_button(
-			_registry, "button_lives", _values[i],
-			pos, {buttonWidth, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+		game::entities::create_button(_registry, "button_lives", _values[i],
+			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
 		);
 	}
 
@@ -112,29 +102,19 @@ namespace scene {
 		float padding = 40.f;
 		float buttonWidth = std::max(100.f, textWidth + padding);
 
-		game::entities::create_button(
-			_registry, "button_sound", _values[i],
-			pos, {buttonWidth, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+		game::entities::create_button(_registry, "button_sound", _values[i],
+			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
 		);
 	}
 
 	void SettingsScene::createLanguageButton(Vector2 pos, std::size_t i) {
-		game::entities::create_button(
-			_registry, "button_language", _values[i],
-			pos, {150.f, 40.f}, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+		game::entities::create_button(_registry, "button_language", _values[i],
+			pos.x, pos.y, 0.f, 150.f, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
 		);
 	}
 
 	void SettingsScene::createDefaultText(Vector2 pos, std::size_t i) {
-		game::entities::create_text(
-			_registry,
-			pos,
-			_values[i],
-			RAYWHITE,
-			-1.0f,
-			_buttonTextSize - 4,
-			_font
-		);
+		game::entities::create_text(_registry, pos, _values[i], RAYWHITE, -1.0f, _buttonTextSize - 4, _font);
 	}
 
 	void SettingsScene::createBackButton() {
@@ -166,10 +146,8 @@ namespace scene {
 			Vector2 backPos = {40.f, static_cast<float>(_height - 80)};
 			Vector2 backSize = {buttonWidth, 50.f};
 
-			game::entities::create_button(
-				_registry, "button_back",
-				label, backPos, backSize, DARKGRAY, RAYWHITE, 23
-			);
+			game::entities::create_button(_registry, "button_back", label, backPos.x, backPos.y, 0.f,
+				buttonWidth, backSize.y, DARKGRAY, RAYWHITE, 23);
 		}
 	}
 
@@ -196,8 +174,7 @@ namespace scene {
 				float spacing = text[i]->spacing;
 				Color textColor = text[i]->color;
 
-				drawButton(
-					pos, size, content, fontSize, spacing,
+				drawButton(pos, size, content, fontSize, spacing,
 					_accentColor, textColor,
 					hoverable[i]->isHovered, clickable[i]->isClicked
 				);

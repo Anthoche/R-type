@@ -35,29 +35,26 @@ namespace scene {
 
 		_buttonPosition = {600.f, _buttonCenterY};
 
-		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type",
-			RAYWHITE, -0.5f, _titleSize, _font);
+		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
 
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
 
-		game::entities::create_button(_registry, "button_play",
-			isFrench ? "Jouer" : "Play",
-			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : "Play",
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
-		game::entities::create_button(_registry, "button_settings",
-			isFrench ? "Options" : "Settings",
-			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+		game::entities::create_button(_registry, "button_settings", isFrench ? "Options" : "Settings",
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
-		game::entities::create_button(_registry, "button_quit",
-			isFrench ? "Quitter" : "Quit",
-			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
+		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : "Quit",
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
 		_game.getGameClient().sendHello();
 	}
+
 
 	void MenuScene::render() {
 		_raylib.beginDrawing();
