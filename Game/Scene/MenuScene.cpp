@@ -39,21 +39,25 @@ namespace scene {
 			RAYWHITE, -0.5f, _titleSize, _font);
 
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
 		game::entities::create_button(_registry, "button_play",
-			isFrench ? "Jouer" : "Play",
+			isFrench ? "Jouer" :
+			isItalian ? "Gioca" : "Play",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
 		game::entities::create_button(_registry, "button_settings",
-			isFrench ? "Options" : "Settings",
+			isFrench ? "Options" : 
+			isItalian ? "Opzioni" : "Settings",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
 		game::entities::create_button(_registry, "button_quit",
-			isFrench ? "Quitter" : "Quit",
+			isFrench ? "Quitter" :
+			isItalian ? "Uscire" : "Quit",
 			_buttonPosition, _buttonSize, _accentColor, RAYWHITE);
 
 		_game.getGameClient().sendHello();

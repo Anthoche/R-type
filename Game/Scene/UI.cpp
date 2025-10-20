@@ -33,11 +33,14 @@ void UI::init() {
 	UnloadImage(heartEmptyImage);
 
 	bool isFrench = (_scene.getGame().getLanguage() == Game::Language::FRENCH);
+	bool isItalian = (_scene.getGame().getLanguage() == Game::Language::ITALIAN);
 	game::entities::create_text(
 		_reg, 
 		BOTTOM_LEFT, 
 		{0, 0}, 
-		isFrench ? "Joueurs: 0" : "Players: 0", 
+		isFrench ? "Joueurs: 0" :
+		isItalian ? "Giocatori: 0" :
+		"Players: 0", 
 		textColor, 
 		_spacing, 
 		_fontSize, 
@@ -47,7 +50,9 @@ void UI::init() {
 		_reg, 
 		BOTTOM_CENTER, 
 		{0, 0}, 
-		isFrench ? "Individuel: 0" : "Individual: 0", 
+		isFrench ? "Individuel: 0" :
+		isItalian ? "Individuale: 0" :
+		"Individual: 0", 
 		textColor, 
 		_spacing, 
 		_fontSize, 
@@ -57,29 +62,32 @@ void UI::init() {
 		_reg, 
 		BOTTOM_RIGHT, 
 		{0, 0}, 
-		isFrench ? "Total: 0" : "Total: 0", 
+		isFrench ? "Total: 0" :
+		isItalian ? "Totale: 0" :
+		"Total: 0", 
 		textColor, 
 		_spacing, 
 		_fontSize, 
 		_font
 	);
-	    uint32_t myClientId = _scene._game.getGameClient().clientId;
-        int playerHealth = 100;
-    	int maxHealth = 100;
-    	int playerID = 0;
-        auto it = _scene._game.getGameClient().playerHealth.find(myClientId);
-        if (it != _scene._game.getGameClient().playerHealth.end()) {
-            playerHealth = it->second.first;
-            maxHealth = it->second.second;
-            playerID = myClientId;
-        }
-		int playerLives = (playerHealth + 24) / 25;
+	
+	uint32_t myClientId = _scene._game.getGameClient().clientId;
+	int playerHealth = 100;
+	int maxHealth = 100;
+	int playerID = 0;
+	auto it = _scene._game.getGameClient().playerHealth.find(myClientId);
+	if (it != _scene._game.getGameClient().playerHealth.end()) {
+		playerHealth = it->second.first;
+		maxHealth = it->second.second;
+		playerID = myClientId;
+	}
+	int playerLives = (playerHealth + 24) / 25;
 
-		float offsetX = 0;
-		for (size_t i = 0; i < playerLives; ++i) {
-			game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector2{offsetX, 0});
-			offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
-		}
+	float offsetX = 0;
+	for (size_t i = 0; i < playerLives; ++i) {
+		game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector2{offsetX, 0});
+		offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
+	}
 }
 
 void UI::render() {

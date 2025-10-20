@@ -75,8 +75,7 @@ class Game {
          * @brief Supported languages for the game.
          * Defines the available localization options.
          */
-        enum class Language { ENGLISH, FRENCH };
-
+        enum class Language { ENGLISH, FRENCH, ITALIAN };
         /**
          * @brief Set the current language of the game.
          * Changes the active language, affecting displayed text and UI labels.

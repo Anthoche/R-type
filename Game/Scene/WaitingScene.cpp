@@ -95,14 +95,24 @@ namespace scene {
 		_registry.register_component<component::type>();
 
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
-		std::string title = isFrench ? "En attente des joueurs..." : "Waiting for players...";
+		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
+		std::string title = 
+			isFrench ? "En attente des joueurs..." : 
+			isItalian ? "In attesa dei giocatori..." :
+			"Waiting for players...";
 		int titleFontSize = 38;
 		Vector2 titleSize = _raylib.measureTextEx(_font, title.c_str(), titleFontSize, -0.5f);
 		float titleCenterY = getElementCenter(_height, titleSize.y) - 100;
 		float titleCenterX = _width / 2 - titleSize.x / 2;
 
-		std::string joinText = isFrench ? "Rejoindre" : "Join";
-		std::string quitText = isFrench ? "Quitter" : "Quit";
+		std::string joinText = 
+			isFrench ? "Rejoindre" : 
+			isItalian ? "Guintura" :
+			"Join";
+		std::string quitText = 
+			isFrench ? "Quitter" :
+			isItalian ? "Uscire" :
+			"Quit";
 		Vector2 joinTextSize = _raylib.measureTextEx(_font, joinText.c_str(), 23, -0.5f);
 		Vector2 quitTextSize = _raylib.measureTextEx(_font, quitText.c_str(), 23, -0.5f);
 

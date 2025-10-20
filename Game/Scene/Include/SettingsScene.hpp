@@ -189,6 +189,11 @@ class SettingsScene : public AScene {
         void translateToFrench();
 
         /**
+        * @brief Apply Italian translations to all texts.
+        */
+        void translateToItalian();
+        
+        /**
         * @brief Apply English translations to all texts.
         */
         void translateToEnglish();
