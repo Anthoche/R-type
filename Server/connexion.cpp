@@ -6,6 +6,7 @@
 */
 
 #include "Include/connexion.hpp"
+#include "Logger.hpp"
 #include <asio.hpp>
 
 Connexion::Connexion(asio::io_context& io, uint16_t port) : socket(port) {}
@@ -19,7 +20,7 @@ void Connexion::asyncReceive(std::function<void(const asio::error_code&, std::ve
             handler(ec, std::move(data), clientEndpoint);
         }
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] asyncReceive(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("Connexion::asyncReceive(): {}", e.what()));
     }
 }
 
@@ -27,7 +28,7 @@ void Connexion::sendTo(const void* msg, size_t size, const asio::ip::udp::endpoi
     try {
         socket.sendTo(msg, size, to);
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] Connexion::sendTo(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("Connexion::sendTo(): {}", e.what()));
     }
 }
 
@@ -35,7 +36,7 @@ void Connexion::broadcast(const void* msg, size_t size) {
     try {
         socket.broadcast(msg, size);
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] Connexion::broadcast(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("Connexion::broadcast(): {}", e.what()));
     }
 }
 
@@ -48,7 +49,7 @@ void Connexion::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t id) 
         socket.addClient(endpoint, id);
 
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] Connexion::addClient(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("Connexion::addClient(): {}", e.what()));
     }
 }
 
@@ -64,7 +65,7 @@ void Connexion::disconnectClient(uint32_t id) {
         }
         for (auto it = clients.begin(); it != clients.end();) {
             if (it->second == id) {
-                std::cout << "[INFO] Disconnected client: " << it->first << " (ID " << id << ")" << std::endl;
+                LOG_INFO(std::format("Disconnected client: {}({})", it->first, id));
                 it = clients.erase(it);
             } else {
                 ++it;
@@ -72,7 +73,7 @@ void Connexion::disconnectClient(uint32_t id) {
         }
         socket.disconnectClient(id);
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] Connexion::disconnectClient(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("Connexion::disconnectClient(): {}", e.what()));
     }
 }
 
@@ -82,10 +83,10 @@ bool Connexion::acceptTcpClient(uint32_t id, uint16_t port) {
         if (!client->acceptClient())
             return false;
         tcpClients[id] = client;
-        std::cout << "[INFO] TCP client " << id << " accepted on port " << port << std::endl;
+        LOG_INFO(std::format("TCP client {} accepted on port {}", id, port));
         return true;
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] acceptTcpClient(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("acceptTcpClient(): {}", e.what()));
         return false;
     }
 }
@@ -95,10 +96,10 @@ void Connexion::sendJsonToClient(uint32_t id, const nlohmann::json& j) {
         if (tcpClients.find(id) != tcpClients.end()) {
             tcpClients[id]->sendJson(j);
         } else {
-            std::cerr << "[WARN] sendJsonToClient(): client " << id << " not found" << std::endl;
+            LOG_WARN(std::format("sendJsonToClient(): client {} not found", id));
         }
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] sendJsonToClient(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("sendJsonToClient(): ", e.what()));
     }
 }
 
@@ -108,7 +109,7 @@ void Connexion::broadcastJson(const nlohmann::json& j) {
             client->sendJson(j);
         }
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] broadcastJson(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("broadcastJson(): {}", e.what()));
     }
 }
 

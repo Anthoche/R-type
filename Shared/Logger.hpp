@@ -19,5 +19,5 @@
 #define LOG_ERROR(msg)   std::cerr << L_BLACK << "[" << L_RED << "ERROR" << L_BLACK "] " << L_RED << msg << L_RESET << std::endl
 #define LOG_INFO(msg)    std::cout << L_BLACK << "[" << L_GREEN << "INFO" << L_BLACK "] " << L_RESET << msg << std::endl
 #define LOG_DEBUG(msg)   std::cout << L_BLACK << "[" << L_BLUE << "DEBUG" << L_BLACK "] " << L_RESET << msg << std::endl
-#define LOG_WARN(msg)   std::cout << L_BLACK << "[" << L_YELLOW << "WARN" << L_BLACK "] " << L_YELLOW << msg << L_RESET << std::endl
+#define LOG_WARN(msg)   std::cerr << L_BLACK << "[" << L_YELLOW << "WARN" << L_BLACK "] " << L_YELLOW << msg << L_RESET << std::endl
 #define LOG(msg)         std::cout << L_RESET << msg << L_RESET << std::endl

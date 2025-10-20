@@ -19,6 +19,7 @@
 #include <tuple>
 #include <iostream>
 #include <algorithm>
+#include "../Room/RoomManager.hpp"
 
 /**
  * @class GameServer
@@ -32,59 +33,68 @@
  * - Enemy and obstacle management
  */
 class GameServer {
-    asio::io_context ioContext; ///< ASIO I/O context for networking
-    Connexion connexion; ///< Network connection manager (UDP + TCP)
-    std::atomic<bool> gameStarted{false}; ///< Flag indicating if the game has started
-    uint32_t nextClientId = 1; ///< Next available client ID
-    std::unordered_map<uint32_t, std::pair<float, float>> playerPositions; ///< Maps player IDs to positions (x,y)
-    uint32_t nextEnemyId = 1; ///< Next enemy ID
-    std::unordered_map<uint32_t, std::pair<float, float>> enemies; ///< Maps enemy IDs to positions
-    float enemySpawnTimerSec = 0.f; ///< Timer for enemy spawning
-    std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles; ///< Maps obstacle IDs to (x, y, width, height)
+	int maxPlayers = 10;
+	asio::io_context ioContext; ///< ASIO I/O context for networking
+	Connexion connexion; ///< Network connection manager (UDP + TCP)
+	bool serverRunning{false}; ///< Flag indicating if the game has started
+	uint32_t nextClientId = 1; ///< Next available client ID
+	std::unordered_map<uint32_t, std::pair<float, float> > playerPositions; ///< Maps player IDs to positions (x,y)
+	uint32_t nextEnemyId = 1; ///< Next enemy ID
+	std::unordered_map<uint32_t, std::pair<float, float> > enemies; ///< Maps enemy IDs to positions
+	float enemySpawnTimerSec = 0.f; ///< Timer for enemy spawning
+	std::unordered_map<uint32_t, std::tuple<float, float, float, float> > obstacles; ///< Maps obstacle IDs to (x, y, width, height)
+	RoomManager roomManager;
 
-    public:
-        /**
-         * @brief Constructs a GameServer instance and binds the UDP socket to the given port.
-         * @param port UDP port for client connections.
-         */
-        GameServer(uint16_t port);
+public:
+	/**
+	* @brief Constructs a GameServer instance and binds the UDP socket to the given port.
+	* @param port UDP port for client connections.
+	*/
+	GameServer(uint16_t port);
 
-        /**
-         * @brief Main server loop.
-         *
-         * Waits for clients to connect, assigns IDs, and starts the game when all clients are connected.
-         */
-        void run();
+	/**
+	* @brief Main server loop.
+	*
+	* Waits for clients to connect, assigns IDs, and starts the game when all clients are connected.
+	*/
+	void run();
 
-        /**
-         * @brief Destroys the GameServer.
-         */
-        ~GameServer() = default;
+	/**
+	* @brief Destroys the GameServer.
+	*/
+	~GameServer() = default;
 
-    private:
-        /**
-         * @brief Handles a ClientHello message from a client.
-         * @param data Raw message data.
-         * @param clientEndpoint Sender's UDP endpoint.
-         */
-        void handleClientHello(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& clientEndpoint);
+private:
+	/**
+	* @brief Handles a ClientHello message from a client.
+	* @param data Raw message data.
+	* @param clientEndpoint Sender's UDP endpoint.
+	*/
+	void handleClientHello(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &clientEndpoint);
 
-        /**
-         * @brief Broadcasts the GameStart message to all connected clients.
-         */
-        void broadcastGameStart();
+	/**
+	* @brief Handles a ClientRoomIdAsk message from a client.
+	* @param data Raw message data.
+	* @param from Sender's UDP endpoint.
+	*/
+	void assignClientToRoom(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
 
-        /**
-         * @brief Handles client messages during gameplay (e.g., player input).
-         * @param data Raw message data.
-         * @param from Sender's UDP endpoint.
-         */
-        void handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);
+	/**
+	* @brief Broadcasts the GameStart message to all connected clients.
+	*/
+	void broadcastGameStart();
 
-        /**
-         * @brief Sleeps to maintain a fixed server tick rate.
-         * @param start Start time of the current tick.
-         * @param tick_ms Desired tick duration in milliseconds.
-         */
-        void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
+	/**
+	* @brief Handles client messages during gameplay (e.g., player input).
+	* @param data Raw message data.
+	* @param from Sender's UDP endpoint.
+	*/
+	void handle_client_message(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
+
+	/**
+	* @brief Sleeps to maintain a fixed server tick rate.
+	* @param start Start time of the current tick.
+	* @param tick_ms Desired tick duration in milliseconds.
+	*/
+	void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point &start, int tick_ms);
 };

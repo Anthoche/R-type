@@ -47,8 +47,10 @@ class GameClient {
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
+
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
+        int roomId{-1};
         
         /**
          * @brief Mutex used to protect shared game state access.
@@ -115,16 +117,20 @@ class GameClient {
         void run();
 
         /**
-         * @brief Main rendering and input loop (executed after game start).
-         *
-         * Handles user input, sends commands to the server, and updates visuals.
-         */
-        void runRenderLoop();
-
-        /**
          * @brief Sends a "hello" message to the server to initiate connection.
          */
         void sendHello();
+
+        /**
+         * Sends a room connect request to the server
+         * @param roomId The id of the room to join
+         */
+        void sendRoomAsk(uint32_t roomId);
+
+        /**
+         * @brief Sends a ClientFetchRooms request to the server in order to retrieve available rooms
+         */
+        void sendRoomsFetch();
 
         /**
          * @brief Initializes a TCP connection to the server.
@@ -162,6 +168,18 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleServerAssignId(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles a ServerRoomAssignId message from the server
+         * @param buffer Raw Message data
+         */
+        void handleServerRoomAssign(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles a ServerSendRooms message from the server
+         * @param buffer Raw message data
+         */
+        void handleServerRooms(const std::vector<uint8_t> &buffer);
 
         /**
          * @brief Handles a GameStart message, signaling the start of gameplay.

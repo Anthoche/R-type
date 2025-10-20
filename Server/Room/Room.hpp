@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include "../../Engine/GameStatus.hpp"
 
 class Room {
 	private:

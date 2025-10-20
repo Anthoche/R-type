@@ -6,6 +6,7 @@
 */
 
 #include "../client.hpp"
+#include "Logger.hpp"
 #include "../../Engine/Game.hpp"
 #include <asio.hpp>
 
@@ -13,6 +14,12 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
     switch (type) {
         case MessageType::ServerAssignId:
             handleServerAssignId(buffer);
+            break;
+        case MessageType::ServerRoomAssignId:
+            handleServerRoomAssign(buffer);
+            break;
+        case MessageType::ServerSendRooms:
+            handleServerRooms(buffer);
             break;
         case MessageType::GameStart:
             handleGameStart(buffer);
@@ -70,13 +77,26 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
     }
 }
 
-
 void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {
     if (buffer.size() < sizeof(ServerAssignIdMessage)) return;
     const ServerAssignIdMessage *msg = reinterpret_cast<const ServerAssignIdMessage *>(buffer.data());
     clientId = ntohl(msg->clientId);
     std::cout << "[Client] Reçu clientId=" << clientId << std::endl;
     initTcpConnection();
+}
+
+void GameClient::handleServerRoomAssign(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ServerRoomAssignIdMessage)) return;
+    const ServerRoomAssignIdMessage *msg = reinterpret_cast<const ServerRoomAssignIdMessage *>(buffer.data());
+    roomId = static_cast<int>(msg->roomId);
+    LOG_INFO(std::format("Client assigned to room {}", roomId));
+}
+
+void GameClient::handleServerRooms(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ServerSendRoomsMessage)) return;
+    const ServerSendRoomsMessage *msg = reinterpret_cast<const ServerSendRoomsMessage *>(buffer.data());
+    LOG_INFO("Server sent rooms");
+    LOG_DEBUG(std::format("Received JSON:\n{}\n", msg->jsonData));
 }
 
 void GameClient::handleGameStart(const std::vector<uint8_t> &buffer) {
