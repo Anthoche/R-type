@@ -53,7 +53,7 @@ namespace game::scene {
 
         // Création des entités statiques (background, UI, etc.)
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
-        game::entities::create_sound(_registry, "../Engine/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
+        game::entities::create_sound(_registry, "../Game/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
         
         // Indexer les entités existantes dans le registre
         index_existing_entities();
@@ -229,12 +229,16 @@ namespace game::scene {
         }
         if (_isDead && !_defeatSoundPlayed) {
             _raylib.stopMusicStream(_music);
-            _raylib.playSound(_defeatSound);
+            if (_game.isSoundEnabled()) {
+                _raylib.playSound(_defeatSound);
+            }
             _defeatSoundPlayed = true;
         }
         if (_isWin && !_victorySoundPlayed) {
             _raylib.stopMusicStream(_music);
-            _raylib.playSound(_victorySound);
+            if (_game.isSoundEnabled()) {
+                _raylib.playSound(_victorySound);
+            }
             _victorySoundPlayed = true;
         }
         _raylib.endDrawing();
@@ -294,15 +298,17 @@ namespace game::scene {
             _music = _raylib.loadMusicStream(audio.sound_path);
             _music.looping = audio.loop;
             _raylib.setMusicVolume(_music, audio.volume);
-            _raylib.playMusicStream(_music);
+            if (_game.isSoundEnabled()) {
+                _raylib.playMusicStream(_music);
+            }
             _raylib.updateMusicStream(_music);
             break;
         }
-         _shootSound = _raylib.loadSound("../Engine/Assets/sounds/shoot.wav");
+         _shootSound = _raylib.loadSound("../Game/Assets/sounds/shoot.wav");
         _raylib.setSoundVolume(_shootSound, 0.8f);
-        _victorySound = _raylib.loadSound("../Engine/Assets/sounds/victory.wav");
+        _victorySound = _raylib.loadSound("../Game/Assets/sounds/victory.wav");
         _raylib.setSoundVolume(_victorySound, 0.8f);
-        _defeatSound = _raylib.loadSound("../Engine/Assets/sounds/defeat.wav");
+        _defeatSound = _raylib.loadSound("../Game/Assets/sounds/defeat.wav");
         _raylib.setSoundVolume(_defeatSound, 0.8f);
     }
 
@@ -644,7 +650,9 @@ namespace game::scene {
 
             if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
                 handle_shoot(SHOOT_COOLDOWN);
-                _raylib.playSound(_shootSound);
+                if (_game.isSoundEnabled()) {
+                    _raylib.playSound(_shootSound);
+                }
             }
         }
         handle_input(input_x, input_y);
@@ -657,7 +665,9 @@ namespace game::scene {
         if (currentTime - lastShotTime >= cooldown) {
             _game.getGameClient().sendShoot();
             lastShotTime = currentTime;
-            _raylib.playSound(_shootSound);
+            if (_game.isSoundEnabled()) {
+                _raylib.playSound(_shootSound);
+            }
         }
     }
 

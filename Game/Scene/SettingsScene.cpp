@@ -256,6 +256,8 @@ namespace scene {
 		_values[2] = (_values[2] == "On" || _values[2] == "Active")
 			? (_currentLanguage == Game::Language::ENGLISH ? "Off" : "Desactive")
 			: (_currentLanguage == Game::Language::ENGLISH ? "On" : "Active");
+		_soundOn = !_soundOn;
+		_game.setSoundEnabled(_soundOn);
 		updateButtonText("button_sound", _values[2]);
 	}
 
