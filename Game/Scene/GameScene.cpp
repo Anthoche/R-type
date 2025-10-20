@@ -8,6 +8,7 @@
 #include "Include/GameScene.hpp"
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -593,8 +594,6 @@ namespace game::scene {
 
     void GameScene::handleEvents() {
         update();
-        float input_x = 0.f;
-        float input_y = 0.f;
         int globalScore = 0;
         uint32_t myClientId = 0;
         {
@@ -605,19 +604,10 @@ namespace game::scene {
         float t = std::clamp(globalScore / 50.0f, 0.0f, 1.0f);
         float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
 
-        if (_raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP)) {
-            input_y = -1.f;
-            moovePlayer[myClientId] = 33.0f;
-        } else if (_raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN)) {
-            moovePlayer[myClientId] = -33.0f;
-            input_y = 1.f;
-        } else {
-            moovePlayer[myClientId] = 0.0f;
-        }
-        if (_raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT))
-            input_x = -1.f;
-        if (_raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT))
-            input_x = 1.f;
+        bool upPressed = _raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP);
+        bool downPressed = _raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN);
+        bool leftPressed = _raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT);
+        bool rightPressed = _raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT);
 
         switch (_raylib.getKeyPressed()) {
             case KEY_SPACE:
@@ -634,19 +624,24 @@ namespace game::scene {
             float leftStickX = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
             float leftStickY = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
 
-            if (leftStickY > 0.2f || leftStickY < -0.2f)
-                input_y = leftStickY;
-            if (leftStickX > 0.2f || leftStickX < -0.2f)
-                input_x = leftStickX;
+            if (leftStickY < -0.2f)
+                upPressed = true;
+            else if (leftStickY > 0.2f)
+                downPressed = true;
+
+            if (leftStickX < -0.2f)
+                leftPressed = true;
+            else if (leftStickX > 0.2f)
+                rightPressed = true;
 
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
-                input_y = 1.f;
+                downPressed = true;
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
-                input_y = -1.f;
+                upPressed = true;
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))
-                input_x = 1.f;
+                rightPressed = true;
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
-                input_x = -1.f;
+                leftPressed = true;
 
             if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
                 handle_shoot(SHOOT_COOLDOWN);
@@ -655,6 +650,25 @@ namespace game::scene {
                 }
             }
         }
+
+        dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed);
+
+        float input_x = 0.f;
+        float input_y = 0.f;
+        if (leftPressed != rightPressed)
+            input_x = leftPressed ? -1.f : 1.f;
+        if (upPressed != downPressed)
+            input_y = upPressed ? -1.f : 1.f;
+
+        if (myClientId != 0) {
+            if (input_y < 0.f)
+                moovePlayer[myClientId] = 33.0f;
+            else if (input_y > 0.f)
+                moovePlayer[myClientId] = -33.0f;
+            else
+                moovePlayer[myClientId] = 0.0f;
+        }
+
         handle_input(input_x, input_y);
     }
 
@@ -706,10 +720,22 @@ namespace game::scene {
                     playerPos.x += ix * speed * dt;
                     playerPos.y += iy * speed * dt;
                 }
-
-                _game.getGameClient().sendInput(ix, iy);
             }
         }
+    }
+
+    void GameScene::dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed) {
+        auto sendIfChanged = [this](InputCode code, bool newState, bool &cachedState) {
+            if (newState == cachedState)
+                return;
+            cachedState = newState;
+            _game.getGameClient().sendInputEvent(code, newState);
+        };
+
+        sendIfChanged(InputCode::Up, upPressed, _inputState.up);
+        sendIfChanged(InputCode::Down, downPressed, _inputState.down);
+        sendIfChanged(InputCode::Left, leftPressed, _inputState.left);
+        sendIfChanged(InputCode::Right, rightPressed, _inputState.right);
     }
 
     void GameScene::setup_movement_system() {

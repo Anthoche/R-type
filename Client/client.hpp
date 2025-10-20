@@ -147,7 +147,7 @@ class GameClient {
          * @param inputX Horizontal input (-1.0 to 1.0).
          * @param inputY Vertical input (-1.0 to 1.0).
          */
-        void sendInput(float inputX, float inputY);
+        void sendInputEvent(InputCode code, bool pressed);
 
         /**
          * @brief Sends the current health status to the server.

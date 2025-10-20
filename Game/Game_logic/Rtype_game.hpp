@@ -14,6 +14,7 @@
 #include <string>
 #include <chrono>
 #include <mutex>
+#include <vector>
 
 /**
  * @class ServerGame
@@ -81,6 +82,21 @@ class ServerGame : public IServerGame {
 
         /** @brief Cooldown timestamps to avoid damage spam. */
         std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
+
+        struct InputEvent {
+            InputCode code;
+            bool pressed;
+        };
+
+        struct PlayerInputState {
+            bool up{false};
+            bool down{false};
+            bool left{false};
+            bool right{false};
+        };
+
+        std::unordered_map<uint32_t, std::vector<InputEvent>> playerInputBuffers;
+        std::unordered_map<uint32_t, PlayerInputState> playerInputStates;
 
         /** @brief Counter for assigning unique projectile IDs. */
         uint32_t nextProjectileId = 1;
@@ -157,6 +173,7 @@ class ServerGame : public IServerGame {
         void broadcast_individual_scores();
         void check_projectile_enemy_collisions();
 
+        void process_player_inputs(float dt);
         bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
                                 float left2, float right2, float top2, float bottom2);
 

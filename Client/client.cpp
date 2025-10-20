@@ -73,16 +73,19 @@ void GameClient::recvLoop() {
     }
 }
 
-void GameClient::sendInput(float inputX, float inputY) {
+void GameClient::sendInputEvent(InputCode code, bool pressed) {
+    if (clientId == 0)
+        return;
     ClientInputMessage m{};
     m.type = MessageType::ClientInput;
     m.clientId = htonl(clientId);
-    uint32_t xbits, ybits;
-    std::memcpy(&xbits, &inputX, sizeof(float));
-    std::memcpy(&ybits, &inputY, sizeof(float));
-    m.inputXBits = htonl(xbits);
-    m.inputYBits = htonl(ybits);
+    m.inputCode = static_cast<uint8_t>(code);
+    m.isPressed = pressed ? 1 : 0;
     socket.sendTo(&m, sizeof(m), serverEndpoint);
+    std::cout << "[Client][Input] send "
+              << (pressed ? "PRESS" : "RELEASE")
+              << " (" << inputCodeToString(code) << ")"
+              << " to server" << std::endl;
 }
 
 void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
