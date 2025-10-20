@@ -91,8 +91,8 @@ class SettingsScene : public AScene {
         std::vector<std::string> _levels{"Easy", "Medium", "Hard"};
         std::size_t _currentLevelIndex{1};
 
-        std::vector<std::string> _lives{"3", "5", "7"};
-        std::size_t _currentLivesIndex{0};
+        std::vector<std::string> _lives{"1", "2", "3", "4", "5", "6", "7"};
+        std::size_t _currentLivesIndex{2};
 
         bool _soundOn = true;
 

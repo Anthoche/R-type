@@ -264,6 +264,9 @@ namespace scene {
 	void SettingsScene::cycleLives() {
 		_currentLivesIndex = (_currentLivesIndex + 1) % _lives.size();
 		_values[1] = _lives[_currentLivesIndex];
+		int livesValue = std::stoi(_lives[_currentLivesIndex]);
+		livesValue = livesValue * 25;
+		_game.getGameClient().sendHealth(livesValue);
 		updateButtonText("button_lives", _values[1]);
 	}
 
@@ -291,7 +294,7 @@ namespace scene {
 	void SettingsScene::translateToFrench() {
 		_buttons = {"1. Difficulte", "2. Vies", "3. Son", "4. Langue"};
 		_levels = {"Facile", "Moyen", "Difficile"};
-		_lives = {"3", "5", "7"};
+		_lives = {"1", "2", "3", "4", "5", "6", "7"};
 		_values[0] = _levels[_currentLevelIndex];
 		_values[1] = _lives[_currentLivesIndex];
 		_values[2] = (_values[2] == "On" ? "Active" : "Desactive");
@@ -301,7 +304,7 @@ namespace scene {
 	void SettingsScene::translateToEnglish() {
 		_buttons = {"1. Difficulty", "2. Lives", "3. Sound", "4. Language"};
 		_levels = {"Easy", "Medium", "Hard"};
-		_lives = {"3", "5", "7"};
+		_lives = {"1", "2", "3", "4", "5", "6", "7"};
 		_values[0] = _levels[_currentLevelIndex];
 		_values[1] = _lives[_currentLivesIndex];
 		_values[2] = (_values[2] == "Active" ? "On" : "Off");
