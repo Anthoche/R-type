@@ -36,6 +36,7 @@ enum class MessageType : uint8_t {
     SceneState,        /**< Client → Server: indique la scène courante */
     PlayerDeath,   /**< Server notifies clients that a player has died */
     PlayerHealth,   /**< Server updates a player's health */
+    initialHealth,   /**< Client sends its initial health to the server */
     GlobalScore,  /**< Server updates the global score */
     IndividualScore /**< Server updates a player's individual score */
 };
@@ -247,6 +248,12 @@ struct PlayerHealthMessage {
     uint32_t clientId;
     int16_t currentHealth;
     int16_t maxHealth;
+};
+
+struct InitialHealthMessage {
+    MessageType type;
+    uint32_t clientId;
+    int16_t initialHealth;
 };
 
 /**

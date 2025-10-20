@@ -63,12 +63,23 @@ void UI::init() {
 		_fontSize, 
 		_font
 	);
+	    uint32_t myClientId = _scene._game.getGameClient().clientId;
+        int playerHealth = 100;
+    	int maxHealth = 100;
+    	int playerID = 0;
+        auto it = _scene._game.getGameClient().playerHealth.find(myClientId);
+        if (it != _scene._game.getGameClient().playerHealth.end()) {
+            playerHealth = it->second.first;
+            maxHealth = it->second.second;
+            playerID = myClientId;
+        }
+		int playerLives = (playerHealth + 24) / 25;
 
-	float offsetX = 0;
-	for (size_t i = 0; i < maxPlayerLives; ++i) {
-		game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector2{offsetX, 0});
-		offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
-	}
+		float offsetX = 0;
+		for (size_t i = 0; i < playerLives; ++i) {
+			game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector2{offsetX, 0});
+			offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
+		}
 }
 
 void UI::render() {
@@ -97,6 +108,12 @@ void UI::render() {
 		playerHealth = 0;
     int playerLives = (playerHealth + 24) / 25;
     int currentLive = 1;
+
+	float offsetX = 0;
+	for (size_t i = 0; i < playerLives; ++i) {
+		game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector2{offsetX, 0});
+		offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
+	}
 
     for (std::size_t i = 0; i < dynamic_pos.size() && i < text.size(); ++i) {
         if (!dynamic_pos[i] || !types[i] || !drawables[i]) continue;

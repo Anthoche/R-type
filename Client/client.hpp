@@ -150,6 +150,13 @@ class GameClient {
         void sendInput(float inputX, float inputY);
 
         /**
+         * @brief Sends the current health status to the server.
+         *
+         * @param lives Current number of lives.
+         */
+        void sendHealth(int lives);
+
+        /**
          * @brief Handles an incoming message from the server.
          *
          * @param type The type of the message.
