@@ -7,6 +7,7 @@
 
 #include "Include/enemy.hpp"
 #include "Include/hitbox.hpp"
+#include <iostream>
 
 namespace game::entities {
 
@@ -15,7 +16,7 @@ ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::stri
 
     reg.emplace_component<component::position>(enemy, x, y);
 
-    reg.emplace_component<component::velocity>(enemy, -100.f, 0.f);
+    reg.emplace_component<component::velocity>(enemy, -30.f, 0.f);
 
     reg.emplace_component<component::health>(enemy, 50, 50);
 
@@ -33,6 +34,7 @@ ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::stri
     create_hitbox_for(reg, enemy);
 
     if (!imagePath.empty()) {
+        std::cout << "[DEBUG] Creating enemy with sprite: " << imagePath << std::endl;
         component::sprite spr;
         spr.image_path = imagePath;
         spr.scale = 1.f;

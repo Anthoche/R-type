@@ -247,12 +247,28 @@ void ServerGame::check_player_enemy_collisions() {
 }
 
 void ServerGame::broadcast_enemy_positions() {
-    std::lock_guard<std::mutex> lock(mtx);
-    for (auto entity : _enemies) {
-        uint32_t id = static_cast<uint32_t>(entity);
-        auto pos = get_component_ptr<component::position>(registry_server, entity);
-        if (!pos) continue;
-        broadcast_enemy_update(id, pos->x, pos->y);
+    auto &positions = registry_server.get_components<component::position>();
+    
+    for (auto enemyEntity : _enemies) {
+        uint32_t enemyId = static_cast<uint32_t>(enemyEntity);
+        
+        if (enemyId < positions.size() && positions[enemyId]) {
+            float x = positions[enemyId]->x;
+            float y = positions[enemyId]->y;
+            
+            EnemyUpdateMessage msg;
+            msg.type = MessageType::EnemyUpdate;
+            msg.enemyId = htonl(enemyId);
+            
+            uint32_t xb, yb;
+            std::memcpy(&xb, &x, sizeof(float));
+            std::memcpy(&yb, &y, sizeof(float));
+            
+            msg.posXBits = htonl(xb);
+            msg.posYBits = htonl(yb);
+            
+            connexion.broadcast(&msg, sizeof(msg));
+        }
     }
 }
 

@@ -212,6 +212,8 @@ namespace game::scene {
         bool _defeatSoundPlayed = false; ///< Flag to track if defeat sound has been played.
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _enemyMap; ///< Map: network enemy ID -> ECS entity.
+        std::unordered_map<uint32_t, std::string> _enemySpriteMap; ///< Map: network enemy ID -> sprite path.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
         bool _isDead = false; ///< Flag indicating if the local player is dead.
         bool _isWin = false; ///< Flag indicating if the local player has won.
@@ -236,6 +238,11 @@ namespace game::scene {
          */
         void draw_ecs_layers();
 
+        /**
+         * @brief Extract enemy sprite paths from the registry to the enemy sprite map.
+         */
+        void extract_enemy_sprite_paths();
+
         // --- Indexation des entités ---
         void index_existing_entities();
 
@@ -257,6 +264,7 @@ namespace game::scene {
         void render_network_enemy_projectiles();
         void render_death_screen();
         void render_win_screen();
+
 
         // --- Utilitaires ---
         Color get_color_for_id(uint32_t id);

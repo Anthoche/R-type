@@ -121,6 +121,8 @@ struct EnemyUpdateMessage {
     uint32_t enemyId;
     uint32_t posXBits;
     uint32_t posYBits;
+    uint32_t velXBits;        // Vélocité X (float bits)
+    uint32_t velYBits;        // Vélocité Y (float bits)
 };
 
 /**

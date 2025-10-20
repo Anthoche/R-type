@@ -191,10 +191,6 @@ void GameClient::handleEnemyProjectileSpawn(const std::vector<uint8_t> &buffer) 
     
     std::lock_guard<std::mutex> g(stateMutex);
     enemyProjectiles[projId] = std::make_tuple(x, y, vx, vy, ownerId);
-    
-    std::cout << "[Client] Enemy projectile spawned: id=" << projId 
-              << " from enemy=" << ownerId 
-              << " pos=(" << x << ", " << y << ")" << std::endl;
 }
 
 void GameClient::handleEnemyProjectileUpdate(const std::vector<uint8_t> &buffer) {
@@ -226,8 +222,6 @@ void GameClient::handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer
     
     std::lock_guard<std::mutex> g(stateMutex);
     enemyProjectiles.erase(projId);
-    
-    std::cout << "[Client] Enemy projectile despawned: id=" << projId << std::endl;
 }
 
 void GameClient::handleEnemySpawn(const std::vector<uint8_t> &buffer) {
@@ -253,35 +247,36 @@ void GameClient::handleEnemySpawn(const std::vector<uint8_t> &buffer) {
               << " pos=(" << x << ", " << y << ")" << std::endl;
 }
 
-void GameClient::handleEnemyDespawn(const std::vector<uint8_t> &buffer) {
-    if (buffer.size() < sizeof(EnemyDespawnMessage)) return;
-    const EnemyDespawnMessage *msg = reinterpret_cast<const EnemyDespawnMessage *>(buffer.data());
-    uint32_t enemyId = ntohl(msg->enemyId);
-    
-    std::lock_guard<std::mutex> g(stateMutex);
-    enemies.erase(enemyId);
-    
-    std::cout << "[Client] Enemy despawned: id=" << enemyId << std::endl;
+void GameClient::handleEnemyDespawn(const std::vector<uint8_t>& data) {
+    if (data.size() >= sizeof(EnemyDespawnMessage)) {
+        const EnemyDespawnMessage* msg = reinterpret_cast<const EnemyDespawnMessage*>(data.data());
+        
+        uint32_t enemyId = ntohl(msg->enemyId);
+        
+        std::lock_guard<std::mutex> lock(stateMutex);
+        enemies.erase(enemyId);
+    }
 }
 
-void GameClient::handleEnemyUpdate(const std::vector<uint8_t> &buffer) {
-    if (buffer.size() < sizeof(EnemyUpdateMessage)) return;
-    const EnemyUpdateMessage *msg = 
-        reinterpret_cast<const EnemyUpdateMessage *>(buffer.data());
+void GameClient::handleEnemyUpdate(const std::vector<uint8_t>& data) {
+    if (data.size() >= sizeof(EnemyUpdateMessage)) {
+        const EnemyUpdateMessage* msg = reinterpret_cast<const EnemyUpdateMessage*>(data.data());
+        
+        uint32_t enemyId = ntohl(msg->enemyId);
+        
+        uint32_t xb = ntohl(msg->posXBits);
+        uint32_t yb = ntohl(msg->posYBits);
+        uint32_t vxb = ntohl(msg->velXBits);
+        uint32_t vyb = ntohl(msg->velYBits);
     
-    uint32_t enemyId = ntohl(msg->enemyId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
+        float x, y, vx, vy;
+        std::memcpy(&x, &xb, sizeof(float));
+        std::memcpy(&y, &yb, sizeof(float));
+        std::memcpy(&vx, &vxb, sizeof(float));
+        std::memcpy(&vy, &vyb, sizeof(float));
     
-    float x, y;
-    std::memcpy(&x, &xb, sizeof(float));
-    std::memcpy(&y, &yb, sizeof(float));
-    
-    std::lock_guard<std::mutex> g(stateMutex);
-    auto it = enemies.find(enemyId);
-    if (it != enemies.end()) {
-        std::get<0>(it->second) = x;
-        std::get<1>(it->second) = y;
+        std::lock_guard<std::mutex> lock(stateMutex);
+        enemies[enemyId] = std::make_tuple(x, y, vx, vy);
     }
 }
 
