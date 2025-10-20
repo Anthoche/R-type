@@ -97,6 +97,7 @@ void GameClient::handleServerRooms(const std::vector<uint8_t> &buffer) {
     const ServerSendRoomsMessage *msg = reinterpret_cast<const ServerSendRoomsMessage *>(buffer.data());
     LOG_INFO("Server sent rooms");
     LOG_DEBUG(std::format("Received JSON:\n{}\n", msg->jsonData));
+    //TODO: do something with msg->jsonData
 }
 
 void GameClient::handleGameStart(const std::vector<uint8_t> &buffer) {

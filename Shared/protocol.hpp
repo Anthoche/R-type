@@ -105,7 +105,7 @@ struct ClientFetchRoomsMessage {
 
 struct ServerSendRoomsMessage {
 	MessageType type;
-	char jsonData[2048]; /**< JSON string (null-terminated) */
+	char jsonData[2047]; /**< JSON string (null-terminated) */
 };
 
 /**

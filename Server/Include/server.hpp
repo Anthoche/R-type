@@ -80,6 +80,13 @@ private:
 	void assignClientToRoom(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
 
 	/**
+	 * @brief Handles a ClientFetchRooms message from a client.
+	 * @param data Raw message data.
+	 * @param from Sender's UDP endpoint.
+	 */
+	void handleClientFetchRooms(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
+
+	/**
 	* @brief Broadcasts the GameStart message to all connected clients.
 	*/
 	void broadcastGameStart();

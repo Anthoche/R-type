@@ -58,6 +58,9 @@ void GameServer::run() {
 			case MessageType::ClientRoomIdAsk:
 				assignClientToRoom(data, clientEndpoint);
 				break;
+			case MessageType::ClientFetchRooms:
+				handleClientFetchRooms(data, clientEndpoint);
+				break;
 			default:
 				break;
 		}
@@ -114,6 +117,35 @@ void GameServer::assignClientToRoom(const std::vector<uint8_t> &data, const asio
 	connexion.sendTo(&assignMsg, sizeof(assignMsg), from);
 	roomManager.getRoom(roomId).addClient(msg->clientId);
 	LOG_INFO(std::format("Assigned client {} to room {}", msg->clientId, roomId));
+}
+
+void GameServer::handleClientFetchRooms(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
+	if (data.size() < sizeof(ClientFetchRoomsMessage)) return;
+
+	LOG_DEBUG("Received rooms fetch from client");
+	const ClientFetchRoomsMessage *msg = reinterpret_cast<const ClientFetchRoomsMessage *>(data.data());
+
+	auto rooms = roomManager.getRooms();
+	std::map<int, game::serializer::RoomData> roomsData;
+
+	for (auto &room: rooms) {
+		game::serializer::RoomData r{};
+
+		r.gameName = room.second.getGame();
+		r.minPlayers = room.second.getMinPlayers();
+		r.maxPlayers = room.second.getMaxPlayers();
+		r.currentPlayers = room.second.getClients().size();
+		r.status = GameStatus::PENDING_START;
+		roomsData.insert_or_assign(room.first, r);
+	}
+	auto jsonData = game::serializer::serialize_rooms(roomsData);
+
+	ServerSendRoomsMessage sendMsg;
+	sendMsg.type = MessageType::ServerSendRooms;
+	strncpy(sendMsg.jsonData, jsonData.dump().c_str(), sizeof(sendMsg.jsonData) - 1);
+	sendMsg.jsonData[sizeof(sendMsg.jsonData) - 1] = '\0';
+	LOG_DEBUG("Sending JSON with available rooms");
+	connexion.sendTo(&sendMsg, sizeof(sendMsg), from);
 }
 
 void GameServer::handle_client_message(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
