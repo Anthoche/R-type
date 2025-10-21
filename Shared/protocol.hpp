@@ -130,6 +130,8 @@ struct EnemyUpdateMessage {
     MessageType type;
     uint32_t enemyId;
     Position3D pos;      ///< 3D position
+    uint32_t velXBits;        // Vélocité X (float bits)
+    uint32_t velYBits;        // Vélocité Y (float bits)
 };
 
 /**

@@ -7,6 +7,7 @@
 
 #include "Include/enemy.hpp"
 #include "Include/hitbox.hpp"
+#include <iostream>
 
 namespace game::entities {
 
@@ -19,9 +20,11 @@ namespace game::entities {
         reg.emplace_component<component::previous_position>(enemy, x, y, z);
         reg.emplace_component<component::velocity>(enemy, -100.f, 0.f, 0.f);
 
-        // ====== Stats ======
-        reg.emplace_component<component::health>(enemy, 50, 50);
-        reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
+    reg.emplace_component<component::velocity>(enemy, -30.f, 0.f);
+
+    reg.emplace_component<component::health>(enemy, 50, 50);
+
+    reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
 
         // ====== Collision ======
         reg.emplace_component<component::collision_box>(enemy, 40.f, 28.f, 28.f);
@@ -34,22 +37,13 @@ namespace game::entities {
         draw.color = RED;
         reg.add_component<component::drawable>(enemy, std::move(draw));
 
-        if (!imagePath.empty()) {
-            component::sprite spr;
-            spr.image_path = imagePath;
-            spr.scale = 1.f;
-            reg.add_component<component::sprite>(enemy, std::move(spr));
-        }
-
-        if (!modelPath.empty()) {
-            component::model3D model;
-            model.model_path = modelPath;
-            model.scale = 1.f;
-            reg.add_component<component::model3D>(enemy, std::move(model));
-        }
-
-        // ====== Hitbox ======
-        create_hitbox_for(reg, enemy);
+    if (!imagePath.empty()) {
+        std::cout << "[DEBUG] Creating enemy with sprite: " << imagePath << std::endl;
+        component::sprite spr;
+        spr.image_path = imagePath;
+        spr.scale = 1.f;
+        reg.add_component<component::sprite>(enemy, std::move(spr));
+    }
 
         return enemy;
     }

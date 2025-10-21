@@ -124,7 +124,7 @@ void ServerGame::update_enemy_circle(uint32_t id, float dt) {
 
 void ServerGame::update_enemy_turret(uint32_t id, float dt) {
     static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
-    static const float SHOOT_COOLDOWN = 2.0f;
+    static const float SHOOT_COOLDOWN = 5.0f;
     
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
@@ -146,7 +146,7 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt) {
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
         currentTime - lastShootTime[id]
     ).count();
-    
+
     if (elapsed >= SHOOT_COOLDOWN) {
         shoot_enemy_projectile(id, pos->x, pos->y, -200.f, 0.f);
         lastShootTime[id] = currentTime;
@@ -249,12 +249,15 @@ void ServerGame::check_player_enemy_collisions() {
 }
 
 void ServerGame::broadcast_enemy_positions() {
-    std::lock_guard<std::mutex> lock(mtx);
-    for (auto entity : _enemies) {
-        uint32_t id = static_cast<uint32_t>(entity);
-        auto pos = get_component_ptr<component::position>(registry_server, entity);
-        if (!pos) continue;
-        broadcast_enemy_update(id, pos->x, pos->y, pos->z);
+    auto &positions = registry_server.get_components<component::position>();
+    
+    for (auto enemyEntity : _enemies) {
+        uint32_t enemyId = static_cast<uint32_t>(enemyEntity);
+        
+        if (enemyId < positions.size() && positions[enemyId]) {
+            const auto& pos = *positions[enemyId];
+            broadcast_enemy_update(enemyId, pos.x, pos.y, pos.z);
+        }
     }
 }
 
@@ -304,6 +307,19 @@ void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, floa
     msg.pos.xBits = htonl(xb);
     msg.pos.yBits = htonl(yb);
     msg.pos.zBits = htonl(zb);
+
+    uint32_t vxb = 0;
+    uint32_t vyb = 0;
+    auto& velocities = registry_server.get_components<component::velocity>();
+    if (enemyId < velocities.size() && velocities[enemyId]) {
+        float vx = velocities[enemyId]->vx;
+        float vy = velocities[enemyId]->vy;
+        std::memcpy(&vxb, &vx, sizeof(float));
+        std::memcpy(&vyb, &vy, sizeof(float));
+    }
+
+    msg.velXBits = htonl(vxb);
+    msg.velYBits = htonl(vyb);
 
     connexion.broadcast(&msg, sizeof(msg));
 }
