@@ -138,19 +138,30 @@ target_compile_definitions(game_logic PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/as
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
     ${CLIENT_DIR}/client.cpp
-    ${CLIENT_DIR}/Handler/client_handler.cpp
+    ${CLIENT_DIR}/Handler/ClientHandler.cpp
     ${ENGINE_DIR}/Game.cpp
-    ${ENGINE_ENTITIES_DIR}/player.cpp
-    ${ENGINE_ENTITIES_DIR}/enemy.cpp
-    ${ENGINE_ENTITIES_DIR}/hitbox.cpp
-    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
     ${ENGINE_ENTITIES_DIR}/background.cpp
-    ${ENGINE_ENTITIES_DIR}/sound.cpp
-    ${ENGINE_ENTITIES_DIR}/text.cpp
-    ${ENGINE_ENTITIES_DIR}/projectile.cpp
     ${ENGINE_ENTITIES_DIR}/button.cpp
-    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/checkpoint.cpp
+    ${ENGINE_ENTITIES_DIR}/decoration.cpp
+    ${ENGINE_ENTITIES_DIR}/enemy.cpp
+    ${ENGINE_ENTITIES_DIR}/gate.cpp
+    ${ENGINE_ENTITIES_DIR}/hitbox.cpp
     ${ENGINE_ENTITIES_DIR}/image.cpp
+    ${ENGINE_ENTITIES_DIR}/item.cpp
+    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
+    ${ENGINE_ENTITIES_DIR}/platform.cpp
+    ${ENGINE_ENTITIES_DIR}/player.cpp
+    ${ENGINE_ENTITIES_DIR}/png.cpp
+    ${ENGINE_ENTITIES_DIR}/powerup.cpp
+    ${ENGINE_ENTITIES_DIR}/projectile.cpp
+    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/sound.cpp
+    ${ENGINE_ENTITIES_DIR}/spawner.cpp
+    ${ENGINE_ENTITIES_DIR}/text.cpp
+    ${ENGINE_ENTITIES_DIR}/trap.cpp
+    ${ENGINE_ENTITIES_DIR}/triggerzone.cpp
+    ${ENGINE_ENTITIES_DIR}/weapon.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
@@ -199,14 +210,28 @@ add_executable(r-type_server
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
-    ${ENGINE_ENTITIES_DIR}/player.cpp
-    ${ENGINE_ENTITIES_DIR}/enemy.cpp
-    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
     ${ENGINE_ENTITIES_DIR}/background.cpp
-    ${ENGINE_ENTITIES_DIR}/sound.cpp
-    ${ENGINE_ENTITIES_DIR}/text.cpp
-    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/button.cpp
+    ${ENGINE_ENTITIES_DIR}/checkpoint.cpp
+    ${ENGINE_ENTITIES_DIR}/decoration.cpp
+    ${ENGINE_ENTITIES_DIR}/enemy.cpp
+    ${ENGINE_ENTITIES_DIR}/gate.cpp
     ${ENGINE_ENTITIES_DIR}/hitbox.cpp
+    ${ENGINE_ENTITIES_DIR}/image.cpp
+    ${ENGINE_ENTITIES_DIR}/item.cpp
+    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
+    ${ENGINE_ENTITIES_DIR}/platform.cpp
+    ${ENGINE_ENTITIES_DIR}/player.cpp
+    ${ENGINE_ENTITIES_DIR}/png.cpp
+    ${ENGINE_ENTITIES_DIR}/powerup.cpp
+    ${ENGINE_ENTITIES_DIR}/projectile.cpp
+    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/sound.cpp
+    ${ENGINE_ENTITIES_DIR}/spawner.cpp
+    ${ENGINE_ENTITIES_DIR}/text.cpp
+    ${ENGINE_ENTITIES_DIR}/trap.cpp
+    ${ENGINE_ENTITIES_DIR}/triggerzone.cpp
+    ${ENGINE_ENTITIES_DIR}/weapon.cpp
 )
 
 target_include_directories(r-type_server PRIVATE

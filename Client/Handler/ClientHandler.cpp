@@ -89,28 +89,43 @@ void GameClient::handleGameStart(const std::vector<uint8_t> &buffer) {
 void GameClient::handlePlayerUpdate(const std::vector<uint8_t> &buffer) {
     if (buffer.size() < sizeof(StateUpdateMessage)) return;
     const StateUpdateMessage *msg = reinterpret_cast<const StateUpdateMessage *>(buffer.data());
+    
     uint32_t id = ntohl(msg->clientId);
-    uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
-    float x, y;
+    uint32_t xb = ntohl(msg->pos.xBits);
+    uint32_t yb = ntohl(msg->pos.yBits);
+    uint32_t zb = ntohl(msg->pos.zBits);
+    
+    float x, y, z;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&z, &zb, sizeof(float));
+    
     std::lock_guard<std::mutex> g(stateMutex);
-    players[id] = {x, y};
+    players[id] = {x, y, z};  // Adapter selon votre structure
 }
 
 void GameClient::handleObstacleSpawn(const std::vector<uint8_t> &buffer) {
     if (buffer.size() < sizeof(ObstacleSpawnMessage)) return;
     const ObstacleSpawnMessage *msg = reinterpret_cast<const ObstacleSpawnMessage *>(buffer.data());
+    
     uint32_t id = ntohl(msg->obstacleId);
-    uint32_t xb = ntohl(msg->posXBits), yb = ntohl(msg->posYBits);
-    uint32_t wb = ntohl(msg->widthBits), hb = ntohl(msg->heightBits);
-    float x, y, w, h;
-    std::memcpy(&x, &xb, 4);
-    std::memcpy(&y, &yb, 4);
-    std::memcpy(&w, &wb, 4);
-    std::memcpy(&h, &hb, 4);
+    uint32_t xb = ntohl(msg->pos.xBits);
+    uint32_t yb = ntohl(msg->pos.yBits);
+    uint32_t zb = ntohl(msg->pos.zBits);
+    uint32_t wb = ntohl(msg->size.widthBits);
+    uint32_t hb = ntohl(msg->size.heightBits);
+    uint32_t db = ntohl(msg->size.depthBits);
+    
+    float x, y, z, w, h, d;
+    std::memcpy(&x, &xb, sizeof(float));
+    std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&z, &zb, sizeof(float));
+    std::memcpy(&w, &wb, sizeof(float));
+    std::memcpy(&h, &hb, sizeof(float));
+    std::memcpy(&d, &db, sizeof(float));
+    
     std::lock_guard<std::mutex> g(stateMutex);
-    obstacles[id] = std::make_tuple(x, y, w, h);
+    obstacles[id] = std::make_tuple(x, y, z, w, h, d);
 }
 
 void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
@@ -126,19 +141,24 @@ void GameClient::handleProjectileSpawn(const std::vector<uint8_t> &buffer) {
     const ProjectileSpawnMessage *msg = reinterpret_cast<const ProjectileSpawnMessage *>(buffer.data());
     
     uint32_t projId = ntohl(msg->projectileId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
-    uint32_t vxb = ntohl(msg->velXBits);
-    uint32_t vyb = ntohl(msg->velYBits);
+    uint32_t ownerId = ntohl(msg->ownerId);
+    uint32_t xb = ntohl(msg->pos.xBits);
+    uint32_t yb = ntohl(msg->pos.yBits);
+    uint32_t zb = ntohl(msg->pos.zBits);
+    uint32_t vxb = ntohl(msg->vel.vxBits);
+    uint32_t vyb = ntohl(msg->vel.vyBits);
+    uint32_t vzb = ntohl(msg->vel.vzBits);
     
-    float x, y, vx, vy;
+    float x, y, z, vx, vy, vz;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&z, &zb, sizeof(float));
     std::memcpy(&vx, &vxb, sizeof(float));
     std::memcpy(&vy, &vyb, sizeof(float));
+    std::memcpy(&vz, &vzb, sizeof(float));
     
     std::lock_guard<std::mutex> g(stateMutex);
-    projectiles[projId] = std::make_tuple(x, y, vx, vy, clientId);
+    projectiles[projId] = std::make_tuple(x, y, z, vx, vy, vz, ownerId);
 }
 
 void GameClient::handleProjectileDespawn(const std::vector<uint8_t> &buffer) {
@@ -156,18 +176,21 @@ void GameClient::handleProjectileUpdate(const std::vector<uint8_t> &buffer) {
         reinterpret_cast<const ProjectileUpdateMessage *>(buffer.data());
     
     uint32_t projId = ntohl(msg->projectileId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
+    uint32_t xb = ntohl(msg->pos.xBits);
+    uint32_t yb = ntohl(msg->pos.yBits);
+    uint32_t zb = ntohl(msg->pos.zBits);
     
-    float x, y;
+    float x, y, z;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&z, &zb, sizeof(float));
     
     std::lock_guard<std::mutex> g(stateMutex);
     auto it = projectiles.find(projId);
     if (it != projectiles.end()) {
         std::get<0>(it->second) = x;
         std::get<1>(it->second) = y;
+        std::get<2>(it->second) = z;
     }
 }
 
@@ -178,23 +201,23 @@ void GameClient::handleEnemyProjectileSpawn(const std::vector<uint8_t> &buffer) 
     
     uint32_t projId = ntohl(msg->projectileId);
     uint32_t ownerId = ntohl(msg->ownerId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
-    uint32_t vxb = ntohl(msg->velXBits);
-    uint32_t vyb = ntohl(msg->velYBits);
+    uint32_t xb = ntohl(msg->pos.xBits);
+    uint32_t yb = ntohl(msg->pos.yBits);
+    uint32_t zb = ntohl(msg->pos.zBits);
+    uint32_t vxb = ntohl(msg->vel.vxBits);
+    uint32_t vyb = ntohl(msg->vel.vyBits);
+    uint32_t vzb = ntohl(msg->vel.vzBits);
     
-    float x, y, vx, vy;
+    float x, y, z, vx, vy, vz;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&z, &zb, sizeof(float));
     std::memcpy(&vx, &vxb, sizeof(float));
     std::memcpy(&vy, &vyb, sizeof(float));
+    std::memcpy(&vz, &vzb, sizeof(float));
     
     std::lock_guard<std::mutex> g(stateMutex);
-    enemyProjectiles[projId] = std::make_tuple(x, y, vx, vy, ownerId);
-    
-    std::cout << "[Client] Enemy projectile spawned: id=" << projId 
-              << " from enemy=" << ownerId 
-              << " pos=(" << x << ", " << y << ")" << std::endl;
+    enemyProjectiles[projId] = std::make_tuple(x, y, z, vx, vy, vz, ownerId);
 }
 
 void GameClient::handleEnemyProjectileUpdate(const std::vector<uint8_t> &buffer) {
@@ -203,18 +226,21 @@ void GameClient::handleEnemyProjectileUpdate(const std::vector<uint8_t> &buffer)
         reinterpret_cast<const EnemyProjectileUpdateMessage *>(buffer.data());
     
     uint32_t projId = ntohl(msg->projectileId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
+    uint32_t xb = ntohl(msg->pos.xBits);
+    uint32_t yb = ntohl(msg->pos.yBits);
+    uint32_t zb = ntohl(msg->pos.zBits);
     
-    float x, y;
+    float x, y, z;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&z, &zb, sizeof(float));
     
     std::lock_guard<std::mutex> g(stateMutex);
     auto it = enemyProjectiles.find(projId);
     if (it != enemyProjectiles.end()) {
         std::get<0>(it->second) = x;
         std::get<1>(it->second) = y;
+        std::get<2>(it->second) = z;
     }
 }
 
@@ -226,8 +252,6 @@ void GameClient::handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer
     
     std::lock_guard<std::mutex> g(stateMutex);
     enemyProjectiles.erase(projId);
-    
-    std::cout << "[Client] Enemy projectile despawned: id=" << projId << std::endl;
 }
 
 void GameClient::handleEnemySpawn(const std::vector<uint8_t> &buffer) {
@@ -235,53 +259,65 @@ void GameClient::handleEnemySpawn(const std::vector<uint8_t> &buffer) {
     const EnemySpawnMessage *msg = reinterpret_cast<const EnemySpawnMessage *>(buffer.data());
     
     uint32_t enemyId = ntohl(msg->enemyId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
-    uint32_t vxb = ntohl(msg->velXBits);
-    uint32_t vyb = ntohl(msg->velYBits);
+    uint32_t xb = ntohl(msg->pos.xBits);
+    uint32_t yb = ntohl(msg->pos.yBits);
+    uint32_t zb = ntohl(msg->pos.zBits);
+    uint32_t vxb = ntohl(msg->vel.vxBits);
+    uint32_t vyb = ntohl(msg->vel.vyBits);
+    uint32_t vzb = ntohl(msg->vel.vzBits);
     
-    float x, y, vx, vy;
+    float x, y, z, vx, vy, vz;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&z, &zb, sizeof(float));
     std::memcpy(&vx, &vxb, sizeof(float));
     std::memcpy(&vy, &vyb, sizeof(float));
+    std::memcpy(&vz, &vzb, sizeof(float));
     
     std::lock_guard<std::mutex> g(stateMutex);
-    enemies[enemyId] = std::make_tuple(x, y, vx, vy);
+    enemies[enemyId] = std::make_tuple(x, y, z, vx, vy, vz);
     
     std::cout << "[Client] Enemy spawned: id=" << enemyId 
-              << " pos=(" << x << ", " << y << ")" << std::endl;
+              << " pos=(" << x << ", " << y << ", " << z << ")" << std::endl;
 }
 
-void GameClient::handleEnemyDespawn(const std::vector<uint8_t> &buffer) {
-    if (buffer.size() < sizeof(EnemyDespawnMessage)) return;
-    const EnemyDespawnMessage *msg = reinterpret_cast<const EnemyDespawnMessage *>(buffer.data());
-    uint32_t enemyId = ntohl(msg->enemyId);
-    
-    std::lock_guard<std::mutex> g(stateMutex);
-    enemies.erase(enemyId);
-    
-    std::cout << "[Client] Enemy despawned: id=" << enemyId << std::endl;
+void GameClient::handleEnemyDespawn(const std::vector<uint8_t>& data) {
+    if (data.size() >= sizeof(EnemyDespawnMessage)) {
+        const EnemyDespawnMessage* msg = reinterpret_cast<const EnemyDespawnMessage*>(data.data());
+        
+        uint32_t enemyId = ntohl(msg->enemyId);
+        
+        std::lock_guard<std::mutex> lock(stateMutex);
+        enemies.erase(enemyId);
+    }
 }
 
-void GameClient::handleEnemyUpdate(const std::vector<uint8_t> &buffer) {
-    if (buffer.size() < sizeof(EnemyUpdateMessage)) return;
-    const EnemyUpdateMessage *msg = 
-        reinterpret_cast<const EnemyUpdateMessage *>(buffer.data());
+void GameClient::handleEnemyUpdate(const std::vector<uint8_t>& data) {
+    if (data.size() >= sizeof(EnemyUpdateMessage)) {
+        const EnemyUpdateMessage* msg = reinterpret_cast<const EnemyUpdateMessage*>(data.data());
+        
+        uint32_t enemyId = ntohl(msg->enemyId);
+        
+        uint32_t xb = ntohl(msg->pos.xBits);
+        uint32_t yb = ntohl(msg->pos.yBits);
+        uint32_t zb = ntohl(msg->pos.zBits);
+        uint32_t vxb = ntohl(msg->velXBits);
+        uint32_t vyb = ntohl(msg->velYBits);
     
-    uint32_t enemyId = ntohl(msg->enemyId);
-    uint32_t xb = ntohl(msg->posXBits);
-    uint32_t yb = ntohl(msg->posYBits);
+        float x, y, z, vx, vy;
+        std::memcpy(&x, &xb, sizeof(float));
+        std::memcpy(&y, &yb, sizeof(float));
+        std::memcpy(&z, &zb, sizeof(float));
+        std::memcpy(&vx, &vxb, sizeof(float));
+        std::memcpy(&vy, &vyb, sizeof(float));
     
-    float x, y;
-    std::memcpy(&x, &xb, sizeof(float));
-    std::memcpy(&y, &yb, sizeof(float));
-    
-    std::lock_guard<std::mutex> g(stateMutex);
-    auto it = enemies.find(enemyId);
-    if (it != enemies.end()) {
-        std::get<0>(it->second) = x;
-        std::get<1>(it->second) = y;
+        std::lock_guard<std::mutex> lock(stateMutex);
+        float vz = 0.f;
+        auto it = enemies.find(enemyId);
+        if (it != enemies.end()) {
+            vz = std::get<5>(it->second);
+        }
+        enemies[enemyId] = std::make_tuple(x, y, z, vx, vy, vz);
     }
 }
 

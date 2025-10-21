@@ -15,32 +15,28 @@ namespace game::entities
     /**
      * @brief Factory function to create a player entity with all necessary components.
      *
-     * Initializes components such as position, velocity, drawable, health, controllable, etc.
+     * Initializes position, velocity, drawable/model, health, controllable, client_id, and hitbox.
      *
      * @param reg Reference to the ECS registry.
      * @param x Initial X position (default: 100.f).
-     * @param y Initial Y position (default: 300.f).
-     * @return The created player entity.
+     * @param y Initial Y position (default: 0.f).
+     * @param z Initial Z position (default: 0.f).
+     * @param imagePath Optional 2D sprite path.
+     * @param modelPath Optional 3D model path.
+     * @param clientId Client ID (for multiplayer).
+     * @return The created player entity ID.
      */
-    ecs::entity_t create_player(ecs::registry &reg, float x = 100.f, float y = 300.f, const std::string &imagePath = "", uint32_t clientId = 0);
+    ecs::entity_t create_player(ecs::registry &reg, float x = 100.f, float y = 0.f, float z = 0.f,
+        const std::string &imagePath = "", const std::string &modelPath = "", uint32_t clientId = 0);
 
     /**
-     * @brief Sets up the player control system.
-     *
-     * This system reads player input and updates the player's velocity accordingly.
-     *
-     * @param reg Reference to the ECS registry.
+     * @brief Setup the player control system.
+     * Reads input and updates player velocity.
      */
     void setup_player_control_system(ecs::registry &reg);
 
     /**
-     * @brief Sets up a system to constrain the player's movement within the screen boundaries.
-     *
-     * Ensures that the player cannot move outside the visible area of the game.
-     *
-     * @param reg Reference to the ECS registry.
-     * @param screen_width Width of the game screen.
-     * @param screen_height Height of the game screen.
+     * @brief Constrain player movement within screen/world bounds.
      */
-    void setup_player_bounds_system(ecs::registry &reg, float screen_width, float screen_height);
-} // namespace game::entities
+    void setup_player_bounds_system(ecs::registry &reg, float screen_width, float screen_height, float screen_depth);
+}

@@ -8,6 +8,7 @@
 #include "Include/GameScene.hpp"
 #include <iostream>
 #include <cmath>
+#include <tuple>
 #include <algorithm>
 
 namespace game::scene {
@@ -27,19 +28,25 @@ namespace game::scene {
 
         // Enregistrement des composants
         _registry.register_component<component::position>();
-        _registry.register_component<component::dynamic_position>();
+        _registry.register_component<component::previous_position>();
         _registry.register_component<component::velocity>();
+        _registry.register_component<component::rotation>();
+        _registry.register_component<component::scale>();
+        _registry.register_component<component::dynamic_position>();
         _registry.register_component<component::drawable>();
+        _registry.register_component<component::sprite>();
+        _registry.register_component<component::model3D>();
+        _registry.register_component<component::audio>();
+        _registry.register_component<component::text>();
+        _registry.register_component<component::font>();
+        _registry.register_component<component::clickable>();
+        _registry.register_component<component::hoverable>();
         _registry.register_component<component::controllable>();
         _registry.register_component<component::health>();
         _registry.register_component<component::damage>();
-        _registry.register_component<component::type>();
         _registry.register_component<component::collision_box>();
         _registry.register_component<component::hitbox_link>();
-        _registry.register_component<component::sprite>();
-        _registry.register_component<component::audio>();
-        _registry.register_component<component::text>();
-        _registry.register_component<component::previous_position>();
+        _registry.register_component<component::type>();
         _registry.register_component<component::client_id>();
         _ui.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
@@ -49,7 +56,7 @@ namespace game::scene {
         setup_render_system();
         setup_health_system();
         game::entities::setup_player_control_system(_registry);
-        game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
+        game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height), 0.f);
         game::entities::setup_hitbox_sync_system(_registry);
 
         // Création des entités statiques (background, UI, etc.)
@@ -58,6 +65,7 @@ namespace game::scene {
         
         // Indexer les entités existantes dans le registre
         index_existing_entities();
+        extract_enemy_sprite_paths();
         load_entity_textures();
         load_projectile_textures();
         load_music();
@@ -151,61 +159,180 @@ namespace game::scene {
     }
 
     Texture2D* GameScene::get_entity_texture(ecs::entity_t entity) {
-        auto it = _entityTextures.find(entity.value());
-        if (it != _entityTextures.end()) {
-            return &it->second;
+        auto cachedIt = _entityTextures.find(entity.value());
+        if (cachedIt != _entityTextures.end()) {
+            return &cachedIt->second;
+        }
+
+        auto &sprites = _registry.get_components<component::sprite>();
+        if (entity.value() < sprites.size() && sprites[entity.value()]) {
+            const std::string &imagePath = sprites[entity.value()]->image_path;
+            if (!imagePath.empty()) {
+                try {
+                    Texture2D texture = _raylib.loadTexture(imagePath);
+                    auto [insertIt, inserted] = _entityTextures.emplace(entity.value(), texture);
+                    if (inserted) {
+                        std::cout << "[DEBUG] Lazily loaded texture for entity "
+                                  << entity.value() << " from " << imagePath << std::endl;
+                    }
+                    return &insertIt->second;
+                } catch (const std::exception &e) {
+                    std::cerr << "[ERROR] Failed to lazily load texture for entity "
+                              << entity.value() << " from " << imagePath
+                              << ": " << e.what() << std::endl;
+                }
+            }
         }
         return nullptr;
     }
 
-    void GameScene::update() {
-        if (!_game_running) return;
+void GameScene::update() {
+    if (!_game_running) return;
 
-        std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
-        {
-            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
-            netPlayers = _game.getGameClient().players;
+    std::unordered_map<uint32_t, std::tuple<float, float, float>> netPlayers;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netPlayers = _game.getGameClient().players;
+    }
+
+    for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
+        if (netPlayers.find(it->first) == netPlayers.end()) {
+            _registry.kill_entity(it->second);
+            it = _playerEntities.erase(it);
+        } else {
+            ++it;
         }
+    }
 
-        for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
-            if (netPlayers.find(it->first) == netPlayers.end()) {
-                _registry.kill_entity(it->second);
-                it = _playerEntities.erase(it);
-            } else {
-                ++it;
+    auto &positions = _registry.get_components<component::position>();
+    for (auto const &kv : netPlayers) {
+        uint32_t id = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        auto f = _playerEntities.find(id);
+        if (f == _playerEntities.end()) {
+            ecs::entity_t e = game::entities::create_player(_registry, x, y, z);
+            _playerEntities.emplace(id, e);
+        } else {
+            ecs::entity_t e = f->second;
+            if (e.value() < positions.size() && positions[e.value()]) {
+                positions[e.value()]->x = x;
+                positions[e.value()]->y = y;
+                positions[e.value()]->z = z;
             }
         }
+    }
+    
+    uint32_t myClientId = _game.getGameClient().clientId;
+    auto myPlayerIt = _playerEntities.find(myClientId);
+    if (myPlayerIt != _playerEntities.end())
+        _player = myPlayerIt->second;
+    
+    auto &pp = _registry.get_components<component::previous_position>();
+    for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) {
+        if (positions[i] && pp[i]) {
+            pp[i]->x = positions[i]->x; 
+            pp[i]->y = positions[i]->y;
+            pp[i]->z = positions[i]->z;
+        }
+    }
 
-        auto &positions = _registry.get_components<component::position>();
-        for (auto const &kv : netPlayers) {
-            uint32_t id = kv.first;
-            float x = kv.second.first;
-            float y = kv.second.second;
-            auto f = _playerEntities.find(id);
-            if (f == _playerEntities.end()) {
-                ecs::entity_t e = game::entities::create_player(_registry, x, y);
-                _playerEntities.emplace(id, e);
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> netEnemies;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netEnemies = _game.getGameClient().enemies;
+    }
+
+    for (auto it = _enemyMap.begin(); it != _enemyMap.end(); ) {
+        uint32_t serverId = it->first;
+        
+        if (netEnemies.find(serverId) == netEnemies.end()) {
+            ecs::entity_t clientEntity = it->second;
+            _registry.kill_entity(clientEntity);
+            _enemys.erase(
+                std::remove(_enemys.begin(), _enemys.end(), clientEntity),
+                _enemys.end()
+            );
+            it = _enemyMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    auto &velocities = _registry.get_components<component::velocity>();
+
+    for (auto const &kv : netEnemies) {
+        uint32_t serverId = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        float vz = std::get<5>(kv.second);
+        
+        auto it = _enemyMap.find(serverId);
+        
+        if (it == _enemyMap.end()) {
+            std::string spritePath = "../Game/Assets/sprites/ennemies/r-typesheet19.png";
+            
+            auto spriteIt = _enemySpriteMap.find(serverId);
+            if (spriteIt != _enemySpriteMap.end()) {
+                spritePath = spriteIt->second;
+                std::cout << "[DEBUG] Using mapped sprite for enemy " << serverId 
+                          << ": " << spritePath << std::endl;
             } else {
-                ecs::entity_t e = f->second;
-                if (e.value() < positions.size() && positions[e.value()]) {
-                    float currentX = positions[e.value()]->x;
-                    float currentY = positions[e.value()]->y;
-                    positions[e.value()]->x = x;
-                    positions[e.value()]->y = y;
+                std::cout << "[WARNING] No sprite mapped for enemy " << serverId 
+                          << ", using default" << std::endl;
+            }
+            
+            ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, z, spritePath);
+            _enemyMap.emplace(serverId, newEnemy);
+            _enemys.push_back(newEnemy);
+            if (newEnemy.value() < positions.size() && positions[newEnemy.value()]) {
+                positions[newEnemy.value()]->x = x;
+                positions[newEnemy.value()]->y = y;
+                positions[newEnemy.value()]->z = z;
+            }
+            if (newEnemy.value() < velocities.size() && velocities[newEnemy.value()]) {
+                velocities[newEnemy.value()]->vx = vx;
+                velocities[newEnemy.value()]->vy = vy;
+                velocities[newEnemy.value()]->vz = vz;
+            }
+        } else {
+            ecs::entity_t clientEnemy = it->second;
+            if (clientEnemy.value() < positions.size() && positions[clientEnemy.value()]) {
+                positions[clientEnemy.value()]->x = x;
+                positions[clientEnemy.value()]->y = y;
+                positions[clientEnemy.value()]->z = z;
+            }
+            if (clientEnemy.value() < velocities.size() && velocities[clientEnemy.value()]) {
+                velocities[clientEnemy.value()]->vx = vx;
+                velocities[clientEnemy.value()]->vy = vy;
+                velocities[clientEnemy.value()]->vz = vz;
+            }
+        }
+    }
+
+    _registry.run_systems();
+}
+
+    void GameScene::extract_enemy_sprite_paths() {
+        auto &sprites = _registry.get_components<component::sprite>();
+            auto &types = _registry.get_components<component::type>();
+            
+            _enemySpriteMap.clear();    
+            for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
+                if (sprites[i] && types[i] && types[i]->value == component::entity_type::ENEMY) {
+                    uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
+                    
+                    if (!sprites[i]->image_path.empty())
+                        _enemySpriteMap[serverEntityId] = sprites[i]->image_path;
+                    
+                    ecs::entity_t entity = _registry.entity_from_index(i);
+                    _registry.kill_entity(entity);
                 }
-            }
-        }
-        uint32_t myClientId = _game.getGameClient().clientId;
-        auto myPlayerIt = _playerEntities.find(myClientId);
-        if (myPlayerIt != _playerEntities.end())
-            _player = myPlayerIt->second;
-        auto &pp = _registry.get_components<component::previous_position>();
-        for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) {
-            if (positions[i] && pp[i]) {
-                pp[i]->x = positions[i]->x; pp[i]->y = positions[i]->y;
-            }
-        }
-        _registry.run_systems();
+            }    
     }
 
     void GameScene::render() {
@@ -218,7 +345,6 @@ namespace game::scene {
         _raylib.updateMusicStream(_music);
         render_entities();
         render_network_obstacles();
-        render_network_enemies();
         render_network_projectiles();
         render_network_enemy_projectiles();
         
@@ -250,14 +376,17 @@ namespace game::scene {
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
 
-                for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
+        // Render background first
+        for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i])
                 continue;
             if (types[i]->value == component::entity_type::BACKGROUND) {
                 ecs::entity_t entity = _registry.entity_from_index(i);
                 render_background(entity, *positions[i], *drawables[i]);
             }
-        }        
+        }
+        
+        // Render other entities
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
 
@@ -314,7 +443,7 @@ namespace game::scene {
     }
 
     void GameScene::render_network_projectiles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>>  projs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             projs = _game.getGameClient().projectiles;
@@ -348,7 +477,6 @@ namespace game::scene {
         }
     }
 
-
     void GameScene::render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
@@ -368,6 +496,7 @@ namespace game::scene {
             Rectangle sourceRec = {66.0f + spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)_width / 40.0f, (float)_height / 40.0f};
             Vector2 origin = {0.0f, 0.0f};
+            
             auto &sprites = _registry.get_components<component::sprite>();
             float rotation = 0.0f;
             float scale = 1.0f;
@@ -386,7 +515,6 @@ namespace game::scene {
             }
             Color playerColor = get_color_for_id(idForColor);
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, playerColor);
-
         }
     }
 
@@ -397,14 +525,15 @@ namespace game::scene {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
-            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, RED);
+            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, YELLOW);
         }
     }
 
@@ -415,15 +544,15 @@ namespace game::scene {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GRAY);
-
         }
     }
 
@@ -450,8 +579,9 @@ namespace game::scene {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
@@ -468,8 +598,9 @@ namespace game::scene {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
@@ -479,9 +610,8 @@ namespace game::scene {
         }
     }
 
-
     void GameScene::render_network_obstacles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             obs = _game.getGameClient().obstacles;
@@ -496,30 +626,8 @@ namespace game::scene {
         }
     }
 
-        auto colorForId = [](uint32_t id) -> Color {
-            static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE};
-            return palette[id % (sizeof(palette)/sizeof(palette[0]))];
-        };
-
-    void GameScene::render_network_enemies() {
-        const float ENEMY_WIDTH = 30.f;
-        const float ENEMY_HEIGHT = 30.f;
-
-        for (auto const &kv : _game.getGameClient().enemies) {
-            float x = std::get<0>(kv.second);
-            float y = std::get<1>(kv.second);
-            _raylib.drawRectangle(
-                (int)(x - ENEMY_WIDTH / 2),
-                (int)(y - ENEMY_HEIGHT / 2),
-                (int)ENEMY_WIDTH,
-                (int)ENEMY_HEIGHT,
-                RED
-            );
-        }
-    }
-
     void GameScene::render_network_enemy_projectiles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             enemyProjs = _game.getGameClient().enemyProjectiles;
@@ -572,11 +680,11 @@ namespace game::scene {
     void GameScene::render_win_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
         
-        const char* deathText = "YOU WIN!";
+        const char* winText = "YOU WIN!";
         int fontSize = 72;
-        int textWidth = _raylib.measureText(deathText, fontSize);
+        int textWidth = _raylib.measureText(winText, fontSize);
         _raylib.drawText(
-            deathText,
+            winText,
             (_width - textWidth) / 2,
             _height / 2 - fontSize / 2,
             fontSize,
@@ -748,6 +856,7 @@ namespace game::scene {
                     if (pos[i] && vel[i]) {
                         pos[i]->x += vel[i]->vx * dt;
                         pos[i]->y += vel[i]->vy * dt;
+                        pos[i]->z += vel[i]->vz * dt;
                     }
                 }
             });

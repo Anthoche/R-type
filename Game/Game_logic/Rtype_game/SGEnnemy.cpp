@@ -58,7 +58,7 @@ void ServerGame::update_enemies(float dt) {
         update_enemy_turret(id, dt);
 
         pos = get_component_ptr<component::position>(registry_server, entity);
-        if (pos) broadcast_enemy_update(id, pos->x, pos->y);
+        if (pos) broadcast_enemy_update(id, pos->x, pos->y, pos->z);
     }
 }
 
@@ -68,10 +68,11 @@ void ServerGame::update_enemy_default(uint32_t id, float dt) {
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
     if (!pos) return;
 
-    float vx = -50.f, vy = 0.f;
-    if (vel) { vx = vel->vx; vy = vel->vy; }
+    float vx = -50.f, vy = 0.f, vz = 0.f;
+    if (vel) { vx = vel->vx; vy = vel->vy; vz = vel->vz; }
     pos->x += vx * dt;
     pos->y += vy * dt;
+    pos->z += vz * dt;
 }
 
 void ServerGame::update_enemy_straight(uint32_t id, float dt) {
@@ -123,17 +124,18 @@ void ServerGame::update_enemy_circle(uint32_t id, float dt) {
 
 void ServerGame::update_enemy_turret(uint32_t id, float dt) {
     static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
-    static const float SHOOT_COOLDOWN = 2.0f;
+    static const float SHOOT_COOLDOWN = 5.0f;
     
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
     if (!pos) return;
 
-    float vx = -30.f, vy = 0.f;
-    if (vel) { vx = vel->vx; vy = vel->vy; }
+    float vx = -30.f, vy = 0.f, vz = 0.f;
+    if (vel) { vx = vel->vx; vy = vel->vy; vz = vel->vz; }
     pos->x += vx * dt;
     pos->y += vy * dt;
+    pos->z += vz * dt;
     
     auto currentTime = std::chrono::high_resolution_clock::now();
     
@@ -144,7 +146,7 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt) {
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
         currentTime - lastShootTime[id]
     ).count();
-    
+
     if (elapsed >= SHOOT_COOLDOWN) {
         shoot_enemy_projectile(id, pos->x, pos->y, -200.f, 0.f);
         lastShootTime[id] = currentTime;
@@ -247,33 +249,40 @@ void ServerGame::check_player_enemy_collisions() {
 }
 
 void ServerGame::broadcast_enemy_positions() {
-    std::lock_guard<std::mutex> lock(mtx);
-    for (auto entity : _enemies) {
-        uint32_t id = static_cast<uint32_t>(entity);
-        auto pos = get_component_ptr<component::position>(registry_server, entity);
-        if (!pos) continue;
-        broadcast_enemy_update(id, pos->x, pos->y);
+    auto &positions = registry_server.get_components<component::position>();
+    
+    for (auto enemyEntity : _enemies) {
+        uint32_t enemyId = static_cast<uint32_t>(enemyEntity);
+        
+        if (enemyId < positions.size() && positions[enemyId]) {
+            const auto& pos = *positions[enemyId];
+            broadcast_enemy_update(enemyId, pos.x, pos.y, pos.z);
+        }
     }
 }
 
-void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float vx, float vy) {
+void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz) {
     EnemySpawnMessage msg{};
     msg.type = MessageType::EnemySpawn;
     msg.enemyId = htonl(enemyId);
 
-    uint32_t xb, yb, vxb, vyb;
+    uint32_t xb, yb, zb, vxb, vyb, vzb;
     std::memcpy(&xb, &x, sizeof(float));
     std::memcpy(&yb, &y, sizeof(float));
+    std::memcpy(&zb, &z, sizeof(float));
     std::memcpy(&vxb, &vx, sizeof(float));
     std::memcpy(&vyb, &vy, sizeof(float));
+    std::memcpy(&vzb, &vz, sizeof(float));
 
-    msg.posXBits = htonl(xb);
-    msg.posYBits = htonl(yb);
-    msg.velXBits = htonl(vxb);
-    msg.velYBits = htonl(vyb);
+    msg.pos.xBits = htonl(xb);
+    msg.pos.yBits = htonl(yb);
+    msg.pos.zBits = htonl(zb);
+    msg.vel.vxBits = htonl(vxb);
+    msg.vel.vyBits = htonl(vyb);
+    msg.vel.vzBits = htonl(vzb);
 
     connexion.broadcast(&msg, sizeof(msg));
-    LOG_DEBUG("[Server] Broadcast enemy spawn: ID=" << enemyId << " pos=(" << x << "," << y << ")");
+    LOG_DEBUG("[Server] Broadcast enemy spawn: ID=" << enemyId << " pos=(" << x << "," << y << "," << z << ")");
 }
 
 void ServerGame::broadcast_enemy_despawn(uint32_t enemyId) {
@@ -285,17 +294,32 @@ void ServerGame::broadcast_enemy_despawn(uint32_t enemyId) {
     LOG_DEBUG("[Server] Broadcast enemy despawn: ID=" << enemyId);
 }
 
-void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y) {
+void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, float z) {
     EnemyUpdateMessage msg{};
     msg.type = MessageType::EnemyUpdate;
     msg.enemyId = htonl(enemyId);
 
-    uint32_t xb, yb;
+    uint32_t xb, yb, zb;
     std::memcpy(&xb, &x, sizeof(float));
     std::memcpy(&yb, &y, sizeof(float));
+    std::memcpy(&zb, &z, sizeof(float));
 
-    msg.posXBits = htonl(xb);
-    msg.posYBits = htonl(yb);
+    msg.pos.xBits = htonl(xb);
+    msg.pos.yBits = htonl(yb);
+    msg.pos.zBits = htonl(zb);
+
+    uint32_t vxb = 0;
+    uint32_t vyb = 0;
+    auto& velocities = registry_server.get_components<component::velocity>();
+    if (enemyId < velocities.size() && velocities[enemyId]) {
+        float vx = velocities[enemyId]->vx;
+        float vy = velocities[enemyId]->vy;
+        std::memcpy(&vxb, &vx, sizeof(float));
+        std::memcpy(&vyb, &vy, sizeof(float));
+    }
+
+    msg.velXBits = htonl(vxb);
+    msg.velYBits = htonl(vyb);
 
     connexion.broadcast(&msg, sizeof(msg));
 }
