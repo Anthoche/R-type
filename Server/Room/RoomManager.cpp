@@ -33,6 +33,8 @@ std::map<int, Room> const &RoomManager::getRooms() const {
 }
 
 void RoomManager::addRoom(Room const &room) {
+	if (_rooms.size() >= _maxRooms)
+		return;
 	_rooms.insert_or_assign(_currentId, room);
 	_currentId++;
 }

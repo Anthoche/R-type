@@ -11,6 +11,7 @@
 #include "../Shared/Sockets/Include/UDP_socket.hpp"
 #include "../Shared/Sockets/Include/TCP_socket.hpp"
 #include "../Engine/Core/Include/registry.hpp"
+#include "serializer.hpp"
 #include <asio.hpp>
 #include <cstring>
 #include <iostream>
@@ -47,6 +48,7 @@ class GameClient {
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
+        std::map<int, game::serializer::RoomData> rooms;
 
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
@@ -192,7 +194,6 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handlePlayerUpdate(const std::vector<uint8_t> &buffer);
-
 
         /**
          * @brief Handles an ObstacleSpawn message.
