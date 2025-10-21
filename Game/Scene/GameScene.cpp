@@ -8,6 +8,7 @@
 #include "Include/GameScene.hpp"
 #include <iostream>
 #include <cmath>
+#include <tuple>
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -187,7 +188,7 @@ namespace game::scene {
 void GameScene::update() {
     if (!_game_running) return;
 
-    std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
+    std::unordered_map<uint32_t, std::tuple<float, float, float>> netPlayers;
     {
         std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
         netPlayers = _game.getGameClient().players;
@@ -205,17 +206,19 @@ void GameScene::update() {
     auto &positions = _registry.get_components<component::position>();
     for (auto const &kv : netPlayers) {
         uint32_t id = kv.first;
-        float x = kv.second.first;
-        float y = kv.second.second;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
         auto f = _playerEntities.find(id);
         if (f == _playerEntities.end()) {
-            ecs::entity_t e = game::entities::create_player(_registry, x, y);
+            ecs::entity_t e = game::entities::create_player(_registry, x, y, z);
             _playerEntities.emplace(id, e);
         } else {
             ecs::entity_t e = f->second;
             if (e.value() < positions.size() && positions[e.value()]) {
                 positions[e.value()]->x = x;
                 positions[e.value()]->y = y;
+                positions[e.value()]->z = z;
             }
         }
     }
@@ -230,10 +233,11 @@ void GameScene::update() {
         if (positions[i] && pp[i]) {
             pp[i]->x = positions[i]->x; 
             pp[i]->y = positions[i]->y;
+            pp[i]->z = positions[i]->z;
         }
     }
 
-    std::unordered_map<uint32_t, std::tuple<float, float, float, float>> netEnemies;
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> netEnemies;
     {
         std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
         netEnemies = _game.getGameClient().enemies;
@@ -255,10 +259,16 @@ void GameScene::update() {
         }
     }
 
+    auto &velocities = _registry.get_components<component::velocity>();
+
     for (auto const &kv : netEnemies) {
         uint32_t serverId = kv.first;
         float x = std::get<0>(kv.second);
         float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        float vz = std::get<5>(kv.second);
         
         auto it = _enemyMap.find(serverId);
         
@@ -275,14 +285,30 @@ void GameScene::update() {
                           << ", using default" << std::endl;
             }
             
-            ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, spritePath);
+            ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, z, spritePath);
             _enemyMap.emplace(serverId, newEnemy);
             _enemys.push_back(newEnemy);
+            if (newEnemy.value() < positions.size() && positions[newEnemy.value()]) {
+                positions[newEnemy.value()]->x = x;
+                positions[newEnemy.value()]->y = y;
+                positions[newEnemy.value()]->z = z;
+            }
+            if (newEnemy.value() < velocities.size() && velocities[newEnemy.value()]) {
+                velocities[newEnemy.value()]->vx = vx;
+                velocities[newEnemy.value()]->vy = vy;
+                velocities[newEnemy.value()]->vz = vz;
+            }
         } else {
             ecs::entity_t clientEnemy = it->second;
             if (clientEnemy.value() < positions.size() && positions[clientEnemy.value()]) {
                 positions[clientEnemy.value()]->x = x;
                 positions[clientEnemy.value()]->y = y;
+                positions[clientEnemy.value()]->z = z;
+            }
+            if (clientEnemy.value() < velocities.size() && velocities[clientEnemy.value()]) {
+                velocities[clientEnemy.value()]->vx = vx;
+                velocities[clientEnemy.value()]->vy = vy;
+                velocities[clientEnemy.value()]->vz = vz;
             }
         }
     }

@@ -146,7 +146,6 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt) {
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
         currentTime - lastShootTime[id]
     ).count();
-    <<<<<<< HEAD:Client/Handler/client_handler.cpp
 
     if (elapsed >= SHOOT_COOLDOWN) {
         shoot_enemy_projectile(id, pos->x, pos->y, -200.f, 0.f);
@@ -256,21 +255,8 @@ void ServerGame::broadcast_enemy_positions() {
         uint32_t enemyId = static_cast<uint32_t>(enemyEntity);
         
         if (enemyId < positions.size() && positions[enemyId]) {
-            float x = positions[enemyId]->x;
-            float y = positions[enemyId]->y;
-            
-            EnemyUpdateMessage msg;
-            msg.type = MessageType::EnemyUpdate;
-            msg.enemyId = htonl(enemyId);
-            
-            uint32_t xb, yb;
-            std::memcpy(&xb, &x, sizeof(float));
-            std::memcpy(&yb, &y, sizeof(float));
-            
-            msg.posXBits = htonl(xb);
-            msg.posYBits = htonl(yb);
-            
-            connexion.broadcast(&msg, sizeof(msg));
+            const auto& pos = *positions[enemyId];
+            broadcast_enemy_update(enemyId, pos.x, pos.y, pos.z);
         }
     }
 }
@@ -321,6 +307,19 @@ void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, floa
     msg.pos.xBits = htonl(xb);
     msg.pos.yBits = htonl(yb);
     msg.pos.zBits = htonl(zb);
+
+    uint32_t vxb = 0;
+    uint32_t vyb = 0;
+    auto& velocities = registry_server.get_components<component::velocity>();
+    if (enemyId < velocities.size() && velocities[enemyId]) {
+        float vx = velocities[enemyId]->vx;
+        float vy = velocities[enemyId]->vy;
+        std::memcpy(&vxb, &vx, sizeof(float));
+        std::memcpy(&vyb, &vy, sizeof(float));
+    }
+
+    msg.velXBits = htonl(vxb);
+    msg.velYBits = htonl(vyb);
 
     connexion.broadcast(&msg, sizeof(msg));
 }

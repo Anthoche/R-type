@@ -262,7 +262,7 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             }
             break;
         }
-        case MessageType::initialHealth: {
+        case MessageType::InitialHealth: {
             if (data.size() >= sizeof(InitialHealthMessage)) {
                 const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(data.data());
                 uint32_t clientId = ntohl(msg->clientId);

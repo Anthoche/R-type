@@ -125,7 +125,7 @@ void GameClient::sendHealth(int health) {
     if (clientId == 0)
         return;
     InitialHealthMessage msg;
-    msg.type = MessageType::initialHealth;
+    msg.type = MessageType::InitialHealth;
     msg.clientId = htonl(clientId);
     msg.initialHealth = htons(static_cast<int16_t>(health));
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
