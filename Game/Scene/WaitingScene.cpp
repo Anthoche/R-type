@@ -10,14 +10,21 @@
 #include "components.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
+#include <algorithm>
+#include <vector>
 
 namespace scene {
 	WaitingScene::WaitingScene(Game &game)
-		: AScene(960, 540, "R-Type - Waiting..."), _game(game) {}
+		: AScene(960, 540, "R-Type - Waiting..."), _game(game) {
+		_previewCenter = {static_cast<float>(_width) / 2.f, static_cast<float>(_height) / 2.f + 45.f};
+		_previewBounds = {240.f, 150.f};
+	}
 
 	void WaitingScene::render() {
 		_raylib.beginDrawing();
-		_raylib.clearBackground(BLACK);
+		_raylib.clearBackground(Color{6, 16, 28, 255});
+
+		drawSkinPreview();
 
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &positions = _registry.get_components<component::position>();
@@ -55,7 +62,16 @@ namespace scene {
 	void WaitingScene::handleEvents() {
 		resetButtonStates();
 
-		switch (_raylib.getKeyPressed()) {
+		int key = _raylib.getKeyPressed();
+		switch (key) {
+			case KEY_LEFT:
+			case KEY_A:
+				selectPreviousSkin();
+				break;
+			case KEY_RIGHT:
+			case KEY_D:
+				selectNextSkin();
+				break;
 			default:
 				break;
 		}
@@ -72,7 +88,7 @@ namespace scene {
 			if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				hoverable[i]->isHovered = true;
-				if (_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT) && clickable[i]->enabled) {
+				if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT) && clickable[i]->enabled) {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
@@ -94,56 +110,101 @@ namespace scene {
 		_registry.register_component<component::hoverable>();
 		_registry.register_component<component::type>();
 
+		loadSkinOptions();
+
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
 		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
-		std::string title = 
-			isFrench ? "En attente des joueurs..." : 
+
+		std::string statusText =
+			isFrench ? "En attente des joueurs..." :
 			isItalian ? "In attesa dei giocatori..." :
 			"Waiting for players...";
-		int titleFontSize = 38;
-		Vector2 titleSize = _raylib.measureTextEx(_font, title.c_str(), titleFontSize, -0.5f);
-		float titleCenterY = getElementCenter(_height, titleSize.y) - 100;
-		float titleCenterX = _width / 2 - titleSize.x / 2;
+		int statusFontSize = 18;
+		game::entities::create_text(_registry, {40.f, 36.f}, statusText,
+									Color{170, 220, 255, 255}, -0.5f, statusFontSize, _font);
 
-		std::string joinText = 
-			isFrench ? "Rejoindre" : 
-			isItalian ? "Guintura" :
+		std::string heading =
+			isFrench ? "Hangar de personnalisation" :
+			isItalian ? "Hangar di personalizzazione" :
+			"Customization Hangar";
+		int headingFontSize = 28;
+		Vector2 headingSize = _raylib.measureTextEx(_font, heading.c_str(), static_cast<float>(headingFontSize), -0.5f);
+		Vector2 headingPos = {_previewCenter.x - headingSize.x / 2.f, 108.f};
+		game::entities::create_text(_registry, headingPos, heading,
+									RAYWHITE, -0.5f, headingFontSize, _font);
+
+		std::string instructions =
+			isFrench ? "Choisis ton vaisseau avant de rejoindre la partie." :
+			isItalian ? "Scegli la tua nave prima di entrare in partita." :
+			"Pick your ship before entering the match.";
+		int instructionsFontSize = 14;
+		Vector2 instructionsSize = _raylib.measureTextEx(_font, instructions.c_str(), static_cast<float>(instructionsFontSize), -0.5f);
+		Vector2 instructionsPos = {_previewCenter.x - instructionsSize.x / 2.f, headingPos.y + headingSize.y + 22.f};
+		game::entities::create_text(_registry, instructionsPos, instructions,
+									Color{180, 200, 220, 255}, -0.5f, instructionsFontSize, _font);
+
+		std::string joinText =
+			isFrench ? "Rejoindre" :
+			isItalian ? "Unisciti" :
 			"Join";
-		std::string quitText = 
+		std::string quitText =
 			isFrench ? "Quitter" :
 			isItalian ? "Uscire" :
 			"Quit";
-		Vector2 joinTextSize = _raylib.measureTextEx(_font, joinText.c_str(), 23, -0.5f);
-		Vector2 quitTextSize = _raylib.measureTextEx(_font, quitText.c_str(), 23, -0.5f);
 
-		float paddingX = 120.f;
-		float paddingY = 40.f;
+		int buttonFontSize = 18;
+		Vector2 joinTextSize = _raylib.measureTextEx(_font, joinText.c_str(), static_cast<float>(buttonFontSize), -0.5f);
+		Vector2 quitTextSize = _raylib.measureTextEx(_font, quitText.c_str(), static_cast<float>(buttonFontSize), -0.5f);
+
+		float paddingX = 80.f;
+		float paddingY = 30.f;
 		Vector2 joinButtonSize = {joinTextSize.x + paddingX, joinTextSize.y + paddingY};
 		Vector2 quitButtonSize = {quitTextSize.x + paddingX, quitTextSize.y + paddingY};
 
-		Vector2 buttonBasePos = {getElementCenter(_width, joinButtonSize.x),
-								getElementCenter(_height, joinButtonSize.y) + 50};
-		Vector2 joinButtonPos = buttonBasePos;
-		Vector2 quitButtonPos = buttonBasePos;
-		joinButtonPos.x -= (joinButtonSize.x / 2 + 30);
-		quitButtonPos.x += (quitButtonSize.x / 2 + 30);
+		float buttonSpacing = 28.f;
+		float margin = 42.f;
+		float stackHeight = joinButtonSize.y + quitButtonSize.y + buttonSpacing;
+		float baseX = static_cast<float>(_width) - std::max(joinButtonSize.x, quitButtonSize.x) - margin;
+		float baseY = static_cast<float>(_height) - stackHeight - margin;
+
+		Vector2 joinButtonPos = {baseX, baseY};
+		Vector2 quitButtonPos = {baseX, baseY + joinButtonSize.y + buttonSpacing};
 
 		Color accentColor = Color{26, 170, 177, 255};
 
-		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title,
-									RAYWHITE, -0.5f, titleFontSize, _font);
 		game::entities::create_button(_registry, "button_join", joinText,
-                             joinButtonPos.x, joinButtonPos.y, 0.f,
-                             joinButtonSize.x, joinButtonSize.y,
-                             accentColor, RAYWHITE, 23);
+									 joinButtonPos.x, joinButtonPos.y, 0.f,
+									 joinButtonSize.x, joinButtonSize.y,
+									 accentColor, RAYWHITE, buttonFontSize);
 		game::entities::create_button(_registry, "button_quit", quitText,
-									quitButtonPos.x, quitButtonPos.y, 0.f,
-									quitButtonSize.x, quitButtonSize.y,
-									RED, RAYWHITE, 23);
+									 quitButtonPos.x, quitButtonPos.y, 0.f,
+									 quitButtonSize.x, quitButtonSize.y,
+									 RED, RAYWHITE, buttonFontSize);
 
+		float arrowButtonSize = 54.f;
+		float arrowSpacing = 36.f;
+		Vector2 prevButtonPos = {_previewCenter.x - (_previewBounds.x / 2.f) - arrowSpacing - arrowButtonSize,
+								 _previewCenter.y - arrowButtonSize / 2.f};
+		Vector2 nextButtonPos = {_previewCenter.x + (_previewBounds.x / 2.f) + arrowSpacing,
+								 _previewCenter.y - arrowButtonSize / 2.f};
+
+		Color secondaryColor = Color{32, 104, 147, 255};
+		Color arrowTextColor = Color{220, 245, 255, 255};
+
+		game::entities::create_button(_registry, "button_skin_prev", "<",
+									 prevButtonPos.x, prevButtonPos.y, 0.f,
+									 arrowButtonSize, arrowButtonSize,
+									 secondaryColor, arrowTextColor, 30);
+		game::entities::create_button(_registry, "button_skin_next", ">",
+									 nextButtonPos.x, nextButtonPos.y, 0.f,
+									 arrowButtonSize, arrowButtonSize,
+									 secondaryColor, arrowTextColor, 30);
+
+		selectSkin(_currentSkinIndex);
 	}
 
 	void WaitingScene::onClose() {
+		unloadSkinTextures();
 		_raylib.unloadFont(_font);
 	}
 
@@ -158,12 +219,7 @@ namespace scene {
 			hoverable[i]->isHovered = false;
 
 			if (clickable[i]->id == "button_join") {
-				if (_game.getGameStatus() == GameStatus::PENDING_START ||
-					_game.getGameStatus() == GameStatus::RUNNING) {
-					clickable[i]->enabled = true;
-				} else {
-					clickable[i]->enabled = false;
-				}
+				clickable[i]->enabled = (_game.getGameStatus() != GameStatus::FINISHED);
 			}
 		}
 	}
@@ -173,6 +229,108 @@ namespace scene {
 			_game.getSceneHandler().open("game");
 		} else if (id == "button_quit") {
 			close();
+		} else if (id == "button_skin_prev") {
+			selectPreviousSkin();
+		} else if (id == "button_skin_next") {
+			selectNextSkin();
 		}
+	}
+
+	void WaitingScene::loadSkinOptions() {
+		unloadSkinTextures();
+		_skinOptions.clear();
+
+		const std::vector<SkinOption> defaults = {
+			{"Falcon", ASSETS_PATH "/sprites/player/r-typesheet42.png", {}},
+			{"Nova", ASSETS_PATH "/sprites/player/r-typesheet2.png", {}}
+		};
+
+		for (auto const &base : defaults) {
+			SkinOption option = base;
+			if (!option.path.empty()) {
+				option.texture = _raylib.loadTexture(option.path);
+			}
+			_skinOptions.push_back(std::move(option));
+		}
+
+		if (_skinOptions.empty()) {
+			_skinOptions.push_back({"Default", "", {}});
+		}
+
+		_currentSkinIndex = 0;
+	}
+
+	void WaitingScene::unloadSkinTextures() {
+		for (auto &skin : _skinOptions) {
+			if (skin.texture.id != 0) {
+				_raylib.unloadTexture(skin.texture);
+				skin.texture = {};
+			}
+		}
+	}
+
+	void WaitingScene::selectSkin(std::size_t index) {
+		if (_skinOptions.empty()) {
+			return;
+		}
+
+		_currentSkinIndex = index % _skinOptions.size();
+		const auto &skin = _skinOptions[_currentSkinIndex];
+		if (!skin.path.empty()) {
+			_game.setSelectedSkinPath(skin.path);
+		}
+	}
+
+	void WaitingScene::selectNextSkin() {
+		if (_skinOptions.empty()) return;
+		std::size_t next = (_currentSkinIndex + 1) % _skinOptions.size();
+		selectSkin(next);
+	}
+
+	void WaitingScene::selectPreviousSkin() {
+		if (_skinOptions.empty()) return;
+		std::size_t prev = (_currentSkinIndex + _skinOptions.size() - 1) % _skinOptions.size();
+		selectSkin(prev);
+	}
+
+	void WaitingScene::drawSkinPreview() {
+		Rectangle panel = {
+			_previewCenter.x - (_previewBounds.x / 2.f) - 24.f,
+			_previewCenter.y - (_previewBounds.y / 2.f) - 24.f,
+			_previewBounds.x + 48.f,
+			_previewBounds.y + 48.f
+		};
+		_raylib.drawRectangleRounded(panel, 0.18f, 12, Color{18, 42, 70, 255});
+
+		Rectangle inner = {
+			_previewCenter.x - (_previewBounds.x / 2.f) - 6.f,
+			_previewCenter.y - (_previewBounds.y / 2.f) - 6.f,
+			_previewBounds.x + 12.f,
+			_previewBounds.y + 12.f
+		};
+		_raylib.drawRectangleRounded(inner, 0.12f, 12, Color{10, 24, 40, 255});
+
+		if (_skinOptions.empty() || _skinOptions[_currentSkinIndex].texture.id == 0) {
+			std::string fallback =
+				(_game.getLanguage() == Game::Language::FRENCH) ? "Apercu indisponible" :
+				(_game.getLanguage() == Game::Language::ITALIAN) ? "Anteprima non disponibile" :
+				"Preview unavailable";
+			Vector2 textSize = _raylib.measureTextEx(_font, fallback.c_str(), 18.f, -0.5f);
+			Vector2 textPos = {_previewCenter.x - textSize.x / 2.f, _previewCenter.y - textSize.y / 2.f};
+			_raylib.drawTextEx(_font, fallback.c_str(), textPos, 18.f, -0.5f, Color{180, 190, 200, 255});
+			return;
+		}
+
+		Texture2D &texture = _skinOptions[_currentSkinIndex].texture;
+		float scale = std::min(
+			_previewBounds.x / static_cast<float>(texture.width),
+			_previewBounds.y / static_cast<float>(texture.height));
+
+		Vector2 drawPos = {
+			_previewCenter.x - (texture.width * scale) / 2.f,
+			_previewCenter.y - (texture.height * scale) / 2.f
+		};
+
+		_raylib.drawTextureEx(texture, drawPos, 0.f, scale, WHITE);
 	}
 } // namespace scene
