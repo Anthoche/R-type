@@ -10,6 +10,7 @@
 
 #include "../../Engine/Rendering/scene/Include/AScene.hpp"
 #include "../Game.hpp"
+#include "../../Shared/protocol.hpp"
 #include <unordered_map>
 #include "UI.hpp"
 
@@ -102,6 +103,13 @@ namespace game::scene {
         Game &getGame() { return _game; }
 
     private:
+        struct InputState {
+            bool up{false};
+            bool down{false};
+            bool left{false};
+            bool right{false};
+        };
+
         // --- Game logic ---
         /**
          * @brief Update the game state (called every frame).
@@ -268,5 +276,7 @@ namespace game::scene {
 
         // --- Utilitaires ---
         Color get_color_for_id(uint32_t id);
+        void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed);
+        InputState _inputState;
     };
 } // namespace game::scene
