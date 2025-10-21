@@ -8,9 +8,9 @@
 #pragma once
 
 #include "../Shared/protocol.hpp"
-#include "Network_client/Include/UDP_socket.hpp"
-#include "Network_client/Include/TCP_socketClient.hpp"
-#include "../../Core/Include/registry.hpp"
+#include "../Shared/Sockets/Include/UDP_socket.hpp"
+#include "../Shared/Sockets/Include/TCP_socket.hpp"
+#include "../Engine/Core/Include/registry.hpp"
 #include <asio.hpp>
 #include <cstring>
 #include <iostream>
@@ -37,13 +37,13 @@ class Game;
  */
 class GameClient {
     private:
-        UDP_socket socket; ///< UDP socket used for communication with the server.
+        UDP_socket socket; ///< UDP socket used for communication with the server (client mode).
         asio::ip::udp::endpoint serverEndpoint; ///< Server endpoint for UDP messages.
         std::string clientName; ///< Name of the current client.
         std::thread rxThread; ///< Thread used for receiving messages.
         std::atomic<bool> running{false}; ///< Flag to control client activity.
         Game &_game; ///< Reference to the associated Game instance.
-        std::unique_ptr<TCP_socketClient> tcpClient; ///< TCP client for reliable data transfer.
+        std::unique_ptr<TCP_socket> tcpClient; ///< TCP client for reliable data transfer (client mode).
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
@@ -56,24 +56,24 @@ class GameClient {
         std::mutex stateMutex;
 
         /**
-         * @brief Maps client IDs to their (x, y) positions in the game world.
+         * @brief Maps client IDs to their (x, y, z) positions in the game world.
          */
-        std::unordered_map<uint32_t, std::pair<float, float>> players;
+        std::unordered_map<uint32_t, std::tuple<float, float, float>> players;  // x, y, z
 
         /**
          * @brief Maps obstacle IDs to their (x, y, width, height) values.
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
 
         /**
          * @brief Maps projectiles IDs to their (x,y,width,height).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projectiles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> projectiles;
 
         /**
          * @brief Maps enemy IDs to their (x,y,velX,velY).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> enemies;
 
         /**
          * @brief Maps player IDs to their current health values.
@@ -88,7 +88,7 @@ class GameClient {
         /**
          * @brief Maps enemy projectile IDs to their (x,y,velX,velY,ownerId).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjectiles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 
         int32_t globalScore = 0;
 
@@ -129,7 +129,7 @@ class GameClient {
         /**
          * @brief Initializes a TCP connection to the server.
          *
-         * Uses the client’s assigned ID to compute a unique TCP port.
+         * Uses the client's assigned ID to compute a unique TCP port.
          */
         void initTcpConnection();
 
@@ -147,7 +147,14 @@ class GameClient {
          * @param inputX Horizontal input (-1.0 to 1.0).
          * @param inputY Vertical input (-1.0 to 1.0).
          */
-        void sendInput(float inputX, float inputY);
+        void sendInputEvent(InputCode code, bool pressed);
+
+        /**
+         * @brief Sends the current health status to the server.
+         *
+         * @param lives Current number of lives.
+         */
+        void sendHealth(int lives);
 
         /**
          * @brief Handles an incoming message from the server.

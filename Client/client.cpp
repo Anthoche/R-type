@@ -10,7 +10,7 @@
 #include <asio.hpp>
 
 GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
-    : clientName(name), _game(game), serverIpStr(serverIp) {
+    : socket(), clientName(name), _game(game), serverIpStr(serverIp) {
     try {
         serverEndpoint = asio::ip::udp::endpoint(
             asio::ip::address::from_string(serverIp), 
@@ -49,7 +49,7 @@ void GameClient::initTcpConnection() {
     if (clientId == 0) return;
 
     uint16_t tcpPort = 5000 + clientId;
-    tcpClient = std::make_unique<TCP_socketClient>();
+    tcpClient = std::make_unique<TCP_socket>(); // Mode client (constructeur par défaut)
 
     if (!tcpClient->connectToServer(serverIpStr, tcpPort)) {
         std::cerr << "[Client] Impossible de se connecter en TCP" << std::endl;
@@ -73,16 +73,19 @@ void GameClient::recvLoop() {
     }
 }
 
-void GameClient::sendInput(float inputX, float inputY) {
+void GameClient::sendInputEvent(InputCode code, bool pressed) {
+    if (clientId == 0)
+        return;
     ClientInputMessage m{};
     m.type = MessageType::ClientInput;
     m.clientId = htonl(clientId);
-    uint32_t xbits, ybits;
-    std::memcpy(&xbits, &inputX, sizeof(float));
-    std::memcpy(&ybits, &inputY, sizeof(float));
-    m.inputXBits = htonl(xbits);
-    m.inputYBits = htonl(ybits);
+    m.inputCode = static_cast<uint8_t>(code);
+    m.isPressed = pressed ? 1 : 0;
     socket.sendTo(&m, sizeof(m), serverEndpoint);
+    std::cout << "[Client][Input] send "
+              << (pressed ? "PRESS" : "RELEASE")
+              << " (" << inputCodeToString(code) << ")"
+              << " to server" << std::endl;
 }
 
 void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
@@ -107,7 +110,7 @@ void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
             std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
             return;
         }
-         std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
+        std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
         game::serializer::deserialize_entities(*registry, fullRegistry);
     }
 }
@@ -118,6 +121,16 @@ void GameClient::sendShoot() {
     ClientShootMessage msg;
     msg.type = MessageType::ClientShoot;
     msg.clientId = htonl(clientId);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+void GameClient::sendHealth(int health) {
+    if (clientId == 0)
+        return;
+    InitialHealthMessage msg;
+    msg.type = MessageType::InitialHealth;
+    msg.clientId = htonl(clientId);
+    msg.initialHealth = htons(static_cast<int16_t>(health));
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 

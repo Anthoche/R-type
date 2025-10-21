@@ -4,8 +4,9 @@
 ** File description:
 ** server
 */
-#include "server.hpp"
-#include "Game_logic/Include/ServerGame.hpp"
+#include "Include/server.hpp"
+#include "Include/IServerGame.hpp"
+#include "../Game/Game_logic/Rtype_game.hpp"
 #include <chrono>
 #include <thread>
 #include <cstring>
@@ -94,18 +95,12 @@ void GameServer::handle_client_message(const std::vector<uint8_t>& data, const a
     if (data.size() < sizeof(ClientInputMessage)) return;
     const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
     uint32_t id = ntohl(msg->clientId);
-    uint32_t xbits = ntohl(msg->inputXBits);
-    uint32_t ybits = ntohl(msg->inputYBits);
-    float inputX, inputY;
-    std::memcpy(&inputX, &xbits, sizeof(float));
-    std::memcpy(&inputY, &ybits, sizeof(float));
-    auto& pos = playerPositions[id];
-    float speed = 200.f / 60.f; // units per tick
-    pos.first += inputX * speed;
-    pos.second += inputY * speed;
-    const float halfSize = 15.f;
-    pos.first = std::clamp(pos.first, halfSize, 800.f - halfSize);
-    pos.second = std::clamp(pos.second, halfSize, 600.f - halfSize);
+    InputCode code = static_cast<InputCode>(msg->inputCode);
+    bool pressed = msg->isPressed != 0;
+    (void)from;
+    std::cout << "[ServerBootstrap][Input] received event from client " << id
+              << " code=" << inputCodeToString(code)
+              << " pressed=" << pressed << std::endl;
 }
 
 void GameServer::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms)
