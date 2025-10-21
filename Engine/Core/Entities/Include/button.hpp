@@ -10,6 +10,8 @@
 
 #include <string>
 #include <raylib.h>
+
+#include "DynamicPosition.hpp"
 #include "registry.hpp"
 #include "entity.hpp"
 
@@ -22,6 +24,16 @@ namespace game::entities {
                             Color color,
                             Color textColor,
                             int fontSize = 35);
+
+	ecs::entity_t create_button(ecs::registry &reg,
+							std::string const &id,
+							std::string const &displayName,
+							DynamicPosition pos,
+							Vector2 offset,
+							Vector2 size,
+							Color color,
+							Color textColor,
+							int fontSize = 35);
 }
 
 #endif

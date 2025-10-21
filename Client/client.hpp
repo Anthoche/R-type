@@ -48,11 +48,11 @@ class GameClient {
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
-        std::map<int, game::serializer::RoomData> rooms;
 
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         int roomId{-1};
+        std::map<int, game::serializer::RoomData> rooms;
         
         /**
          * @brief Mutex used to protect shared game state access.

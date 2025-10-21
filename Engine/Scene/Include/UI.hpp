@@ -106,24 +106,6 @@ class UI {
 
 		/** @brief Player's individual score (points earned by this player). */
 		int _playerScore = 0;
-		
-		/**
-		 * @brief Calculates the screen position for text based on dynamic positioning.
-		 * @param pos The dynamic position (e.g., TOP_LEFT, BOTTOM_CENTER).
-		 * @param offset Additional offset from the calculated position.
-		 * @param content The text string to be rendered.
-		 * @return A Vector2 containing the final screen coordinates for the text.
-		 */
-		Vector2 getTextPos(DynamicPosition pos, Vector2 offset, std::string const &content) const;
-
-		/**
-		 * @brief Calculates the screen position for an element based on dynamic positioning.
-		 * @param pos The dynamic position enum value.
-		 * @param offset Additional offset from the calculated position.
-		 * @param size The width and height of the element.
-		 * @return A Vector2 containing the final screen coordinates.
-		 */
-		Vector2 getRealPos(DynamicPosition pos, Vector2 offset, Vector2 size) const;
 	};
 
 #endif //RTYPE_UI_HPP

@@ -62,15 +62,27 @@ class RoomSelectScene: public AScene {
         Game &_game; ///< Reference to the game instance.
 
         Font _font{};
+        Vector2 _margin{25, 25};
 
-        //Title
+        // Rooms
+        int const _roomSpacing = 50;
+        int const _innerMargin = 15;
+        Vector2 _roomSize{50, 100};
+        Color const _roomBackgroundColor{33, 33, 33, 255};
 
-        //Buttons
+        // Title
+        int _titleSize = 36;
+
+        // Buttons
         int _selectedButtonIndex = -1;
+        Color const _accentColor{26, 170, 177, 255};
+        Vector2 const _buttonSize{160.f, 50.f};
+        int const _buttonTextSize = 23;
 
+        void refreshRooms();
+        void createRoom(int id, game::serializer::RoomData roomData);
         void resetButtonStates();
         void handleButtonClick(std::string const &id);
-        void drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize, float spacing, Color color, Color textColor, bool isHovered, bool isClicked);
 };
 
 } // namespace scene

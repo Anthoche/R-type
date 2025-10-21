@@ -61,6 +61,7 @@ void GameClient::sendRoomsFetch() {
     msg.type = MessageType::ClientFetchRooms;
     msg.clientId = clientId;
     LOG_DEBUG("Envoi de la demande de rooms list");
+    rooms.clear();
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 

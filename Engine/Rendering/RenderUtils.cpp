@@ -41,3 +41,41 @@ int getButtonsCenterY(int screenHeight, int numberOfButtons, int buttonHeight, i
 	int totalHeight = (numberOfButtons * buttonHeight) + ((numberOfButtons - 1) * buttonSpacing);
 	return getElementCenter(screenHeight, totalHeight);
 }
+
+Vector2 getRealPos(Raylib &raylib, DynamicPosition pos, Vector2 offset, Vector2 margin, Vector2 size) {
+	Vector2 finalPos = {0.f, 0.f};
+	float bottomPosY = raylib.getRenderHeight() - margin.y - size.y;
+	float centerPosX = getElementCenter(raylib.getRenderWidth(), size.x);
+	float rightPosX = raylib.getRenderWidth() - size.x - margin.x;
+
+	switch (pos) {
+		case TOP_LEFT:
+			finalPos = {margin.x, margin.y};
+			break;
+		case TOP_CENTER:
+			finalPos = {centerPosX, margin.y};
+			break;
+		case TOP_RIGHT:
+			finalPos = {rightPosX, margin.y};
+			break;
+		case BOTTOM_LEFT:
+			finalPos = {margin.x, bottomPosY};
+			break;
+		case BOTTOM_CENTER:
+			finalPos = {centerPosX, bottomPosY};
+			break;
+		case BOTTOM_RIGHT:
+			finalPos = {rightPosX, bottomPosY};
+			break;
+	}
+	finalPos.x += offset.x;
+	finalPos.y += offset.y;
+	return finalPos;
+}
+
+Vector2 getTextPos(Raylib &raylib, DynamicPosition pos, Vector2 offset, Vector2 margin, std::string const &content, Font font, float fontSize,
+					float spacing) {
+	Vector2 textSize = raylib.measureTextEx(font, content, fontSize, spacing);
+
+	return getRealPos(raylib, pos, offset, margin, textSize);
+}

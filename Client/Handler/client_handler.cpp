@@ -97,7 +97,6 @@ void GameClient::handleServerRooms(const std::vector<uint8_t> &buffer) {
 	const ServerSendRoomsMessage *msg = reinterpret_cast<const ServerSendRoomsMessage *>(buffer.data());
 	LOG_INFO("Server sent rooms");
 	LOG_DEBUG(std::format("Received JSON:\n{}\n", msg->jsonData));
-	rooms.clear();
 	nlohmann::json json = nlohmann::json::parse(msg->jsonData);
 	rooms = game::serializer::deserialize_rooms(json);
 }
