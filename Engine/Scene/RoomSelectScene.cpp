@@ -8,11 +8,13 @@
 #include "Include/RoomSelectScene.hpp"
 #include "button.hpp"
 #include "components.hpp"
+#include "Logger.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
 
 namespace scene {
 	RoomSelectScene::RoomSelectScene(Game &game) : AScene(960, 540, "R-Type - Rooms"), _game(game) {
+		_currentRoomPosY = _baseRoomPosition.y;
 	}
 
 	void RoomSelectScene::init() {
@@ -41,8 +43,7 @@ namespace scene {
 	}
 
 	void RoomSelectScene::render() {
-		_raylib.beginDrawing();
-		_raylib.clearBackground(BLACK);
+		_currentRoomPosY = _baseRoomPosition.y;
 
 		auto &dynamic_pos = _registry.get_components<component::dynamic_position>();
 		auto &text = _registry.get_components<component::text>();
@@ -50,6 +51,9 @@ namespace scene {
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &clickable = _registry.get_components<component::clickable>();
 		auto &hoverable = _registry.get_components<component::hoverable>();
+
+		_raylib.beginDrawing();
+		_raylib.clearBackground(BLACK);
 
 		for (std::size_t i = 0; i < dynamic_pos.size() && i < text.size(); ++i) {
 			if (!dynamic_pos[i] || !types[i] || !drawables[i]) continue;
@@ -73,6 +77,7 @@ namespace scene {
 							clickable[i]->isClicked, clickable[i]->enabled);
 			}
 		}
+		displayRooms();
 		_raylib.endDrawing();
 	}
 
@@ -96,10 +101,11 @@ namespace scene {
 				continue;
 
 			Vector2 offset = {positions[i]->offsetX, positions[i]->offsetY};
-			Vector2 pos = getRealPos(_raylib, positions[i]->position, offset, _margin, _buttonSize);
+			Vector2 size = {drawables[i]->width, drawables[i]->height};
+			Vector2 pos = getRealPos(_raylib, positions[i]->position, offset, _margin, size);
 
-			if (mousePos.x > pos.x && mousePos.x < pos.x + drawables[i]->width &&
-				mousePos.y > pos.y && mousePos.y < pos.y + drawables[i]->height) {
+			if (mousePos.x > pos.x && mousePos.x < pos.x + size.x &&
+				mousePos.y > pos.y && mousePos.y < pos.y + size.y) {
 				_selectedButtonIndex = -1;
 				hoverable[i]->isHovered = true;
 				if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -145,22 +151,49 @@ namespace scene {
 
 	void RoomSelectScene::refreshRooms() {
 		_game.getGameClient().sendRoomsFetch();
+		_rooms.clear();
 		auto &rooms = _game.getGameClient().rooms;
 		int i = 0;
 
+		// TODO: Maybe consider putting this in another thread not to block current thread
 		while (rooms.empty()) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			i++;
-			if (i > 10)
+			if (i > 10) {
+				LOG_ERROR("Timed out while trying to retrieve rooms data.");
 				return;
+			}
 		}
-		for (auto &room : rooms) {
-			std::cout << room.second.gameName << std::endl;
+		for (auto &room: rooms) {
+			createRoom(room.first, room.second);
+		}
+	}
+
+	void RoomSelectScene::displayRooms() {
+		for (auto &room: _rooms) {
+			room.second.background.x = getElementCenter(_raylib.getRenderWidth(), _roomSize.x);
+
+			Vector2 pos = {room.second.background.x, room.second.background.y};
+			Vector2 nameSize = _raylib.measureTextEx(_font, room.second.name, _roomNameSize, 0.75);
+			Vector2 playerSize = _raylib.measureTextEx(_font, room.second.playersCount, _playerCountSize, 0.75);
+			Vector2 namePos = {pos.x + _innerMargin, pos.y + (_roomSize.y / 2) - (nameSize.y / 2)};
+			Vector2 playersPos = {pos.x + _roomSize.x - _innerMargin - 150, pos.y + (_roomSize.y / 2) - (playerSize.y / 2)};
+
+			_raylib.drawRectangleRounded(room.second.background, 0.5, 10, _roomBackgroundColor);
+			_raylib.drawTextEx(_font, room.second.name, namePos, _roomNameSize, 0.75, RAYWHITE);
+			_raylib.drawTextEx(_font, room.second.playersCount, playersPos, _playerCountSize, 0.75, RAYWHITE);
 		}
 	}
 
 	void RoomSelectScene::createRoom(int id, game::serializer::RoomData roomData) {
+		Vector2 pos = {_baseRoomPosition.x, static_cast<float>(_currentRoomPosY)};
+		RoomDisplay room{};
 
+		room.background = Rectangle{pos.x, pos.y, _roomSize.x, _roomSize.y};
+		room.name = roomData.gameName;
+		room.playersCount = std::format("{}/{}", roomData.currentPlayers, roomData.maxPlayers);
+		_currentRoomPosY += _roomSize.y + _roomSpacing;
+		_rooms.insert_or_assign(id, room);
 	}
 
 	void RoomSelectScene::resetButtonStates() {

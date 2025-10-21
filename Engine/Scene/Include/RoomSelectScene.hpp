@@ -13,6 +13,12 @@
 
 namespace scene {
 
+    struct RoomDisplay {
+        Rectangle background;
+        std::string name;
+        std::string playersCount;
+    };
+
 /**
  * @class RoomSelectScene
  * @brief Represents the room select scene of the game.
@@ -65,13 +71,18 @@ class RoomSelectScene: public AScene {
         Vector2 _margin{25, 25};
 
         // Rooms
-        int const _roomSpacing = 50;
+        int const _roomSpacing = 30;
         int const _innerMargin = 15;
-        Vector2 _roomSize{50, 100};
+        int const _roomNameSize = 32;
+        int const _playerCountSize = 16;
+        Vector2 _roomSize{550, 70};
+        Vector2 _baseRoomPosition{0, 90};
+        int _currentRoomPosY = 0;
         Color const _roomBackgroundColor{33, 33, 33, 255};
+        std::map<int, RoomDisplay> _rooms;
 
         // Title
-        int _titleSize = 36;
+        int _titleSize = 46;
 
         // Buttons
         int _selectedButtonIndex = -1;
@@ -80,6 +91,7 @@ class RoomSelectScene: public AScene {
         int const _buttonTextSize = 23;
 
         void refreshRooms();
+        void displayRooms();
         void createRoom(int id, game::serializer::RoomData roomData);
         void resetButtonStates();
         void handleButtonClick(std::string const &id);

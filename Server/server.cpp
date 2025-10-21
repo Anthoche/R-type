@@ -13,12 +13,12 @@
 #include "Logger.hpp"
 
 GameServer::GameServer(uint16_t port) : connexion(ioContext, port) {
-	roomManager = RoomManager(5);
+	roomManager = RoomManager(4);
 	roomManager.addRoom(Room(4, 2, "Rtype"));
 	roomManager.addRoom(Room(4, 4, "Rtype 2"));
 	roomManager.addRoom(Room(6, 4, "Test Game"));
 	roomManager.addRoom(Room(2, 2, "Test Duo"));
-	roomManager.addRoom(Room(12, 10, "Test bonjour"));
+	roomManager.addRoom(Room(12, 10, "Test bonjour")); // Normally, this room should not be created.
 }
 
 static void sigintHandler(int s) {
