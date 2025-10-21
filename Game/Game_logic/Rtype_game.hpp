@@ -55,8 +55,8 @@ class ServerGame : public IServerGame {
         void broadcast_full_registry_to(uint32_t clientId);
 
     private:
-        /** @brief Maps enemy projectile IDs to their (x,y,velX,velY,ownerId). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjectiles;
+        /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 
         /** @brief Counter for assigning unique enemy projectile IDs. */
         uint32_t nextEnemyProjectileId = 100000;
@@ -70,14 +70,14 @@ class ServerGame : public IServerGame {
         /** @brief Maps client IDs to their current scene state (MENU or GAME). */
         std::unordered_map<uint32_t, SceneState> clientScenes;
 
-        /** @brief Maps player IDs to their (x, y) positions. */
+        /** @brief Maps player IDs to their (x, y) positions. Note: keeping 2D for backward compat, add z if needed */
         std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
 
-        /** @brief Maps obstacle IDs to their (x, y, width, height). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
+        /** @brief Maps obstacle IDs to their (x, y, z, width, height, depth). */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
 
-        /** @brief Maps projectile IDs to their (x, y, velX, velY, ownerId). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projectiles;
+        /** @brief Maps projectile IDs to their (x, y, z, velX, velY, velZ, ownerId). */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> projectiles;
 
         /** @brief Cooldown timestamps to avoid damage spam. */
         std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
@@ -120,7 +120,7 @@ class ServerGame : public IServerGame {
         void broadcast_player_death(uint32_t clientId);
         void initialize_obstacles();
 
-        void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h);
+        void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d);
         void broadcast_obstacle_despawn(uint32_t obstacleId);
 
         void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
@@ -128,7 +128,7 @@ class ServerGame : public IServerGame {
         void update_projectiles_server_only(float dt);
         void broadcast_projectile_positions();
         void check_projectile_collisions();
-        void broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float vx, float vy);
+        void broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float z, float vx, float vy, float vz);
         void broadcast_projectile_despawn(uint32_t projId);
 
         void update_enemies(float dt);
@@ -139,16 +139,16 @@ class ServerGame : public IServerGame {
         void update_enemy_turret(uint32_t id, float dt);
         void update_enemy_boss_phase1(uint32_t id, float dt);
 
-        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float vx, float vy);
+        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz);
         void broadcast_enemy_positions();
-        void broadcast_enemy_update(uint32_t enemyId, float x, float y);
+        void broadcast_enemy_update(uint32_t enemyId, float x, float y, float z);
         void broadcast_enemy_despawn(uint32_t enemyId);
 
         void shoot_enemy_projectile(uint32_t enemyId, float x, float y, float vx, float vy);
         void update_enemy_projectiles_server_only(float dt);
         void check_enemy_projectile_player_collisions();
 
-        void broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float vx, float vy);
+        void broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float z, float vx, float vy, float vz);
         void broadcast_enemy_projectile_positions();
         void broadcast_enemy_projectile_despawn(uint32_t projId);
 

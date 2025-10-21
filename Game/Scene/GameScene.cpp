@@ -26,19 +26,25 @@ namespace game::scene {
 
         // Enregistrement des composants
         _registry.register_component<component::position>();
-        _registry.register_component<component::dynamic_position>();
+        _registry.register_component<component::previous_position>();
         _registry.register_component<component::velocity>();
+        _registry.register_component<component::rotation>();
+        _registry.register_component<component::scale>();
+        _registry.register_component<component::dynamic_position>();
         _registry.register_component<component::drawable>();
+        _registry.register_component<component::sprite>();
+        _registry.register_component<component::model3D>();
+        _registry.register_component<component::audio>();
+        _registry.register_component<component::text>();
+        _registry.register_component<component::font>();
+        _registry.register_component<component::clickable>();
+        _registry.register_component<component::hoverable>();
         _registry.register_component<component::controllable>();
         _registry.register_component<component::health>();
         _registry.register_component<component::damage>();
-        _registry.register_component<component::type>();
         _registry.register_component<component::collision_box>();
         _registry.register_component<component::hitbox_link>();
-        _registry.register_component<component::sprite>();
-        _registry.register_component<component::audio>();
-        _registry.register_component<component::text>();
-        _registry.register_component<component::previous_position>();
+        _registry.register_component<component::type>();
         _registry.register_component<component::client_id>();
         _ui.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
@@ -48,7 +54,7 @@ namespace game::scene {
         setup_render_system();
         setup_health_system();
         game::entities::setup_player_control_system(_registry);
-        game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
+        game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height), 0.f);
         game::entities::setup_hitbox_sync_system(_registry);
 
         // Création des entités statiques (background, UI, etc.)
@@ -323,12 +329,16 @@ void GameScene::update() {
         }
         if (_isDead && !_defeatSoundPlayed) {
             _raylib.stopMusicStream(_music);
-            _raylib.playSound(_defeatSound);
+            if (_game.isSoundEnabled()) {
+                _raylib.playSound(_defeatSound);
+            }
             _defeatSoundPlayed = true;
         }
         if (_isWin && !_victorySoundPlayed) {
             _raylib.stopMusicStream(_music);
-            _raylib.playSound(_victorySound);
+            if (_game.isSoundEnabled()) {
+                _raylib.playSound(_victorySound);
+            }
             _victorySoundPlayed = true;
         }
         _raylib.endDrawing();
@@ -339,14 +349,17 @@ void GameScene::update() {
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
 
-                for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
+        // Render background first
+        for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i])
                 continue;
             if (types[i]->value == component::entity_type::BACKGROUND) {
                 ecs::entity_t entity = _registry.entity_from_index(i);
                 render_background(entity, *positions[i], *drawables[i]);
             }
-        }        
+        }
+        
+        // Render other entities
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
 
@@ -388,7 +401,9 @@ void GameScene::update() {
             _music = _raylib.loadMusicStream(audio.sound_path);
             _music.looping = audio.loop;
             _raylib.setMusicVolume(_music, audio.volume);
-            _raylib.playMusicStream(_music);
+            if (_game.isSoundEnabled()) {
+                _raylib.playMusicStream(_music);
+            }
             _raylib.updateMusicStream(_music);
             break;
         }
@@ -401,7 +416,7 @@ void GameScene::update() {
     }
 
     void GameScene::render_network_projectiles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>>  projs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             projs = _game.getGameClient().projectiles;
@@ -435,7 +450,6 @@ void GameScene::update() {
         }
     }
 
-
     void GameScene::render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
@@ -455,6 +469,7 @@ void GameScene::update() {
             Rectangle sourceRec = {66.0f + spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)_width / 40.0f, (float)_height / 40.0f};
             Vector2 origin = {0.0f, 0.0f};
+            
             auto &sprites = _registry.get_components<component::sprite>();
             float rotation = 0.0f;
             float scale = 1.0f;
@@ -473,7 +488,6 @@ void GameScene::update() {
             }
             Color playerColor = get_color_for_id(idForColor);
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, playerColor);
-
         }
     }
 
@@ -484,8 +498,9 @@ void GameScene::update() {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
@@ -502,15 +517,15 @@ void GameScene::update() {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GRAY);
-
         }
     }
 
@@ -537,8 +552,9 @@ void GameScene::update() {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
@@ -555,8 +571,9 @@ void GameScene::update() {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
@@ -566,9 +583,8 @@ void GameScene::update() {
         }
     }
 
-
     void GameScene::render_network_obstacles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             obs = _game.getGameClient().obstacles;
@@ -583,13 +599,8 @@ void GameScene::update() {
         }
     }
 
-        auto colorForId = [](uint32_t id) -> Color {
-            static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE};
-            return palette[id % (sizeof(palette)/sizeof(palette[0]))];
-        };
-
     void GameScene::render_network_enemy_projectiles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             enemyProjs = _game.getGameClient().enemyProjectiles;
@@ -642,11 +653,11 @@ void GameScene::update() {
     void GameScene::render_win_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
         
-        const char* deathText = "YOU WIN!";
+        const char* winText = "YOU WIN!";
         int fontSize = 72;
-        int textWidth = _raylib.measureText(deathText, fontSize);
+        int textWidth = _raylib.measureText(winText, fontSize);
         _raylib.drawText(
-            deathText,
+            winText,
             (_width - textWidth) / 2,
             _height / 2 - fontSize / 2,
             fontSize,
@@ -721,7 +732,9 @@ void GameScene::update() {
 
             if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
                 handle_shoot(SHOOT_COOLDOWN);
-                _raylib.playSound(_shootSound);
+                if (_game.isSoundEnabled()) {
+                    _raylib.playSound(_shootSound);
+                }
             }
         }
         handle_input(input_x, input_y);
@@ -734,7 +747,9 @@ void GameScene::update() {
         if (currentTime - lastShotTime >= cooldown) {
             _game.getGameClient().sendShoot();
             lastShotTime = currentTime;
-            _raylib.playSound(_shootSound);
+            if (_game.isSoundEnabled()) {
+                _raylib.playSound(_shootSound);
+            }
         }
     }
 
@@ -789,6 +804,7 @@ void GameScene::update() {
                     if (pos[i] && vel[i]) {
                         pos[i]->x += vel[i]->vx * dt;
                         pos[i]->y += vel[i]->vy * dt;
+                        pos[i]->z += vel[i]->vz * dt;
                     }
                 }
             });

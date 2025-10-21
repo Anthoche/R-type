@@ -56,24 +56,24 @@ class GameClient {
         std::mutex stateMutex;
 
         /**
-         * @brief Maps client IDs to their (x, y) positions in the game world.
+         * @brief Maps client IDs to their (x, y, z) positions in the game world.
          */
-        std::unordered_map<uint32_t, std::pair<float, float>> players;
+        std::unordered_map<uint32_t, std::tuple<float, float, float>> players;  // x, y, z
 
         /**
          * @brief Maps obstacle IDs to their (x, y, width, height) values.
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
 
         /**
          * @brief Maps projectiles IDs to their (x,y,width,height).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projectiles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> projectiles;
 
         /**
          * @brief Maps enemy IDs to their (x,y,velX,velY).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> enemies;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> enemies;
 
         /**
          * @brief Maps player IDs to their current health values.
@@ -88,7 +88,7 @@ class GameClient {
         /**
          * @brief Maps enemy projectile IDs to their (x,y,velX,velY,ownerId).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjectiles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 
         int32_t globalScore = 0;
 
@@ -148,6 +148,13 @@ class GameClient {
          * @param inputY Vertical input (-1.0 to 1.0).
          */
         void sendInput(float inputX, float inputY);
+
+        /**
+         * @brief Sends the current health status to the server.
+         *
+         * @param lives Current number of lives.
+         */
+        void sendHealth(int lives);
 
         /**
          * @brief Handles an incoming message from the server.
