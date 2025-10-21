@@ -123,7 +123,7 @@ void ServerGame::update_enemy_circle(uint32_t id, float dt) {
 
 void ServerGame::update_enemy_turret(uint32_t id, float dt) {
     static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
-    static const float SHOOT_COOLDOWN = 2.0f;
+    static const float SHOOT_COOLDOWN = 5.0f;
     
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);

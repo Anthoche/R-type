@@ -181,7 +181,6 @@ namespace game::scene {
 void GameScene::update() {
     if (!_game_running) return;
 
-    // Sync players
     std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
     {
         std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
@@ -228,14 +227,12 @@ void GameScene::update() {
         }
     }
 
-    // ===== SYNC ENEMIES =====
     std::unordered_map<uint32_t, std::tuple<float, float, float, float>> netEnemies;
     {
         std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
         netEnemies = _game.getGameClient().enemies;
     }
 
-    // Supprime les enemies qui n'existent plus côté serveur
     for (auto it = _enemyMap.begin(); it != _enemyMap.end(); ) {
         uint32_t serverId = it->first;
         
@@ -252,7 +249,6 @@ void GameScene::update() {
         }
     }
 
-    // Update ou crée les enemies depuis le réseau
     for (auto const &kv : netEnemies) {
         uint32_t serverId = kv.first;
         float x = std::get<0>(kv.second);
@@ -261,8 +257,7 @@ void GameScene::update() {
         auto it = _enemyMap.find(serverId);
         
         if (it == _enemyMap.end()) {
-            // Récupère le sprite path depuis la map
-            std::string spritePath = "../Game/Assets/sprites/ennemies/r-typesheet19.png"; // Default
+            std::string spritePath = "../Game/Assets/sprites/ennemies/r-typesheet19.png";
             
             auto spriteIt = _enemySpriteMap.find(serverId);
             if (spriteIt != _enemySpriteMap.end()) {
@@ -278,7 +273,6 @@ void GameScene::update() {
             _enemyMap.emplace(serverId, newEnemy);
             _enemys.push_back(newEnemy);
         } else {
-            // Update position
             ecs::entity_t clientEnemy = it->second;
             if (clientEnemy.value() < positions.size() && positions[clientEnemy.value()]) {
                 positions[clientEnemy.value()]->x = x;
@@ -290,32 +284,23 @@ void GameScene::update() {
     _registry.run_systems();
 }
 
-void GameScene::extract_enemy_sprite_paths() {
-auto &sprites = _registry.get_components<component::sprite>();
-    auto &types = _registry.get_components<component::type>();
-    
-    _enemySpriteMap.clear();
-    
-    std::cout << "[DEBUG] Mapping enemy sprites from received registry..." << std::endl;
-    
-    for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
-        if (sprites[i] && types[i] && types[i]->value == component::entity_type::ENEMY) {
-            // L'entity ID côté client == l'entity ID côté serveur
-            uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
+    void GameScene::extract_enemy_sprite_paths() {
+        auto &sprites = _registry.get_components<component::sprite>();
+            auto &types = _registry.get_components<component::type>();
             
-            if (!sprites[i]->image_path.empty()) {
-                _enemySpriteMap[serverEntityId] = sprites[i]->image_path;
-                std::cout << "[DEBUG] Mapped server enemy " << serverEntityId 
-                          << " -> " << sprites[i]->image_path << std::endl;
-            }
-            
-            ecs::entity_t entity = _registry.entity_from_index(i);
-            _registry.kill_entity(entity);
-        }
+            _enemySpriteMap.clear();    
+            for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
+                if (sprites[i] && types[i] && types[i]->value == component::entity_type::ENEMY) {
+                    uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
+                    
+                    if (!sprites[i]->image_path.empty())
+                        _enemySpriteMap[serverEntityId] = sprites[i]->image_path;
+                    
+                    ecs::entity_t entity = _registry.entity_from_index(i);
+                    _registry.kill_entity(entity);
+                }
+            }    
     }
-    
-    std::cout << "[DEBUG] Mapped " << _enemySpriteMap.size() << " enemy sprites" << std::endl;
-}
 
     void GameScene::render() {
         _raylib.beginDrawing();
@@ -495,7 +480,6 @@ auto &sprites = _registry.get_components<component::sprite>();
     void GameScene::render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
-       std::cout << "[AAAA] Rendering enemy entity " << entity.value() << std::endl;
         if (texture != nullptr) {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
