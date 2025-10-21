@@ -18,10 +18,12 @@ namespace game::entities {
      * @param reg Reference to the ECS registry.
      * @param x Initial X position.
      * @param y Initial Y position.
-     * @return The created obstacle entity.
+     * @param z Initial Z position (default 0.f)
+     * @param imagePath Optional 2D sprite path
+     * @param modelPath Optional 3D model path
+     * @return The created obstacle entity
      */
-    ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, const std::string &imagePath = "");
+    ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, float z = 0.f,
+        const std::string &imagePath = "", const std::string &modelPath = "" );
 
-} // namespace game::entities
-
-
+}

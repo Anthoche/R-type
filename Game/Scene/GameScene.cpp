@@ -26,19 +26,25 @@ namespace game::scene {
 
         // Enregistrement des composants
         _registry.register_component<component::position>();
-        _registry.register_component<component::dynamic_position>();
+        _registry.register_component<component::previous_position>();
         _registry.register_component<component::velocity>();
+        _registry.register_component<component::rotation>();
+        _registry.register_component<component::scale>();
+        _registry.register_component<component::dynamic_position>();
         _registry.register_component<component::drawable>();
+        _registry.register_component<component::sprite>();
+        _registry.register_component<component::model3D>();
+        _registry.register_component<component::audio>();
+        _registry.register_component<component::text>();
+        _registry.register_component<component::font>();
+        _registry.register_component<component::clickable>();
+        _registry.register_component<component::hoverable>();
         _registry.register_component<component::controllable>();
         _registry.register_component<component::health>();
         _registry.register_component<component::damage>();
-        _registry.register_component<component::type>();
         _registry.register_component<component::collision_box>();
         _registry.register_component<component::hitbox_link>();
-        _registry.register_component<component::sprite>();
-        _registry.register_component<component::audio>();
-        _registry.register_component<component::text>();
-        _registry.register_component<component::previous_position>();
+        _registry.register_component<component::type>();
         _registry.register_component<component::client_id>();
         _ui.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
@@ -48,7 +54,7 @@ namespace game::scene {
         setup_render_system();
         setup_health_system();
         game::entities::setup_player_control_system(_registry);
-        game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height));
+        game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height), 0.f);
         game::entities::setup_hitbox_sync_system(_registry);
 
         // Création des entités statiques (background, UI, etc.)
@@ -160,7 +166,7 @@ namespace game::scene {
     void GameScene::update() {
         if (!_game_running) return;
 
-        std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
+        std::unordered_map<uint32_t, std::tuple<float, float, float>> netPlayers;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             netPlayers = _game.getGameClient().players;
@@ -178,19 +184,18 @@ namespace game::scene {
         auto &positions = _registry.get_components<component::position>();
         for (auto const &kv : netPlayers) {
             uint32_t id = kv.first;
-            float x = kv.second.first;
-            float y = kv.second.second;
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
             auto f = _playerEntities.find(id);
             if (f == _playerEntities.end()) {
-                ecs::entity_t e = game::entities::create_player(_registry, x, y);
+                ecs::entity_t e = game::entities::create_player(_registry, x, y, 0.f);
                 _playerEntities.emplace(id, e);
             } else {
                 ecs::entity_t e = f->second;
                 if (e.value() < positions.size() && positions[e.value()]) {
-                    float currentX = positions[e.value()]->x;
-                    float currentY = positions[e.value()]->y;
                     positions[e.value()]->x = x;
                     positions[e.value()]->y = y;
+                    // z reste inchangé ou peut être mis à jour si disponible
                 }
             }
         }
@@ -198,10 +203,13 @@ namespace game::scene {
         auto myPlayerIt = _playerEntities.find(myClientId);
         if (myPlayerIt != _playerEntities.end())
             _player = myPlayerIt->second;
+        
         auto &pp = _registry.get_components<component::previous_position>();
         for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) {
             if (positions[i] && pp[i]) {
-                pp[i]->x = positions[i]->x; pp[i]->y = positions[i]->y;
+                pp[i]->x = positions[i]->x;
+                pp[i]->y = positions[i]->y;
+                pp[i]->z = positions[i]->z;
             }
         }
         _registry.run_systems();
@@ -249,14 +257,17 @@ namespace game::scene {
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
 
-                for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
+        // Render background first
+        for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i])
                 continue;
             if (types[i]->value == component::entity_type::BACKGROUND) {
                 ecs::entity_t entity = _registry.entity_from_index(i);
                 render_background(entity, *positions[i], *drawables[i]);
             }
-        }        
+        }
+        
+        // Render other entities
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
 
@@ -313,7 +324,7 @@ namespace game::scene {
     }
 
     void GameScene::render_network_projectiles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>>  projs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             projs = _game.getGameClient().projectiles;
@@ -347,7 +358,6 @@ namespace game::scene {
         }
     }
 
-
     void GameScene::render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
@@ -367,6 +377,7 @@ namespace game::scene {
             Rectangle sourceRec = {66.0f + spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)_width / 40.0f, (float)_height / 40.0f};
             Vector2 origin = {0.0f, 0.0f};
+            
             auto &sprites = _registry.get_components<component::sprite>();
             float rotation = 0.0f;
             float scale = 1.0f;
@@ -385,7 +396,6 @@ namespace game::scene {
             }
             Color playerColor = get_color_for_id(idForColor);
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, playerColor);
-
         }
     }
 
@@ -396,8 +406,9 @@ namespace game::scene {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
@@ -414,15 +425,15 @@ namespace game::scene {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GRAY);
-
         }
     }
 
@@ -449,8 +460,9 @@ namespace game::scene {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
@@ -467,8 +479,9 @@ namespace game::scene {
             Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-            float rotation = 0.0f;
+            
             auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
@@ -478,9 +491,8 @@ namespace game::scene {
         }
     }
 
-
     void GameScene::render_network_obstacles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             obs = _game.getGameClient().obstacles;
@@ -494,11 +506,6 @@ namespace game::scene {
             _raylib.drawRectangle((int)(x - w / 2), (int)(y - h / 2), (int)w, (int)h, GRAY);
         }
     }
-
-        auto colorForId = [](uint32_t id) -> Color {
-            static Color palette[] = {RAYWHITE, BLUE, GREEN, YELLOW, ORANGE, PURPLE, PINK, GOLD, LIME, SKYBLUE};
-            return palette[id % (sizeof(palette)/sizeof(palette[0]))];
-        };
 
     void GameScene::render_network_enemies() {
         const float ENEMY_WIDTH = 30.f;
@@ -518,7 +525,7 @@ namespace game::scene {
     }
 
     void GameScene::render_network_enemy_projectiles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             enemyProjs = _game.getGameClient().enemyProjectiles;
@@ -571,11 +578,11 @@ namespace game::scene {
     void GameScene::render_win_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
         
-        const char* deathText = "YOU WIN!";
+        const char* winText = "YOU WIN!";
         int fontSize = 72;
-        int textWidth = _raylib.measureText(deathText, fontSize);
+        int textWidth = _raylib.measureText(winText, fontSize);
         _raylib.drawText(
-            deathText,
+            winText,
             (_width - textWidth) / 2,
             _height / 2 - fontSize / 2,
             fontSize,
@@ -722,6 +729,7 @@ namespace game::scene {
                     if (pos[i] && vel[i]) {
                         pos[i]->x += vel[i]->vx * dt;
                         pos[i]->y += vel[i]->vy * dt;
+                        pos[i]->z += vel[i]->vz * dt;
                     }
                 }
             });

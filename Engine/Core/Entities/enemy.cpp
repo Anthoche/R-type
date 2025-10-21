@@ -10,52 +10,62 @@
 
 namespace game::entities {
 
-ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, const std::string &imagePath) {
-    auto enemy = reg.spawn_entity();
+    ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, float z,
+        const std::string &imagePath, const std::string &modelPath) {
+        auto enemy = reg.spawn_entity();
 
-    reg.emplace_component<component::position>(enemy, x, y);
+        // ====== Position / Movement ======
+        reg.emplace_component<component::position>(enemy, x, y, z);
+        reg.emplace_component<component::previous_position>(enemy, x, y, z);
+        reg.emplace_component<component::velocity>(enemy, -100.f, 0.f, 0.f);
 
-    reg.emplace_component<component::velocity>(enemy, -100.f, 0.f);
+        // ====== Stats ======
+        reg.emplace_component<component::health>(enemy, 50, 50);
+        reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
 
-    reg.emplace_component<component::health>(enemy, 50, 50);
+        // ====== Collision ======
+        reg.emplace_component<component::collision_box>(enemy, 40.f, 28.f, 28.f);
 
-    reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
+        // ====== Visuals ======
+        component::drawable draw;
+        draw.width = 40.f;
+        draw.height = 28.f;
+        draw.depth = 28.f;
+        draw.color = RED;
+        reg.add_component<component::drawable>(enemy, std::move(draw));
 
-    reg.emplace_component<component::collision_box>(enemy, 40.f, 28.f);
+        if (!imagePath.empty()) {
+            component::sprite spr;
+            spr.image_path = imagePath;
+            spr.scale = 1.f;
+            reg.add_component<component::sprite>(enemy, std::move(spr));
+        }
 
-    component::drawable drawable;
-    drawable.width = 40.f;
-    drawable.height = 28.f;
-    drawable.color = RED;
-    reg.add_component<component::drawable>(enemy, std::move(drawable));
+        if (!modelPath.empty()) {
+            component::model3D model;
+            model.model_path = modelPath;
+            model.scale = 1.f;
+            reg.add_component<component::model3D>(enemy, std::move(model));
+        }
 
-    // Attach hitbox
-    create_hitbox_for(reg, enemy);
+        // ====== Hitbox ======
+        create_hitbox_for(reg, enemy);
 
-    if (!imagePath.empty()) {
-        component::sprite spr;
-        spr.image_path = imagePath;
-        spr.scale = 1.f;
-        reg.add_component<component::sprite>(enemy, std::move(spr));
+        return enemy;
     }
 
-    return enemy;
-}
-
-void setup_enemy_ai_system(ecs::registry &reg) {
-    reg.add_system<component::velocity, component::type>(
-        [](ecs::registry &reg,
-           ecs::sparse_array<component::velocity> &vel,
-           ecs::sparse_array<component::type> &type) {
-            (void)reg;
-            for (std::size_t i = 0; i < vel.size() && i < type.size(); ++i) {
-                if (vel[i] && type[i] && type[i]->value == component::entity_type::ENEMY) {
-                    if (vel[i]->vx > -100.f) vel[i]->vx = -100.f;
+    void setup_enemy_ai_system(ecs::registry &reg) {
+        reg.add_system<component::velocity, component::type>(
+            [](ecs::registry &reg,
+            ecs::sparse_array<component::velocity> &vel,
+            ecs::sparse_array<component::type> &type) 
+            {
+                for (std::size_t i = 0; i < vel.size() && i < type.size(); ++i) {
+                    if (vel[i] && type[i] && type[i]->value == component::entity_type::ENEMY) {
+                        // Simple AI: always move left
+                        if (vel[i]->vx > -100.f) vel[i]->vx = -100.f;
+                    }
                 }
-            }
-        });
+            });
+    }
 }
-
-}
-
-
