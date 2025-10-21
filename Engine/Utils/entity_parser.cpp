@@ -141,6 +141,8 @@ namespace game::parsing
 
             std::string image_path = enemy_data.value("image_path", "");
             std::string model_path = enemy_data.value("model_path", "");
+            std::string pattern = enemy_data.value("pattern", "");
+            std::cout << "[DEBUG] Parsed enemy with pattern: " << pattern << std::endl;  
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Enemy image file not found: " << image_path << std::endl;
@@ -148,7 +150,7 @@ namespace game::parsing
             if (!model_path.empty() && !std::ifstream(model_path).good()) {
                 std::cerr << "[WARNING] Enemy model file not found: " << model_path << std::endl;
             }
-            return game::entities::create_enemy(reg, x, y, z, image_path, model_path);
+            return game::entities::create_enemy(reg, x, y, z, image_path, model_path, pattern);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse enemy: ") + e.what());

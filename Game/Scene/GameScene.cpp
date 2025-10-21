@@ -48,6 +48,7 @@ namespace game::scene {
         _registry.register_component<component::hitbox_link>();
         _registry.register_component<component::type>();
         _registry.register_component<component::client_id>();
+        _registry.register_component<component::pattern_element>();
         _ui.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 

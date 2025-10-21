@@ -57,13 +57,14 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
     registry_server.register_component<component::hitbox_link>();
     registry_server.register_component<component::type>();
     registry_server.register_component<component::client_id>();
+    registry_server.register_component<component::pattern_element>();
 }
 
 
 void ServerGame::run() {
     LOG("[Server] Starting game loop...");
     load_players(ASSETS_PATH "/Config_assets/Players/players.json");
-    load_level(ASSETS_PATH "/Config_assets/Levels/level.json");
+    load_level(ASSETS_PATH "/Config_assets/Levels/level_01.json");
     initialize_player_positions();
     index_existing_entities();
 

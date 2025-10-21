@@ -101,7 +101,7 @@
       {"x": 4450.0, "y": 450.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "height": 28.0, "weight": 40.0, "pattern": "straight"},
       {"x": 4500.0, "y": 500.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "height": 28.0, "weight": 40.0, "pattern": "straight"},
 
-      {"x": 4500.0, "y": 200.0, "image_path": "assets/enemies/boss.png", "type": "boss", "health": 50, "speed": 0.2, "pattern": "boss_phase1", "fire_rate": 0.5, "phase": 1}
+      {"x": 6000.0, "y": 600.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "boss", "health": 50, "speed": 0.2, "pattern": "boss_phase1", "fire_rate": 0.5, "phase": 1}
     ],
     "obstacles": [
       {"x": 0.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/obstacles/r-typesheet28.png", "health": 5},

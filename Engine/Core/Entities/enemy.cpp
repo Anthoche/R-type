@@ -12,24 +12,18 @@
 namespace game::entities {
 
     ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, float z,
-        const std::string &imagePath, const std::string &modelPath) {
+        const std::string &imagePath, const std::string &modelPath, const std::string &pattern) {
         auto enemy = reg.spawn_entity();
 
-        // ====== Position / Movement ======
         reg.emplace_component<component::position>(enemy, x, y, z);
         reg.emplace_component<component::previous_position>(enemy, x, y, z);
         reg.emplace_component<component::velocity>(enemy, -100.f, 0.f, 0.f);
-
-    reg.emplace_component<component::velocity>(enemy, -30.f, 0.f);
-
-    reg.emplace_component<component::health>(enemy, 50, 50);
-
-    reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
-
-        // ====== Collision ======
+        reg.emplace_component<component::velocity>(enemy, -30.f, 0.f);
+        reg.emplace_component<component::health>(enemy, 50, 50);
+        reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
         reg.emplace_component<component::collision_box>(enemy, 40.f, 28.f, 28.f);
+        reg.emplace_component<component::pattern_element>(enemy, pattern);
 
-        // ====== Visuals ======
         component::drawable draw;
         draw.width = 40.f;
         draw.height = 28.f;

@@ -47,8 +47,10 @@ void ServerGame::update_enemies(float dt) {
 
         uint32_t id = static_cast<uint32_t>(entity);
         std::string pattern = "default";
-        auto it = enemyPatterns.find(id);
-        if (it != enemyPatterns.end()) pattern = it->second;
+        auto pattern_comp = get_component_ptr<component::pattern_element>(registry_server, entity);
+        if (pattern_comp && !pattern_comp->pattern_name.empty()) {
+            pattern = pattern_comp->pattern_name;
+        }        
 
         if (pattern == "straight") update_enemy_straight(id, dt);
         else if (pattern == "zigzag") update_enemy_zigzag(id, dt);
@@ -154,6 +156,7 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt) {
 }
 
 void ServerGame::update_enemy_boss_phase1(uint32_t id, float dt) {
+    LOG_DEBUG("[Server] Updating boss enemy ID=" << id << " in phase 1");
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
