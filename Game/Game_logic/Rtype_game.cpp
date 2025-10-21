@@ -39,20 +39,31 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
     registry_server.register_component<component::position>();
     registry_server.register_component<component::previous_position>();
     registry_server.register_component<component::velocity>();
-    registry_server.register_component<component::controllable>();
-    registry_server.register_component<component::health>();
-    registry_server.register_component<component::type>();
-    registry_server.register_component<component::client_id>();
+    registry_server.register_component<component::rotation>();
+    registry_server.register_component<component::scale>();
+    registry_server.register_component<component::dynamic_position>();
     registry_server.register_component<component::drawable>();
     registry_server.register_component<component::sprite>();
+    registry_server.register_component<component::model3D>();
+    registry_server.register_component<component::audio>();
+    registry_server.register_component<component::text>();
+    registry_server.register_component<component::font>();
+    registry_server.register_component<component::clickable>();
+    registry_server.register_component<component::hoverable>();
+    registry_server.register_component<component::controllable>();
+    registry_server.register_component<component::health>();
+    registry_server.register_component<component::damage>();
     registry_server.register_component<component::collision_box>();
     registry_server.register_component<component::hitbox_link>();
+    registry_server.register_component<component::type>();
+    registry_server.register_component<component::client_id>();
 }
+
 
 void ServerGame::run() {
     LOG("[Server] Starting game loop...");
     load_players(ASSETS_PATH "/Config_assets/Players/players.json");
-    load_level(ASSETS_PATH "/Config_assets/Levels/level_01.json");
+    load_level(ASSETS_PATH "/Config_assets/Levels/level.json");
     initialize_player_positions();
     index_existing_entities();
 

@@ -27,21 +27,24 @@ namespace game::scene {
         // Enregistrement des composants
         _registry.register_component<component::position>();
         _registry.register_component<component::previous_position>();
-        _registry.register_component<component::dynamic_position>();
         _registry.register_component<component::velocity>();
         _registry.register_component<component::rotation>();
         _registry.register_component<component::scale>();
+        _registry.register_component<component::dynamic_position>();
         _registry.register_component<component::drawable>();
         _registry.register_component<component::sprite>();
         _registry.register_component<component::model3D>();
+        _registry.register_component<component::audio>();
+        _registry.register_component<component::text>();
+        _registry.register_component<component::font>();
+        _registry.register_component<component::clickable>();
+        _registry.register_component<component::hoverable>();
         _registry.register_component<component::controllable>();
         _registry.register_component<component::health>();
         _registry.register_component<component::damage>();
-        _registry.register_component<component::type>();
         _registry.register_component<component::collision_box>();
         _registry.register_component<component::hitbox_link>();
-        _registry.register_component<component::audio>();
-        _registry.register_component<component::text>();
+        _registry.register_component<component::type>();
         _registry.register_component<component::client_id>();
         _ui.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
