@@ -262,6 +262,26 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             }
             break;
         }
+        case MessageType::initialHealth: {
+            if (data.size() >= sizeof(InitialHealthMessage)) {
+                const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(data.data());
+                uint32_t clientId = ntohl(msg->clientId);
+                int16_t initialHealth = ntohs(msg->initialHealth);
+                auto& healths = registry_server.get_components<component::health>();
+                auto& clientIds = registry_server.get_components<component::client_id>();
+                for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+                    if (clientIds[i] && clientIds[i]->id == clientId) {
+                        if (healths[i]) {
+                            healths[i]->current = initialHealth;
+                            healths[i]->max = initialHealth;
+                            LOG_DEBUG("[Server] Set initial health of client " << clientId << " to " << initialHealth);
+                        }
+                        break;
+                    }
+                }
+            }
+            break;
+        }
         default:
             break;
     }

@@ -38,18 +38,19 @@ namespace scene {
 		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
 
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
-		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : "Play",
+		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
 			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
-		game::entities::create_button(_registry, "button_settings", isFrench ? "Options" : "Settings",
+		game::entities::create_button(_registry, "button_settings", isFrench ? "Options" : isItalian ? "Opzioni" : "Settings",
 			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
-		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : "Quit",
+		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
 			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
 		_game.getGameClient().sendHello();

@@ -118,8 +118,12 @@ namespace scene {
 	}
 
 	void SettingsScene::createBackButton() {
-		std::string label = (_currentLanguage == Game::Language::FRENCH ? "< Retour" : "< Back");
-
+		std::string label = (
+    		_currentLanguage == Game::Language::FRENCH ? "< Retour" :
+    		_currentLanguage == Game::Language::ITALIAN ? "< Indietro" :
+    		"< Back"
+		);
+		
 		auto &texts = _registry.get_components<component::text>();
 		auto &clickable = _registry.get_components<component::clickable>();
 		auto &drawables = _registry.get_components<component::drawable>();
@@ -228,17 +232,26 @@ namespace scene {
 		else if (id == "button_difficulty") cycleDifficulty();
 		else if (id == "button_language") toggleLanguage();
 	}
-
 	void SettingsScene::toggleSound() {
-		_values[2] = (_values[2] == "On" || _values[2] == "Active")
-			? (_currentLanguage == Game::Language::ENGLISH ? "Off" : "Desactive")
-			: (_currentLanguage == Game::Language::ENGLISH ? "On" : "Active");
+		_values[2] =
+			(_values[2] == "On" || _values[2] == "Active" || _values[2] == "Attivo")
+				? (_currentLanguage == Game::Language::ENGLISH ? "Off" :
+				_currentLanguage == Game::Language::FRENCH  ? "Desactive" :
+																"Disattivo")
+				: (_currentLanguage == Game::Language::ENGLISH ? "On" :
+				_currentLanguage == Game::Language::FRENCH  ? "Active" :
+																"Attivo");
+		_soundOn = !_soundOn;
+		_game.setSoundEnabled(_soundOn);
 		updateButtonText("button_sound", _values[2]);
 	}
 
 	void SettingsScene::cycleLives() {
 		_currentLivesIndex = (_currentLivesIndex + 1) % _lives.size();
 		_values[1] = _lives[_currentLivesIndex];
+		int livesValue = std::stoi(_lives[_currentLivesIndex]);
+		livesValue = livesValue * 25;
+		_game.getGameClient().sendHealth(livesValue);
 		updateButtonText("button_lives", _values[1]);
 	}
 
@@ -252,6 +265,9 @@ namespace scene {
 		if (_currentLanguage == Game::Language::ENGLISH) {
 			_currentLanguage = Game::Language::FRENCH;
 			translateToFrench();
+		} else if (_currentLanguage == Game::Language::FRENCH) {
+			_currentLanguage = Game::Language::ITALIAN;
+			translateToItalian();
 		} else {
 			_currentLanguage = Game::Language::ENGLISH;
 			translateToEnglish();
@@ -262,11 +278,21 @@ namespace scene {
 		createBackButton();
 		_game.setLanguage(_currentLanguage);
 	}
+	
+	void SettingsScene::translateToItalian() {
+		_buttons = {"1. Livello", "2. Vite", "3. Suono", "4. Lingua"};
+		_levels = {"Facile", "Medio", "Difficile"};
+		_lives = {"1", "2", "3", "4", "5", "6", "7"};
+		_values[0] = _levels[_currentLevelIndex];
+		_values[1] = _lives[_currentLivesIndex];
+		_values[2] = (_values[2] == "On" ? "Attivo" : "Disattivo");
+		_values[3] = "Italiano";
+	}
 
 	void SettingsScene::translateToFrench() {
 		_buttons = {"1. Difficulte", "2. Vies", "3. Son", "4. Langue"};
 		_levels = {"Facile", "Moyen", "Difficile"};
-		_lives = {"3", "5", "7"};
+		_lives = {"1", "2", "3", "4", "5", "6", "7"};
 		_values[0] = _levels[_currentLevelIndex];
 		_values[1] = _lives[_currentLivesIndex];
 		_values[2] = (_values[2] == "On" ? "Active" : "Desactive");
@@ -276,7 +302,7 @@ namespace scene {
 	void SettingsScene::translateToEnglish() {
 		_buttons = {"1. Difficulty", "2. Lives", "3. Sound", "4. Language"};
 		_levels = {"Easy", "Medium", "Hard"};
-		_lives = {"3", "5", "7"};
+		_lives = {"1", "2", "3", "4", "5", "6", "7"};
 		_values[0] = _levels[_currentLevelIndex];
 		_values[1] = _lives[_currentLivesIndex];
 		_values[2] = (_values[2] == "Active" ? "On" : "Off");

@@ -75,8 +75,7 @@ class Game {
          * @brief Supported languages for the game.
          * Defines the available localization options.
          */
-        enum class Language { ENGLISH, FRENCH };
-
+        enum class Language { ENGLISH, FRENCH, ITALIAN };
         /**
          * @brief Set the current language of the game.
          * Changes the active language, affecting displayed text and UI labels.
@@ -91,10 +90,23 @@ class Game {
          */
         Language getLanguage() const { return _language; }
 
+		/**
+		 * @brief Enable or disable game sound.
+		 * @param enabled True to enable sound, false to disable.
+		 */
+		void setSoundEnabled(bool enabled) { _soundEnabled = enabled; }
+
+		/**
+		 * @brief Check if game sound is enabled.
+		 * @return True if sound is enabled, false otherwise.
+		 */
+    	bool isSoundEnabled() const { return _soundEnabled; }
+
 	private:
 		GameStatus _status; ///< Status of the game
 		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
 		GameClient _client; ///< Network client handling server communication
 		std::thread _networkThread; ///< Thread for handling network communication
 		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
+		bool _soundEnabled = true; ///< Sound enabled/disabled flag
 };

@@ -35,18 +35,22 @@ namespace scene {
 		_registry.register_component<component::type>();
 
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
-		std::string title = isFrench
-			? "En attente de la connexion au serveur..."
-			: "Waiting for server connection...";
+		std::string title =
+			isFrench ? "En attente de la connexion au serveur..." :
+			isItalian ? "In attesa della connessione al server..." :
+						"Waiting for server connection...";
+
 		int titleFontSize = 30;
 		Vector2 titleSize = _raylib.measureTextEx(_font, title.c_str(), titleFontSize, -0.75f);
 		float titleCenterY = getElementCenter(_height, titleSize.y) - 100;
 		float titleCenterX = getElementCenter(_width, titleSize.x);
 
-		std::string subtitle = isFrench
-			? std::format("Nouvelle tentative dans {:.1f} seconde(s)", 10.f)
-			: std::format("Next attempt in {:.1f} second(s)", 10.f);
+		std::string subtitle =
+			isFrench ? std::format("Nouvelle tentative dans {:.1f} seconde(s)", 10.f) :
+			isItalian ? std::format("Prossimo tentativo tra {:.1f} secondo(i)", 10.f) :
+						std::format("Next attempt in {:.1f} second(s)", 10.f);
 		int subtitleFontSize = 18;
 		Vector2 subtitleSize = _raylib.measureTextEx(_font, subtitle.c_str(), subtitleFontSize, -0.5f);
 		float subtitleCenterY = getElementCenter(_height, subtitleSize.y) - 50;
@@ -66,10 +70,10 @@ namespace scene {
 		game::entities::create_text(_registry, {subtitleCenterX, subtitleCenterY}, subtitle,
 			RAYWHITE, -0.5f, subtitleFontSize, _font);
 
-		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : "Play",
+		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
 			playButtonPos.x, playButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, RAYWHITE);
 
-		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : "Quit",
+		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
 			quitButtonPos.x, quitButtonPos.y, 0.f, buttonSize.x, buttonSize.y, RED, RAYWHITE);
 	}
 
@@ -77,6 +81,7 @@ namespace scene {
 	void ServerWaitScene::render() {
 		double remainingTime = getRemainingTime();
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
 		if (_attemptsCount < 3 && remainingTime <= 0.1) {
 			_attemptsCount += 1;
@@ -113,14 +118,16 @@ namespace scene {
 			if (types[i]->value == component::entity_type::TEXT) {
 				if (text[i]->font_size == 18) {
 					if (_attemptsCount >= 3) {
-						text[i]->content = isFrench
-							? "Connexion au serveur impossible"
-							: "Unable to connect to server";
+						text[i]->content = 
+						isFrench ? "Connexion au serveur impossible" :
+						isItalian ? "Impossible connettersi al server" :
+						 "Unable to connect to server";
 						text[i]->color = RED;
 					} else {
-						text[i]->content = isFrench
-							? std::format("Nouvelle tentative dans {:.1f} seconde(s)", remainingTime)
-							: std::format("Next attempt in {:.1f} second(s)", remainingTime);
+						text[i]->content = 
+						isFrench ? std::format("Nouvelle tentative dans {:.1f} seconde(s)", remainingTime) :
+						isItalian ? std::format("Riprova tra {:.1f} secondo(i))", remainingTime) :
+						std::format("Next attempt in {:.1f} second(s)", remainingTime);
 					}
 					Vector2 size = _raylib.measureTextEx(_font, text[i]->content.c_str(), text[i]->font_size, text[i]->spacing);
 					pos.x = getElementCenter(_width, size.x);
