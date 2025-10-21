@@ -151,9 +151,29 @@ namespace game::scene {
     }
 
     Texture2D* GameScene::get_entity_texture(ecs::entity_t entity) {
-        auto it = _entityTextures.find(entity.value());
-        if (it != _entityTextures.end()) {
-            return &it->second;
+        auto cachedIt = _entityTextures.find(entity.value());
+        if (cachedIt != _entityTextures.end()) {
+            return &cachedIt->second;
+        }
+
+        auto &sprites = _registry.get_components<component::sprite>();
+        if (entity.value() < sprites.size() && sprites[entity.value()]) {
+            const std::string &imagePath = sprites[entity.value()]->image_path;
+            if (!imagePath.empty()) {
+                try {
+                    Texture2D texture = _raylib.loadTexture(imagePath);
+                    auto [insertIt, inserted] = _entityTextures.emplace(entity.value(), texture);
+                    if (inserted) {
+                        std::cout << "[DEBUG] Lazily loaded texture for entity "
+                                  << entity.value() << " from " << imagePath << std::endl;
+                    }
+                    return &insertIt->second;
+                } catch (const std::exception &e) {
+                    std::cerr << "[ERROR] Failed to lazily load texture for entity "
+                              << entity.value() << " from " << imagePath
+                              << ": " << e.what() << std::endl;
+                }
+            }
         }
         return nullptr;
     }
