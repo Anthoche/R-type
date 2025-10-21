@@ -33,6 +33,32 @@ enum class MessageType : uint8_t {
 };
 
 /**
+ * @brief Identifier for raw player input events sent from client to server.
+ */
+enum class InputCode : uint8_t {
+    Up = 0,
+    Down = 1,
+    Left = 2,
+    Right = 3,
+    Unknown = 255
+};
+
+inline const char* inputCodeToString(InputCode code) {
+    switch (code) {
+        case InputCode::Up:
+            return "Up";
+        case InputCode::Down:
+            return "Down";
+        case InputCode::Left:
+            return "Left";
+        case InputCode::Right:
+            return "Right";
+        default:
+            return "Unknown";
+    }
+}
+
+/**
  * @brief Identifies the different scenes on the client side.
  */
 enum class SceneState : uint32_t {
@@ -99,9 +125,9 @@ struct ServerAssignIdMessage {
 struct ClientInputMessage {
     MessageType type;
     uint32_t clientId;
-    uint32_t inputXBits;
-    uint32_t inputYBits;
-    uint32_t inputZBits;  ///< Added for 3D input
+    uint8_t inputCode;
+    uint8_t isPressed;
+    uint16_t padding{0};
 };
 
 /**

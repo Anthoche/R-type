@@ -73,6 +73,9 @@ void ServerGame::run() {
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
 
+        process_pending_messages();
+        process_player_inputs(dt);
+
         update_projectiles_server_only(dt);
         update_enemies(dt);
         update_enemy_projectiles_server_only(dt);
@@ -86,13 +89,11 @@ void ServerGame::run() {
         broadcast_enemy_positions();
         broadcast_enemy_projectile_positions();
 
-        process_pending_messages();
         broadcast_states_to_clients();
-      
         broadcast_player_health();
         broadcast_global_score();
         broadcast_individual_scores();
-        
+
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
 }
@@ -192,28 +193,25 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 uint32_t id = ntohl(msg->clientId);
                 if (deadPlayers.find(id) != deadPlayers.end())
                     break;
-                
-                float inputX, inputY, inputZ;
-                uint32_t xbits = ntohl(msg->inputXBits);
-                uint32_t ybits = ntohl(msg->inputYBits);
-                uint32_t zbits = ntohl(msg->inputZBits);
-                std::memcpy(&inputX, &xbits, sizeof(float));
-                std::memcpy(&inputY, &ybits, sizeof(float));
-                std::memcpy(&inputZ, &zbits, sizeof(float));
-                
-                auto& pos = playerPositions[id];
-                float speed = 200.f / 60.f;
-                const float playerWidth = 30.f;
-                const float playerHeight = 30.f;
-                
-                float newX = pos.first + inputX * speed;
-                float newY = pos.second + inputY * speed;
-                // Note: si vous utilisez Z, adaptez ici
-                
-                if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles))
-                    pos.first = newX;
-                if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
-                    pos.second = newY;
+                InputCode code = static_cast<InputCode>(msg->inputCode);
+                bool pressed = msg->isPressed != 0;
+                switch (code) {
+                    case InputCode::Up:
+                    case InputCode::Down:
+                    case InputCode::Left:
+                    case InputCode::Right:
+                        playerInputBuffers[id].push_back({code, pressed});
+                        LOG_DEBUG("[Server][Input] queued event from client " << id
+                                  << " code=" << inputCodeToString(code)
+                                  << " pressed=" << pressed
+                                  << " buffered=" << playerInputBuffers[id].size());
+                        break;
+                    default:
+                        LOG_DEBUG("[Server][Input] ignored unknown code "
+                                  << static_cast<int>(msg->inputCode)
+                                  << " from client " << id);
+                        break;
+                }
             }
             break;
         }
@@ -298,6 +296,66 @@ void ServerGame::process_pending_messages() {
         });
         messagesProcessed++;
         std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
+
+void ServerGame::process_player_inputs(float dt) {
+    constexpr float speedPerSecond = 200.f;
+    constexpr float playerWidth = 30.f;
+    constexpr float playerHeight = 30.f;
+
+    for (auto &kv : playerPositions) {
+        uint32_t clientId = kv.first;
+        if (deadPlayers.find(clientId) != deadPlayers.end())
+            continue;
+
+        auto &buffer = playerInputBuffers[clientId];
+        auto &state = playerInputStates[clientId];
+
+        for (const auto &event : buffer) {
+            switch (event.code) {
+                case InputCode::Up:
+                    state.up = event.pressed;
+                    break;
+                case InputCode::Down:
+                    state.down = event.pressed;
+                    break;
+                case InputCode::Left:
+                    state.left = event.pressed;
+                    break;
+                case InputCode::Right:
+                    state.right = event.pressed;
+                    break;
+                default:
+                    break;
+            }
+        }
+        buffer.clear();
+
+        float inputX = 0.f;
+        float inputY = 0.f;
+
+        if (state.left != state.right)
+            inputX = state.left ? -1.f : 1.f;
+        if (state.up != state.down)
+            inputY = state.up ? -1.f : 1.f;
+
+        if (inputX == 0.f && inputY == 0.f)
+            continue;
+
+        auto &pos = kv.second;
+        float distance = speedPerSecond * dt;
+        float newX = pos.first + inputX * distance;
+        float newY = pos.second + inputY * distance;
+
+        if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles))
+            pos.first = newX;
+        if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
+            pos.second = newY;
+
+        LOG_DEBUG("[Server][Input] applied movement for client " << clientId
+                  << " dir=(" << inputX << "," << inputY << ")"
+                  << " newPos=(" << pos.first << "," << pos.second << ")");
     }
 }
 
