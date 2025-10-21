@@ -199,9 +199,6 @@ namespace game::serializer {
                     case component::entity_type::CHECKPOINT: game::parsing::parse_checkpoint(reg, entity_data); break;
                     case component::entity_type::SPAWNER: game::parsing::parse_spawner(reg, entity_data); break;
                     case component::entity_type::TRIGGERZONE: game::parsing::parse_triggerzone(reg, entity_data); break;
-                    case component::entity_type::BUTTON: game::parsing::parse_button(reg, entity_data); break;
-                    case component::entity_type::PROJECTILE: game::parsing::parse_projectile(reg, entity_data); break;
-                    case component::entity_type::IMAGE: game::parsing::parse_image(reg, entity_data); break;
                     case component::entity_type::PNG: game::parsing::parse_png(reg, entity_data); break;
 
                     default:

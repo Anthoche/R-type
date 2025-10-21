@@ -181,17 +181,24 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 uint32_t id = ntohl(msg->clientId);
                 if (deadPlayers.find(id) != deadPlayers.end())
                     break;
-                float inputX, inputY;
+                
+                float inputX, inputY, inputZ;
                 uint32_t xbits = ntohl(msg->inputXBits);
                 uint32_t ybits = ntohl(msg->inputYBits);
+                uint32_t zbits = ntohl(msg->inputZBits);
                 std::memcpy(&inputX, &xbits, sizeof(float));
                 std::memcpy(&inputY, &ybits, sizeof(float));
+                std::memcpy(&inputZ, &zbits, sizeof(float));
+                
                 auto& pos = playerPositions[id];
                 float speed = 200.f / 60.f;
                 const float playerWidth = 30.f;
                 const float playerHeight = 30.f;
+                
                 float newX = pos.first + inputX * speed;
                 float newY = pos.second + inputY * speed;
+                // Note: si vous utilisez Z, adaptez ici
+                
                 if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles))
                     pos.first = newX;
                 if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
@@ -230,12 +237,14 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     uint32_t projId = nextProjectileId++;
                     float projX = playerX + 20.f;
                     float projY = playerY;
+                    float projZ = 0.f;  // Ajout de Z
                     float projVelX = 400.f;
                     float projVelY = 0.f;
+                    float projVelZ = 0.f;  // Ajout de Z
                     
-                    projectiles[projId] = std::make_tuple(projX, projY, projVelX, projVelY, clientId);
+                    projectiles[projId] = std::make_tuple(projX, projY, projZ, projVelX, projVelY, projVelZ, clientId);
 
-                    broadcast_projectile_spawn(projId, clientId, projX, projY, projVelX, projVelY);
+                    broadcast_projectile_spawn(projId, clientId, projX, projY, projZ, projVelX, projVelY, projVelZ);
 
                     LOG_DEBUG("[Server] Client " << clientId << " shot projectile " << projId);
                 }
@@ -268,14 +277,21 @@ void ServerGame::broadcast_states_to_clients() {
             continue;
         auto it = playerPositions.find(id);
         if (it == playerPositions.end()) continue;
+        
         StateUpdateMessage m;
         m.type = MessageType::StateUpdate;
         m.clientId = htonl(id);
-        uint32_t xbits, ybits;
+        
+        uint32_t xbits, ybits, zbits;
+        float z = 0.f;  // Valeur par défaut pour Z
         std::memcpy(&xbits, &it->second.first, sizeof(float));
         std::memcpy(&ybits, &it->second.second, sizeof(float));
-        m.posXBits = htonl(xbits);
-        m.posYBits = htonl(ybits);
+        std::memcpy(&zbits, &z, sizeof(float));
+        
+        m.pos.xBits = htonl(xbits);
+        m.pos.yBits = htonl(ybits);
+        m.pos.zBits = htonl(zbits);
+        
         connexion.broadcast(&m, sizeof(m));
     }
 }

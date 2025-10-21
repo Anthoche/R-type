@@ -163,7 +163,7 @@ namespace game::scene {
     void GameScene::update() {
         if (!_game_running) return;
 
-        std::unordered_map<uint32_t, std::pair<float, float>> netPlayers;
+        std::unordered_map<uint32_t, std::tuple<float, float, float>> netPlayers;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             netPlayers = _game.getGameClient().players;
@@ -181,8 +181,8 @@ namespace game::scene {
         auto &positions = _registry.get_components<component::position>();
         for (auto const &kv : netPlayers) {
             uint32_t id = kv.first;
-            float x = kv.second.first;
-            float y = kv.second.second;
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
             auto f = _playerEntities.find(id);
             if (f == _playerEntities.end()) {
                 ecs::entity_t e = game::entities::create_player(_registry, x, y, 0.f);
@@ -315,7 +315,7 @@ namespace game::scene {
     }
 
     void GameScene::render_network_projectiles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> projs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>>  projs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             projs = _game.getGameClient().projectiles;
@@ -483,7 +483,7 @@ namespace game::scene {
     }
 
     void GameScene::render_network_obstacles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             obs = _game.getGameClient().obstacles;
@@ -516,7 +516,7 @@ namespace game::scene {
     }
 
     void GameScene::render_network_enemy_projectiles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, uint32_t>> enemyProjs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             enemyProjs = _game.getGameClient().enemyProjectiles;

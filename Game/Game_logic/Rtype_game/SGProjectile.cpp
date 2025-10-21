@@ -48,6 +48,7 @@ void ServerGame::check_projectile_enemy_collisions() {
         uint32_t projId = projKv.first;
         float projX = std::get<0>(projKv.second);
         float projY = std::get<1>(projKv.second);
+        // std::get<2> = projZ (pas utilisé pour collision 2D)
 
         float projLeft = projX - PROJ_WIDTH * 0.5f;
         float projRight = projX + PROJ_WIDTH * 0.5f;
@@ -70,9 +71,9 @@ void ServerGame::check_projectile_enemy_collisions() {
                                   enemyLeft, enemyRight, enemyTop, enemyBottom)) {
                 projectilesToRemove.push_back(projId);
                 enemiesToRemove.push_back(static_cast<uint32_t>(enemyEntity));
-                 totalScore += 10;
+                totalScore += 10;
 
-                uint32_t killerId = std::get<4>(projKv.second);
+                uint32_t killerId = std::get<6>(projKv.second);  // Changé de 4 à 6 (x,y,z,vx,vy,vz,owner)
                 if (playerIndividualScores.find(killerId) == playerIndividualScores.end()) {
                     playerIndividualScores[killerId] = 0;
                 }
@@ -100,17 +101,20 @@ void ServerGame::broadcast_projectile_positions() {
         uint32_t id = kv.first;
         float x = std::get<0>(kv.second);
         float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
 
         ProjectileUpdateMessage msg;
         msg.type = MessageType::ProjectileUpdate;
         msg.projectileId = htonl(id);
 
-        uint32_t xb, yb;
+        uint32_t xb, yb, zb;
         std::memcpy(&xb, &x, sizeof(float));
         std::memcpy(&yb, &y, sizeof(float));
+        std::memcpy(&zb, &z, sizeof(float));
 
-        msg.posXBits = htonl(xb);
-        msg.posYBits = htonl(yb);
+        msg.pos.xBits = htonl(xb);
+        msg.pos.yBits = htonl(yb);
+        msg.pos.zBits = htonl(zb);
 
         connexion.broadcast(&msg, sizeof(msg));
     }
@@ -123,10 +127,15 @@ void ServerGame::update_projectiles_server_only(float dt) {
         uint32_t id = kv.first;
         float& x = std::get<0>(kv.second);
         float& y = std::get<1>(kv.second);
-        float vx = std::get<2>(kv.second);
-        float vy = std::get<3>(kv.second);
+        float& z = std::get<2>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        float vz = std::get<5>(kv.second);
+        
         x += vx * dt;
         y += vy * dt;
+        z += vz * dt;
+        
         if (x < -50.f || x > 1970.f || y < -50.f || y > 1130.f) {
             toRemove.push_back(id);
         }
@@ -138,22 +147,26 @@ void ServerGame::update_projectiles_server_only(float dt) {
 }
 
 void ServerGame::broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId,
-                                    float x, float y, float vx, float vy) {
+                                    float x, float y, float z, float vx, float vy, float vz) {
     ProjectileSpawnMessage msg;
     msg.type = MessageType::ProjectileSpawn;
     msg.projectileId = htonl(projId);
     msg.ownerId = htonl(ownerId);
 
-    uint32_t xb, yb, vxb, vyb;
+    uint32_t xb, yb, zb, vxb, vyb, vzb;
     std::memcpy(&xb, &x, sizeof(float));
     std::memcpy(&yb, &y, sizeof(float));
+    std::memcpy(&zb, &z, sizeof(float));
     std::memcpy(&vxb, &vx, sizeof(float));
     std::memcpy(&vyb, &vy, sizeof(float));
+    std::memcpy(&vzb, &vz, sizeof(float));
 
-    msg.posXBits = htonl(xb);
-    msg.posYBits = htonl(yb);
-    msg.velXBits = htonl(vxb);
-    msg.velYBits = htonl(vyb);
+    msg.pos.xBits = htonl(xb);
+    msg.pos.yBits = htonl(yb);
+    msg.pos.zBits = htonl(zb);
+    msg.vel.vxBits = htonl(vxb);
+    msg.vel.vyBits = htonl(vyb);
+    msg.vel.vzBits = htonl(vzb);
 
     connexion.broadcast(&msg, sizeof(msg));
 }
@@ -217,8 +230,11 @@ void ServerGame::shoot_enemy_projectile(uint32_t enemyId, float x, float y, floa
     
     float spawnX = x - 20.f;
     float spawnY = y;
-    enemyProjectiles[projId] = std::make_tuple(spawnX, spawnY, vx, vy, enemyId);
-    broadcast_enemy_projectile_spawn(projId, enemyId, spawnX, spawnY, vx, vy);
+    float spawnZ = 0.f;
+    float velZ = 0.f;
+    
+    enemyProjectiles[projId] = std::make_tuple(spawnX, spawnY, spawnZ, vx, vy, velZ, enemyId);
+    broadcast_enemy_projectile_spawn(projId, enemyId, spawnX, spawnY, spawnZ, vx, vy, velZ);
 }
 
 void ServerGame::update_enemy_projectiles_server_only(float dt) {
@@ -228,10 +244,15 @@ void ServerGame::update_enemy_projectiles_server_only(float dt) {
         uint32_t id = kv.first;
         float& x = std::get<0>(kv.second);
         float& y = std::get<1>(kv.second);
-        float vx = std::get<2>(kv.second);
-        float vy = std::get<3>(kv.second);
+        float& z = std::get<2>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        float vz = std::get<5>(kv.second);
+        
         x += vx * dt;
         y += vy * dt;
+        z += vz * dt;
+        
         if (x < -50.f || x > 1970.f || y < -50.f || y > 1130.f) {
             toRemove.push_back(id);
         }
@@ -312,22 +333,26 @@ void ServerGame::check_enemy_projectile_player_collisions() {
 }
 
 void ServerGame::broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId,
-                                                   float x, float y, float vx, float vy) {
-    ProjectileSpawnMessage msg;
+                                                   float x, float y, float z, float vx, float vy, float vz) {
+    EnemyProjectileSpawnMessage msg;
     msg.type = MessageType::EnemyProjectileSpawn;
     msg.projectileId = htonl(projId);
     msg.ownerId = htonl(ownerId);
 
-    uint32_t xb, yb, vxb, vyb;
+    uint32_t xb, yb, zb, vxb, vyb, vzb;
     std::memcpy(&xb, &x, sizeof(float));
     std::memcpy(&yb, &y, sizeof(float));
+    std::memcpy(&zb, &z, sizeof(float));
     std::memcpy(&vxb, &vx, sizeof(float));
     std::memcpy(&vyb, &vy, sizeof(float));
+    std::memcpy(&vzb, &vz, sizeof(float));
 
-    msg.posXBits = htonl(xb);
-    msg.posYBits = htonl(yb);
-    msg.velXBits = htonl(vxb);
-    msg.velYBits = htonl(vyb);
+    msg.pos.xBits = htonl(xb);
+    msg.pos.yBits = htonl(yb);
+    msg.pos.zBits = htonl(zb);
+    msg.vel.vxBits = htonl(vxb);
+    msg.vel.vyBits = htonl(vyb);
+    msg.vel.vzBits = htonl(vzb);
 
     connexion.broadcast(&msg, sizeof(msg));
 }
@@ -337,24 +362,27 @@ void ServerGame::broadcast_enemy_projectile_positions() {
         uint32_t id = kv.first;
         float x = std::get<0>(kv.second);
         float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
 
-        ProjectileUpdateMessage msg;
+        EnemyProjectileUpdateMessage msg;
         msg.type = MessageType::EnemyProjectileUpdate;
         msg.projectileId = htonl(id);
 
-        uint32_t xb, yb;
+        uint32_t xb, yb, zb;
         std::memcpy(&xb, &x, sizeof(float));
         std::memcpy(&yb, &y, sizeof(float));
+        std::memcpy(&zb, &z, sizeof(float));
 
-        msg.posXBits = htonl(xb);
-        msg.posYBits = htonl(yb);
+        msg.pos.xBits = htonl(xb);
+        msg.pos.yBits = htonl(yb);
+        msg.pos.zBits = htonl(zb);
 
         connexion.broadcast(&msg, sizeof(msg));
     }
 }
 
 void ServerGame::broadcast_enemy_projectile_despawn(uint32_t projId) {
-    ProjectileDespawnMessage msg;
+    EnemyProjectileDespawnMessage msg;
     msg.type = MessageType::EnemyProjectileDespawn;
     msg.projectileId = htonl(projId);
     connexion.broadcast(&msg, sizeof(msg));

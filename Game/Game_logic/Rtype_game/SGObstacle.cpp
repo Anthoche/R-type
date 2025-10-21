@@ -23,7 +23,7 @@
 
 
 template <typename Component>
-inline Component* get_component_ptr(ecs::registry &registry, ecs::entity_t entity) {
+inline Component* get_component_ptr_obstacle(ecs::registry &registry, ecs::entity_t entity) {
     auto &arr = registry.get_components<Component>();
     auto idx = static_cast<std::size_t>(entity);
     if (idx >= arr.size() || !arr[idx].has_value()) {
@@ -38,8 +38,8 @@ bool ServerGame::is_position_blocked(float testX, float testY, float playerWidth
                                      const std::vector<ecs::entity_t> &obstacles)
 {
     for (auto entity : obstacles) {
-        auto pos = get_component_ptr<component::position>(registry_server, entity);
-        auto box = get_component_ptr<component::collision_box>(registry_server, entity);
+        auto pos = get_component_ptr_obstacle<component::position>(registry_server, entity);
+        auto box = get_component_ptr_obstacle<component::collision_box>(registry_server, entity);
 
         if (!pos || !box)
             continue;
@@ -67,24 +67,28 @@ bool ServerGame::is_position_blocked(float testX, float testY, float playerWidth
     return false;
 }
 
-void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float w, float h)
+void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d)
 {
     ObstacleSpawnMessage msg{};
     msg.type = MessageType::ObstacleSpawn;
     msg.obstacleId = htonl(obstacleId);
 
-    uint32_t xb, yb, wb, hb;
+    uint32_t xb, yb, zb, wb, hb, db;
     std::memcpy(&xb, &x, sizeof(float));
     std::memcpy(&yb, &y, sizeof(float));
+    std::memcpy(&zb, &z, sizeof(float));
     std::memcpy(&wb, &w, sizeof(float));
     std::memcpy(&hb, &h, sizeof(float));
+    std::memcpy(&db, &d, sizeof(float));
 
-    msg.posXBits = htonl(xb);
-    msg.posYBits = htonl(yb);
-    msg.widthBits = htonl(wb);
-    msg.heightBits = htonl(hb);
+    msg.pos.xBits = htonl(xb);
+    msg.pos.yBits = htonl(yb);
+    msg.pos.zBits = htonl(zb);
+    msg.size.widthBits = htonl(wb);
+    msg.size.heightBits = htonl(hb);
+    msg.size.depthBits = htonl(db);
 
     connexion.broadcast(&msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast obstacle spawn: ID=" << obstacleId
-              << " pos=(" << x << "," << y << ") size=(" << w << "," << h << ")");
+              << " pos=(" << x << "," << y << "," << z << ") size=(" << w << "," << h << "," << d << ")");
 }
