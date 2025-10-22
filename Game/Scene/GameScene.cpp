@@ -13,7 +13,7 @@
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
-        : AScene(1920, 1080, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib) {
+        : AScene(1920, 1080, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib), _chat(_raylib) {
         _raylib = Raylib();
         _game_running = true;
         _startTime = 0.f;
@@ -49,6 +49,7 @@ namespace game::scene {
         _registry.register_component<component::type>();
         _registry.register_component<component::client_id>();
         _ui.init();
+        _chat.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 
         // Configuration des systèmes
@@ -354,6 +355,7 @@ void GameScene::update() {
         } else if (_isWin) {
             render_win_screen();
         }
+        _chat.render();
         if (_isDead && !_defeatSoundPlayed) {
             _raylib.stopMusicStream(_music);
             if (_game.isSoundEnabled()) {
@@ -702,6 +704,8 @@ void GameScene::update() {
 
     void GameScene::handleEvents() {
         update();
+        float deltaTime = _raylib.getFrameTime();
+        _chat.update(deltaTime);
         int globalScore = 0;
         uint32_t myClientId = 0;
         {
@@ -719,13 +723,25 @@ void GameScene::update() {
 
         switch (_raylib.getKeyPressed()) {
             case KEY_SPACE:
-                handle_shoot(SHOOT_COOLDOWN);
+                if (!_chat.isFocused())
+                    handle_shoot(SHOOT_COOLDOWN);
+                break;
+            case KEY_F1:
+                _chat.toggleFocus();
                 break;
             case KEY_F11:
                 toggleFullScreen();
                 break;
             default:
                 break;
+        }
+
+        if (_chat.isFocused()) {
+            dispatch_input_events(false, false, false, false);
+            if (myClientId != 0) {
+                moovePlayer[myClientId] = 0.0f;
+            }
+            return;
         }
 
         if (_raylib.isGamepadAvailable(0)) {
