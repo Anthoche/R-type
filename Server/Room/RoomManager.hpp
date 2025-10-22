@@ -7,13 +7,15 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "Room.hpp"
 #include <map>
 
 class RoomManager {
 	private:
 		std::map<int, Room> _rooms;
-		long _currentId;
+		int _currentId;
 		int _maxRooms;
 
 	public:
@@ -26,6 +28,7 @@ class RoomManager {
 		bool roomExists(int id) const;
 
 		void addRoom(Room const &room);
+		void addClientInRoom(uint32_t clientId, int roomId);
 		void removeRoom(int id);
 		void clearRooms();
 };

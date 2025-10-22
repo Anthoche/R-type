@@ -119,7 +119,7 @@ void GameServer::assignClientToRoom(const std::vector<uint8_t> &data, const asio
 
 	LOG_DEBUG("Sending room assignment");
 	connexion.sendTo(&assignMsg, sizeof(assignMsg), from);
-	roomManager.getRoom(roomId).addClient(msg->clientId);
+	roomManager.addClientInRoom(msg->clientId, roomId);
 	LOG_INFO(std::format("Assigned client {} to room {}", msg->clientId, roomId));
 }
 

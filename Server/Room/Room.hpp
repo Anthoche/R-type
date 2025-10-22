@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 #include "../../Engine/GameStatus.hpp"
 
 class Room {
@@ -16,7 +17,7 @@ class Room {
 		int _maxPlayers;
 		int _minPlayers;
 		std::string _game;
-		std::vector<u_int32_t> _clients;
+		std::vector<uint32_t> _clients;
 
 	public:
 		Room(int maxPlayers, int minPlayers, std::string const &game);
@@ -25,13 +26,13 @@ class Room {
 		int getMaxPlayers() const;
 		int getMinPlayers() const;
 		std::string getGame() const;
-		std::vector<u_int32_t> getClients() const;
+		std::vector<uint32_t> getClients() const;
 		bool isFull() const;
 		bool isEmpty() const;
-		bool isClientInRoom(u_int32_t clientId) const;
+		bool isClientInRoom(uint32_t clientId) const;
 
-		void addClient(u_int32_t clientId);
-		void removeClient(u_int32_t clientId);
+		void addClient(uint32_t clientId);
+		void removeClient(uint32_t clientId);
 		void setMaxPlayers(int value);
 		void setMinPlayers(int value);
 

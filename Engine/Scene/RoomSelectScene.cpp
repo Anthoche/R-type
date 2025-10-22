@@ -251,5 +251,6 @@ namespace scene {
 
 	void RoomSelectScene::handleRoomJoinButton(uint32_t id) {
 		_game.getGameClient().sendRoomAsk(id);
+		_game.getSceneHandler().open("waiting");
 	}
 }

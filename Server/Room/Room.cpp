@@ -25,7 +25,7 @@ std::string Room::getGame() const {
 	return _game;
 }
 
-std::vector<u_int32_t> Room::getClients() const {
+std::vector<uint32_t> Room::getClients() const {
 	return _clients;
 }
 
@@ -37,7 +37,7 @@ bool Room::isEmpty() const {
 	return _clients.empty();
 }
 
-bool Room::isClientInRoom(u_int32_t clientId) const {
+bool Room::isClientInRoom(uint32_t clientId) const {
 	for (auto const &client: _clients) {
 		if (client == clientId)
 			return true;
