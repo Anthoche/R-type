@@ -112,8 +112,25 @@ namespace scene {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
+				break;
 			}
 			buttonCount++;
+		}
+
+		for (auto &room: _rooms) {
+			Vector2 pos = {room.second.button.rect.x, room.second.button.rect.y};
+			Vector2 size = {room.second.button.rect.width, room.second.button.rect.height};
+
+			if (mousePos.x > pos.x && mousePos.x < pos.x + size.x &&
+				mousePos.y > pos.y && mousePos.y < pos.y + size.y) {
+				_selectedButtonIndex = -1;
+				room.second.button.isHovered = true;
+				if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+					room.second.button.isClicked = true;
+					handleRoomJoinButton(room.first);
+				}
+				break;
+			}
 		}
 
 		if (_raylib.isGamepadAvailable(0)) {
@@ -176,22 +193,31 @@ namespace scene {
 			Vector2 pos = {room.second.background.x, room.second.background.y};
 			Vector2 nameSize = _raylib.measureTextEx(_font, room.second.name, _roomNameSize, 0.75);
 			Vector2 playerSize = _raylib.measureTextEx(_font, room.second.playersCount, _playerCountSize, 0.75);
-			Vector2 namePos = {pos.x + _innerMargin, pos.y + (_roomSize.y / 2) - (nameSize.y / 2)};
-			Vector2 playersPos = {pos.x + _roomSize.x - _innerMargin - 150, pos.y + (_roomSize.y / 2) - (playerSize.y / 2)};
+			Vector2 namePos = {pos.x + _innerMargin, pos.y + getElementCenter(_roomSize.y, nameSize.y)};
+			Vector2 playersPos = {pos.x + _roomSize.x - _innerMargin - 150, pos.y + getElementCenter(_roomSize.y, playerSize.y)};
+			Vector2 buttonPos = {
+				pos.x + room.second.background.width - _innerMargin - room.second.button.rect.width,
+				pos.y + getElementCenter(_roomSize.y, _roomJoinButtonSize.y)
+			};
 
+			room.second.button.rect.x = buttonPos.x;
+			room.second.button.rect.y = buttonPos.y;
 			_raylib.drawRectangleRounded(room.second.background, 0.5, 10, _roomBackgroundColor);
-			_raylib.drawTextEx(_font, room.second.name, namePos, _roomNameSize, 0.75, RAYWHITE);
+			drawButton(_raylib, buttonPos, _roomJoinButtonSize, "Join", _font, _roomButtonTextSize, 0.75f, _accentColor, RAYWHITE,
+						room.second.button.isHovered, room.second.button.isClicked, true, 0.75f);
+			_raylib.drawTextEx(_font, room.second.name, namePos, _roomNameSize, 0.75f, RAYWHITE);
 			_raylib.drawTextEx(_font, room.second.playersCount, playersPos, _playerCountSize, 0.75, RAYWHITE);
 		}
 	}
 
-	void RoomSelectScene::createRoom(int id, game::serializer::RoomData roomData) {
+	void RoomSelectScene::createRoom(uint32_t id, game::serializer::RoomData roomData) {
 		Vector2 pos = {_baseRoomPosition.x, static_cast<float>(_currentRoomPosY)};
 		RoomDisplay room{};
 
 		room.background = Rectangle{pos.x, pos.y, _roomSize.x, _roomSize.y};
 		room.name = roomData.gameName;
 		room.playersCount = std::format("{}/{}", roomData.currentPlayers, roomData.maxPlayers);
+		room.button = RoomButton{Rectangle{pos.x, pos.y, _roomJoinButtonSize.x, _roomJoinButtonSize.y}, false, false};
 		_currentRoomPosY += _roomSize.y + _roomSpacing;
 		_rooms.insert_or_assign(id, room);
 	}
@@ -206,6 +232,11 @@ namespace scene {
 			clickable[i]->isClicked = false;
 			hoverable[i]->isHovered = false;
 		}
+
+		for (auto &room: _rooms) {
+			room.second.button.isHovered = false;
+			room.second.button.isClicked = false;
+		}
 	}
 
 	void RoomSelectScene::handleButtonClick(std::string const &id) {
@@ -216,5 +247,9 @@ namespace scene {
 		} else if (id == "button_back") {
 			_game.getSceneHandler().open("menu");
 		}
+	}
+
+	void RoomSelectScene::handleRoomJoinButton(uint32_t id) {
+		_game.getGameClient().sendRoomAsk(id);
 	}
 }
