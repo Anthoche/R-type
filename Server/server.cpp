@@ -56,6 +56,7 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data, const asio:
     
     uint32_t clientId = nextClientId++;
     connexion.addClient(clientEndpoint, clientId);
+    connexion.setClientName(clientId, std::string(msg->clientName));
     uint16_t tcpPort = 5000 + clientId;
     std::thread([this, clientId, tcpPort]() {
         if (!connexion.acceptTcpClient(clientId, tcpPort)) {

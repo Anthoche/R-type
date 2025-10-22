@@ -8,6 +8,7 @@
 #include "Include/ChatSystem.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <format>
 
 namespace {
@@ -188,19 +189,45 @@ void ChatSystem::removeLastCharacter()
 		_inputBuffer.pop_back();
 }
 
-void ChatSystem::submitMessage()
+std::optional<std::string> ChatSystem::submitMessage()
 {
 	if (_inputBuffer.empty())
-		return;
-	std::string name = _username.empty() ? "Player" : _username;
-	std::string composed = std::format("{}: {}", name, _inputBuffer);
-	_messages.push_back(std::move(composed));
-	while (_messages.size() > _maxMessages)
-		_messages.pop_front();
+		return std::nullopt;
+
+	auto trimmed = _inputBuffer;
+	auto isSpace = [](unsigned char ch) { return std::isspace(ch) != 0; };
+	trimmed.erase(trimmed.begin(), std::find_if_not(trimmed.begin(), trimmed.end(), isSpace));
+	trimmed.erase(std::find_if_not(trimmed.rbegin(), trimmed.rend(), isSpace).base(), trimmed.end());
+
+	if (trimmed.empty()) {
+		_inputBuffer.clear();
+		return std::nullopt;
+	}
+
+	for (char &ch : trimmed) {
+		if (ch == '\n' || ch == '\r')
+			ch = ' ';
+	}
+
 	_inputBuffer.clear();
+	return trimmed;
 }
 
 void ChatSystem::clearInput()
 {
 	_inputBuffer.clear();
+}
+
+void ChatSystem::addMessage(const std::string &sender, const std::string &message)
+{
+	std::string displaySender = sender.empty() ? "Player" : sender;
+	std::string sanitized = message;
+	for (char &ch : sanitized) {
+		if (ch == '\n' || ch == '\r')
+			ch = ' ';
+	}
+	std::string composed = std::format("{}: {}", displaySender, sanitized);
+	_messages.push_back(std::move(composed));
+	while (_messages.size() > _maxMessages)
+		_messages.pop_front();
 }

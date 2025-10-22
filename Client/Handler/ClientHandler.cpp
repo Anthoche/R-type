@@ -8,6 +8,7 @@
 #include "../client.hpp"
 #include "../../Engine/Game.hpp"
 #include <asio.hpp>
+#include <algorithm>
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
     switch (type) {
@@ -64,6 +65,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
             break;
         case MessageType::EnemyProjectileDespawn:
             handleEnemyProjectileDespawn(buffer);
+            break;
+        case MessageType::ChatMessage:
+            handleChatMessage(buffer);
             break;
         default:
             break;
@@ -368,4 +372,23 @@ void GameClient::handleIndividualScore(const std::vector<uint8_t> &buffer) {
     
     std::lock_guard<std::mutex> g(stateMutex);
     playerIndividualScores[playerId] = score;
+}
+
+void GameClient::handleChatMessage(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ChatMessagePacket))
+        return;
+    const ChatMessagePacket *msg = reinterpret_cast<const ChatMessagePacket *>(buffer.data());
+
+    auto senderEnd = std::find(std::begin(msg->senderName), std::end(msg->senderName), '\0');
+    auto messageEnd = std::find(std::begin(msg->message), std::end(msg->message), '\0');
+    std::string sender(msg->senderName, static_cast<std::size_t>(senderEnd - std::begin(msg->senderName)));
+    std::string text(msg->message, static_cast<std::size_t>(messageEnd - std::begin(msg->message)));
+
+    if (text.empty())
+        return;
+
+    {
+        std::lock_guard<std::mutex> g(stateMutex);
+        _chatQueue.emplace_back(std::move(sender), std::move(text));
+    }
 }

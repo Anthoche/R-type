@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <atomic>
 #include <utility>
+#include <deque>
 
 class Game;
 
@@ -47,6 +48,10 @@ class GameClient {
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
+        /**
+         * @brief Pending chat messages retrieved from the network thread.
+         */
+        std::deque<std::pair<std::string, std::string>> _chatQueue;
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         
@@ -155,6 +160,11 @@ class GameClient {
          * @param lives Current number of lives.
          */
         void sendHealth(int lives);
+
+        /**
+         * @brief Sends a chat message to be relayed by the server.
+         */
+        void sendChatMessage(const std::string &message);
 
         /**
          * @brief Get the local client's display name.
@@ -302,4 +312,15 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles a chat message broadcast from the server.
+         * @param buffer Raw message data.
+         */
+        void handleChatMessage(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Retrieve and clear pending chat messages accumulated from the network.
+         */
+        std::vector<std::pair<std::string, std::string>> consumeChatMessages();
 };

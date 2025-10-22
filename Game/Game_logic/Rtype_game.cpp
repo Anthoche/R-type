@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <cctype>
 
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"
@@ -277,6 +278,51 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                         break;
                     }
                 }
+            }
+            break;
+        }
+        case MessageType::ChatMessage: {
+            if (data.size() >= sizeof(ChatMessagePacket)) {
+                const ChatMessagePacket *msg = reinterpret_cast<const ChatMessagePacket *>(data.data());
+                uint32_t clientId = ntohl(msg->senderId);
+
+                auto messageEnd = std::find(std::begin(msg->message), std::end(msg->message), '\0');
+                std::string text(msg->message, static_cast<std::size_t>(messageEnd - std::begin(msg->message)));
+
+                auto trimWhitespace = [](std::string &str) {
+                    auto isSpace = [](unsigned char ch) { return std::isspace(ch) != 0; };
+                    str.erase(str.begin(), std::find_if_not(str.begin(), str.end(), isSpace));
+                    str.erase(std::find_if_not(str.rbegin(), str.rend(), isSpace).base(), str.end());
+                };
+
+                trimWhitespace(text);
+                for (char &ch : text) {
+                    if (ch == '\n' || ch == '\r')
+                        ch = ' ';
+                }
+                trimWhitespace(text);
+
+                if (text.empty())
+                    break;
+
+                std::string senderName = connexion.getClientName(clientId);
+                if (senderName.empty()) {
+                    auto senderEnd = std::find(std::begin(msg->senderName), std::end(msg->senderName), '\0');
+                    senderName.assign(msg->senderName, static_cast<std::size_t>(senderEnd - std::begin(msg->senderName)));
+                }
+                trimWhitespace(senderName);
+
+                ChatMessagePacket outgoing{};
+                outgoing.type = MessageType::ChatMessage;
+                outgoing.senderId = htonl(clientId);
+                std::memset(outgoing.senderName, 0, sizeof(outgoing.senderName));
+                std::memset(outgoing.message, 0, sizeof(outgoing.message));
+                if (!senderName.empty())
+                    std::strncpy(outgoing.senderName, senderName.c_str(), sizeof(outgoing.senderName) - 1);
+                std::strncpy(outgoing.message, text.c_str(), sizeof(outgoing.message) - 1);
+
+                connexion.broadcast(&outgoing, sizeof(outgoing));
+                LOG_DEBUG("[Server][Chat] " << (senderName.empty() ? "Player" : senderName) << ": " << text);
             }
             break;
         }

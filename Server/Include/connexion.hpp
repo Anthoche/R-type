@@ -16,6 +16,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <string>
 
 /**
  * @class Connexion
@@ -117,9 +118,21 @@ class Connexion {
          */
         void broadcastJson(const nlohmann::json& j);
 
+        /**
+         * @brief Attach a human-readable name to a connected client.
+         */
+        void setClientName(uint32_t id, std::string name);
+
+        /**
+         * @brief Retrieve the stored name for a client.
+         * @return Stored name or empty string if unknown.
+         */
+        [[nodiscard]] std::string getClientName(uint32_t id) const;
+
     private:
         UDP_socket socket; ///< UDP socket instance for message transmission.
         std::unordered_map<std::string, uint32_t> clients; ///< Maps client addresses to their IDs.
         std::unordered_map<std::string, asio::ip::udp::endpoint> endpoints; ///< Maps client addresses to UDP endpoints.
         std::unordered_map<uint32_t, std::shared_ptr<TCP_socket>> tcpClients; ///< TCP connections for reliable messages.
+        std::unordered_map<uint32_t, std::string> clientNames; ///< Stored display names for clients.
 };

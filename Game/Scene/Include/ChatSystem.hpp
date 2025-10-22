@@ -9,6 +9,7 @@
 
 #include "../../../Engine/Rendering/Raylib.hpp"
 #include <deque>
+#include <optional>
 #include <string>
 
 /**
@@ -74,12 +75,17 @@ public:
 	 *
 	 * The buffer is cleared after submission. Empty buffers are ignored.
 	 */
-	void submitMessage();
+	[[nodiscard]] std::optional<std::string> submitMessage();
 
 	/**
 	 * @brief Clear the current input buffer without submitting.
 	 */
 	void clearInput();
+
+	/**
+	 * @brief Add a message to the chat history (typically received from the network).
+	 */
+	void addMessage(const std::string &sender, const std::string &message);
 
 	/**
 	 * @brief Access the current list of messages.

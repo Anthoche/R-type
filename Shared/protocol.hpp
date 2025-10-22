@@ -29,7 +29,8 @@ enum class MessageType : uint8_t {
     PlayerHealth,             /**< Server updates a player's health */
     InitialHealth,            /**< Client sends its initial health to the server */
     GlobalScore,              /**< Server updates the global score */
-    IndividualScore           /**< Server updates a player's individual score */
+    IndividualScore,          /**< Server updates a player's individual score */
+    ChatMessage               /**< Chat message exchanged between clients via server */
 };
 
 /**
@@ -92,6 +93,19 @@ struct Size3D {
     uint32_t widthBits;   ///< Width (float bits)
     uint32_t heightBits;  ///< Height (float bits)
     uint32_t depthBits;   ///< Depth (float bits)
+};
+
+/**
+ * @brief Chat message exchanged between clients (relayed by the server).
+ *
+ * Strings are zero-terminated and encoded in UTF-8. Buffers are fixed-size to
+ * keep the packet trivially serializable across platforms.
+ */
+struct ChatMessagePacket {
+    MessageType type;             ///< Always MessageType::ChatMessage
+    uint32_t senderId;            ///< Sender client ID (network byte order)
+    char senderName[32];          ///< Display name of the sender
+    char message[256];            ///< Chat message content
 };
 
 /**

@@ -10,6 +10,7 @@
 #include <cmath>
 #include <tuple>
 #include <algorithm>
+#include <vector>
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -355,6 +356,12 @@ void GameScene::update() {
             render_death_screen();
         } else if (_isWin) {
             render_win_screen();
+        }
+        {
+            auto newMessages = _game.getGameClient().consumeChatMessages();
+            for (auto &msg : newMessages) {
+                _chat.addMessage(msg.first, msg.second);
+            }
         }
         _chat.render();
         if (_isDead && !_defeatSoundPlayed) {
@@ -741,7 +748,9 @@ void GameScene::update() {
 
         if (_chat.isFocused()) {
             if (keyPressed == KEY_ENTER) {
-                _chat.submitMessage();
+                if (auto submitted = _chat.submitMessage()) {
+                    _game.getGameClient().sendChatMessage(*submitted);
+                }
             } else if (keyPressed == KEY_BACKSPACE) {
                 _chat.removeLastCharacter();
             } else if (keyPressed == KEY_ESCAPE) {
