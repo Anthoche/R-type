@@ -283,7 +283,6 @@ void GameScene::update() {
             if (spriteIt != _enemySpriteMap.end()) {
                 spritePath = spriteIt->second;
             }
-            std::cout << x << y << z << width << height <<std::endl;
             ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, z, spritePath, width, height);
             _enemyMap.emplace(serverId, newEnemy);
             _enemys.push_back(newEnemy);
@@ -337,7 +336,7 @@ void GameScene::update() {
         _raylib.clearBackground(GRAY);
         if (!_isWin)
             _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
-        _isWin = (30 <= _game.getGameClient().globalScore);
+        _isWin = (/* ici is boss meurt */false);
         
         _raylib.updateMusicStream(_music);
         render_entities();
@@ -518,8 +517,26 @@ void GameScene::update() {
     void GameScene::render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
+        static std::unordered_map<uint32_t, float> spriteOffsets;
+        static std::unordered_map<uint32_t, float> lastFrameTime;
+        
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            uint32_t entityId = entity.value();
+            if (spriteOffsets.find(entityId) == spriteOffsets.end()) {
+                spriteOffsets[entityId] = 0.0f;
+                lastFrameTime[entityId] = 0.0f;
+            }
+            float currentTime = _raylib.getTime();
+            const float FRAME_DURATION = 0.3f;
+            const int NUM_FRAMES = 3;
+            if (currentTime - lastFrameTime[entityId] >= FRAME_DURATION) {
+                spriteOffsets[entityId] += draw.width;
+                if (spriteOffsets[entityId] >= draw.width * NUM_FRAMES) {
+                    spriteOffsets[entityId] = 0.0f;
+                }
+                lastFrameTime[entityId] = currentTime;
+            }
+            Rectangle sourceRec = {spriteOffsets[entityId], 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
             
@@ -706,7 +723,7 @@ void GameScene::update() {
             globalScore = _game.getGameClient().globalScore;
             myClientId = _game.getGameClient().clientId;
         }
-        float t = std::clamp(globalScore / 50.0f, 0.0f, 1.0f);
+        float t = std::clamp(globalScore / 150.0f, 0.0f, 1.0f);
         float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
 
         bool upPressed = _raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP);

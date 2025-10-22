@@ -230,15 +230,8 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     case InputCode::Left:
                     case InputCode::Right:
                         playerInputBuffers[id].push_back({code, pressed});
-                        LOG_DEBUG("[Server][Input] queued event from client " << id
-                                  << " code=" << inputCodeToString(code)
-                                  << " pressed=" << pressed
-                                  << " buffered=" << playerInputBuffers[id].size());
                         break;
                     default:
-                        LOG_DEBUG("[Server][Input] ignored unknown code "
-                                  << static_cast<int>(msg->inputCode)
-                                  << " from client " << id);
                         break;
                 }
             }
@@ -381,10 +374,6 @@ void ServerGame::process_player_inputs(float dt) {
             pos.first = newX;
         if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
             pos.second = newY;
-
-        LOG_DEBUG("[Server][Input] applied movement for client " << clientId
-                  << " dir=(" << inputX << "," << inputY << ")"
-                  << " newPos=(" << pos.first << "," << pos.second << ")");
     }
 }
 

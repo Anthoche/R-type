@@ -38,12 +38,11 @@ inline Component* get_component_ptr(ecs::registry &registry, ecs::entity_t entit
 void ServerGame::check_projectile_enemy_collisions() {
     std::vector<uint32_t> projectilesToRemove;
     std::vector<uint32_t> enemiesToRemove;
-
-    const float ENEMY_WIDTH = 30.f;
-    const float ENEMY_HEIGHT = 30.f;
     const float PROJ_WIDTH = 10.f;
     const float PROJ_HEIGHT = 5.f;
     const int DAMAGE_PER_HIT = 1;
+
+    auto &collision_boxes = registry_server.get_components<component::collision_box>();
 
     for (const auto& projKv : projectiles) {
         uint32_t projId = projKv.first;
@@ -56,17 +55,25 @@ void ServerGame::check_projectile_enemy_collisions() {
         float projBottom = projY + PROJ_HEIGHT * 0.5f;
 
         for (auto enemyEntity : _enemies) {
+            uint32_t eid = static_cast<uint32_t>(enemyEntity);
             auto pos = get_component_ptr<component::position>(registry_server, enemyEntity);
             auto health = get_component_ptr<component::health>(registry_server, enemyEntity);
             if (!pos || !health)
                 continue;
 
+            float enemyWidth = 30.f;
+            float enemyHeight = 30.f;
+            if (eid < collision_boxes.size() && collision_boxes[eid]) {
+                enemyWidth = collision_boxes[eid]->width;
+                enemyHeight = collision_boxes[eid]->height;
+            }
+            
             float enemyX = pos->x;
             float enemyY = pos->y;
-            float enemyLeft = enemyX - ENEMY_WIDTH * 0.5f;
-            float enemyRight = enemyX + ENEMY_WIDTH * 0.5f;
-            float enemyTop = enemyY - ENEMY_HEIGHT * 0.5f;
-            float enemyBottom = enemyY + ENEMY_HEIGHT * 0.5f;
+            float enemyLeft = enemyX - enemyWidth * 0.5f;
+            float enemyRight = enemyX + enemyWidth * 0.5f;
+            float enemyTop = enemyY - enemyHeight * 0.5f;
+            float enemyBottom = enemyY + enemyHeight * 0.5f;
 
             if (check_aabb_overlap(projLeft, projRight, projTop, projBottom,
                                   enemyLeft, enemyRight, enemyTop, enemyBottom)) {

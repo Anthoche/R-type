@@ -55,9 +55,11 @@ void ServerGame::update_enemies(float dt) {
         if (pattern == "straight") update_enemy_straight(id, dt);
         else if (pattern == "zigzag") update_enemy_zigzag(id, dt);
         else if (pattern == "circle") update_enemy_circle(id, dt);
+        else if (pattern == "turret") update_enemy_turret(id, dt, 3.0f);
+        else if (pattern == "spiral") update_enemy_spiral(id, dt);
+        else if (pattern == "figure") update_enemy_figure8(id, dt);
         else if (pattern == "boss_phase1") update_enemy_boss_phase1(id, dt);
         else update_enemy_default(id, dt);
-        update_enemy_turret(id, dt);
 
         pos = get_component_ptr<component::position>(registry_server, entity);
         if (pos) broadcast_enemy_update(id, pos->x, pos->y, pos->z);
@@ -98,35 +100,98 @@ void ServerGame::update_enemy_zigzag(uint32_t id, float dt) {
 
 void ServerGame::update_enemy_circle(uint32_t id, float dt) {
     static std::unordered_map<uint32_t, float> angles;
-    static std::unordered_map<uint32_t, std::pair<float, float>> centers;
+    static std::unordered_map<uint32_t, float> initialX;
+    static std::unordered_map<uint32_t, float> time;
 
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
     if (!pos) return;
 
-    if (centers.find(id) == centers.end()) {
-        centers[id] = std::make_pair(pos->x, pos->y);
+    if (angles.find(id) == angles.end()) {
         angles[id] = 0.f;
+        initialX[id] = pos->x;
+        time[id] = 0.f;
     }
 
-    float radius = 100.f;
-    float speed = 1.f;
-    if (vel) {
-        float mag = std::sqrt(vel->vx*vel->vx + vel->vy*vel->vy);
-        if (mag > 10.f) radius = mag;
-        speed = radius / 50.f;
-    }
-
-    angles[id] += speed * dt;
-    const auto &c = centers[id];
-    pos->x = c.first + std::cos(angles[id]) * radius;
-    pos->y = c.second + std::sin(angles[id]) * radius;
+    time[id] += dt;
+    float baseVelocityX = -50.f;
+    if (vel) baseVelocityX = vel->vx;
+    const float circleRadius = 25.f;
+    const float angularSpeed = 4.0f;
+    const float waveAmplitude = 20.f;
+    const float waveFrequency = 0.5f;
+    angles[id] += angularSpeed * dt;
+    initialX[id] += baseVelocityX * dt;
+    float baseY = 540.f + std::sin(time[id] * waveFrequency) * waveAmplitude;
+    pos->x = initialX[id] + std::cos(angles[id]) * circleRadius;
+    pos->y = baseY + std::sin(angles[id]) * circleRadius;
 }
 
-void ServerGame::update_enemy_turret(uint32_t id, float dt) {
+void ServerGame::update_enemy_spiral(uint32_t id, float dt) {
+    static std::unordered_map<uint32_t, float> angles;
+    static std::unordered_map<uint32_t, float> initialX;
+    static std::unordered_map<uint32_t, float> initialY;
+    static std::unordered_map<uint32_t, float> currentRadius;
+
+    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
+    auto pos = get_component_ptr<component::position>(registry_server, entity);
+    auto vel = get_component_ptr<component::velocity>(registry_server, entity);
+    if (!pos) return;
+
+    if (angles.find(id) == angles.end()) {
+        angles[id] = 0.f;
+        initialX[id] = pos->x;
+        initialY[id] = pos->y;
+        currentRadius[id] = 10.f;
+    }
+
+    float baseVelocityX = -50.f;
+    if (vel) baseVelocityX = vel->vx;
+    const float angularSpeed = 3.0f;
+    const float radiusGrowth = 15.f;
+    const float maxRadius = 80.f;
+    angles[id] += angularSpeed * dt;
+    initialX[id] += baseVelocityX * dt;
+    currentRadius[id] = std::min(currentRadius[id] + radiusGrowth * dt, maxRadius);
+    pos->x = initialX[id] + std::cos(angles[id]) * currentRadius[id];
+    pos->y = initialY[id] + std::sin(angles[id]) * currentRadius[id];
+    update_enemy_turret(id, dt, 1.0f);
+}
+
+void ServerGame::update_enemy_figure8(uint32_t id, float dt) {
+    static std::unordered_map<uint32_t, float> time;
+    static std::unordered_map<uint32_t, float> initialX;
+    static std::unordered_map<uint32_t, float> initialY;
+
+    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
+    auto pos = get_component_ptr<component::position>(registry_server, entity);
+    auto vel = get_component_ptr<component::velocity>(registry_server, entity);
+    if (!pos) return;
+
+    if (time.find(id) == time.end()) {
+        time[id] = 0.f;
+        initialX[id] = pos->x;
+        initialY[id] = pos->y;
+    }
+
+    time[id] += dt;
+    float baseVelocityX = -50.f;
+    if (vel) baseVelocityX = vel->vx;
+    const float scale = 40.f;
+    const float speed = 2.0f;
+    initialX[id] += baseVelocityX * dt;
+    float t = time[id] * speed;
+    float denominator = 1.f + std::sin(t) * std::sin(t);
+    pos->x = initialX[id] + (scale * std::cos(t)) / denominator;
+    pos->y = initialY[id] + (scale * std::sin(t) * std::cos(t)) / denominator;
+    update_enemy_turret(id, dt, 2.0f);
+}
+
+void ServerGame::update_enemy_turret(uint32_t id, float dt, float rapidfire) {
     static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
-    static const float SHOOT_COOLDOWN = 5.0f;
+    static std::unordered_map<uint32_t, float> shootCooldowns;
+    static std::unordered_map<uint32_t, bool> initialized; // ✅ NOUVEAU
     
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
@@ -141,45 +206,58 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt) {
     
     auto currentTime = std::chrono::high_resolution_clock::now();
     
-    if (lastShootTime.find(id) == lastShootTime.end()) {
-        lastShootTime[id] = currentTime;
+    if (!initialized[id]) {
+        float cooldown = 10.0f / rapidfire;
+        float randomOffset = (static_cast<float>(rand() % 1000) / 1000.0f) * cooldown;        
+        lastShootTime[id] = currentTime - std::chrono::milliseconds(
+            static_cast<int>(randomOffset * 1000)
+        );
+        shootCooldowns[id] = cooldown;
+        initialized[id] = true;
     }
     
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
         currentTime - lastShootTime[id]
     ).count();
-
-    if (elapsed >= SHOOT_COOLDOWN) {
-        shoot_enemy_projectile(id, pos->x, pos->y, -200.f, 0.f);
+    
+    if (elapsed >= shootCooldowns[id]) {
+        float enemyWidth = 30.f;
+        auto cbox = get_component_ptr<component::collision_box>(registry_server, entity);
+        if (cbox) {
+            enemyWidth = cbox->width;
+        }        
+        float shootX = pos->x - (enemyWidth / 2.0f);
+        shoot_enemy_projectile(id, shootX, pos->y, -200.f, 0.f);
         lastShootTime[id] = currentTime;
     }
 }
 
 void ServerGame::update_enemy_boss_phase1(uint32_t id, float dt) {
-    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
+ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
     if (!pos) return;
 
-    float vx = -20.f;
-    if (vel) vx = vel->vx;
+    float baseVx = -80.f;
+    if (vel) baseVx = vel->vx;
 
-    const float amplitude = 40.f;
-    const float freq = 0.5f;
-    pos->x += vx * dt;
-    pos->y += std::sin(pos->x * freq) * amplitude * dt;
+    const float amplitude = 230.f;
+    const float wavelength = 50.f;
+    pos->x += baseVx * dt;
+    pos->y += std::sin(pos->x / wavelength) * amplitude * dt;
+    update_enemy_turret(id, dt, 6.0f);
 }
 
 void ServerGame::check_player_enemy_collisions() {
     const float PLAYER_WIDTH = 30.f;
     const float PLAYER_HEIGHT = 30.f;
-    const float ENEMY_WIDTH = 30.f;
-    const float ENEMY_HEIGHT = 30.f;
     const int DAMAGE_PER_HIT = 10;
     const int COOLDOWN_MS = 1000;
     
     std::vector<uint32_t> playersHit;
     auto now = std::chrono::high_resolution_clock::now();
+    
+    auto &collision_boxes = registry_server.get_components<component::collision_box>();
     
     for (const auto& playerKv : playerPositions) {
         uint32_t playerId = playerKv.first;
@@ -200,13 +278,20 @@ void ServerGame::check_player_enemy_collisions() {
             auto epos = get_component_ptr<component::position>(registry_server, enemy);
             if (!epos)
                 continue;
+            float enemyWidth = 30.f;
+            float enemyHeight = 30.f;
+            if (eid < collision_boxes.size() && collision_boxes[eid]) {
+                enemyWidth = collision_boxes[eid]->width;
+                enemyHeight = collision_boxes[eid]->height;
+            }
+            
             float enemyX = epos->x;
             float enemyY = epos->y;
             
-            float enemyLeft = enemyX - ENEMY_WIDTH * 0.5f;
-            float enemyRight = enemyX + ENEMY_WIDTH * 0.5f;
-            float enemyTop = enemyY - ENEMY_HEIGHT * 0.5f;
-            float enemyBottom = enemyY + ENEMY_HEIGHT * 0.5f;
+            float enemyLeft = enemyX - enemyWidth * 0.5f;
+            float enemyRight = enemyX + enemyWidth * 0.5f;
+            float enemyTop = enemyY - enemyHeight * 0.5f;
+            float enemyBottom = enemyY + enemyHeight * 0.5f;
             
             if (check_aabb_overlap(playerLeft, playerRight, playerTop, playerBottom,
                                   enemyLeft, enemyRight, enemyTop, enemyBottom)) {

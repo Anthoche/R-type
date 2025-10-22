@@ -154,7 +154,6 @@ namespace game::parsing
             if (!model_path.empty() && !std::ifstream(model_path).good()) {
                 std::cerr << "[WARNING] Enemy model file not found: " << model_path << std::endl;
             }
-            std::cout << width << height << std::endl;
             return game::entities::create_enemy(reg, x, y, z, image_path, width, height, model_path, pattern, health, velocity);
         }
         catch (const std::exception &e) {
