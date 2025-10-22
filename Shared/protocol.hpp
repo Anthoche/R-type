@@ -147,6 +147,8 @@ struct EnemySpawnMessage {
     uint32_t enemyId;
     Position3D pos;      ///< 3D position
     Velocity3D vel;      ///< 3D velocity
+    float width;
+    float height;
 };
 
 /**

@@ -239,7 +239,7 @@ void GameScene::update() {
         }
     }
 
-    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> netEnemies;
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> netEnemies;
     {
         std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
         netEnemies = _game.getGameClient().enemies;
@@ -271,6 +271,8 @@ void GameScene::update() {
         float vx = std::get<3>(kv.second);
         float vy = std::get<4>(kv.second);
         float vz = std::get<5>(kv.second);
+        float width = std::get<6>(kv.second);
+        float height = std::get<7>(kv.second);
         
         auto it = _enemyMap.find(serverId);
         
@@ -280,14 +282,9 @@ void GameScene::update() {
             auto spriteIt = _enemySpriteMap.find(serverId);
             if (spriteIt != _enemySpriteMap.end()) {
                 spritePath = spriteIt->second;
-                std::cout << "[DEBUG] Using mapped sprite for enemy " << serverId 
-                          << ": " << spritePath << std::endl;
-            } else {
-                std::cout << "[WARNING] No sprite mapped for enemy " << serverId 
-                          << ", using default" << std::endl;
             }
-            
-            ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, z, spritePath);
+            std::cout << x << y << z << width << height <<std::endl;
+            ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, z, spritePath, width, height);
             _enemyMap.emplace(serverId, newEnemy);
             _enemys.push_back(newEnemy);
             if (newEnemy.value() < positions.size() && positions[newEnemy.value()]) {
@@ -320,20 +317,19 @@ void GameScene::update() {
 
     void GameScene::extract_enemy_sprite_paths() {
         auto &sprites = _registry.get_components<component::sprite>();
-            auto &types = _registry.get_components<component::type>();
+        auto &types = _registry.get_components<component::type>();
             
-            _enemySpriteMap.clear();    
-            for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
-                if (sprites[i] && types[i] && types[i]->value == component::entity_type::ENEMY) {
-                    uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
-                    
-                    if (!sprites[i]->image_path.empty())
-                        _enemySpriteMap[serverEntityId] = sprites[i]->image_path;
-                    
-                    ecs::entity_t entity = _registry.entity_from_index(i);
-                    _registry.kill_entity(entity);
-                }
-            }    
+        _enemySpriteMap.clear();   
+        for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
+            if (sprites[i] && types[i] && types[i]->value == component::entity_type::ENEMY) {
+                uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
+                
+                if (!sprites[i]->image_path.empty())
+                    _enemySpriteMap[serverEntityId] = sprites[i]->image_path;
+                ecs::entity_t entity = _registry.entity_from_index(i);
+                _registry.kill_entity(entity);
+            }
+        }    
     }
 
     void GameScene::render() {

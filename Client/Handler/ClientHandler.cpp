@@ -265,17 +265,21 @@ void GameClient::handleEnemySpawn(const std::vector<uint8_t> &buffer) {
     uint32_t vxb = ntohl(msg->vel.vxBits);
     uint32_t vyb = ntohl(msg->vel.vyBits);
     uint32_t vzb = ntohl(msg->vel.vzBits);
+    uint32_t w = ntohl(msg->width);
+    uint32_t h = ntohl(msg->height);
     
-    float x, y, z, vx, vy, vz;
+    float x, y, z, vx, vy, vz, bw, bh;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
     std::memcpy(&z, &zb, sizeof(float));
     std::memcpy(&vx, &vxb, sizeof(float));
     std::memcpy(&vy, &vyb, sizeof(float));
     std::memcpy(&vz, &vzb, sizeof(float));
+    std::memcpy(&bw, &w, sizeof(float));
+    std::memcpy(&bh, &h, sizeof(float));
     
     std::lock_guard<std::mutex> g(stateMutex);
-    enemies[enemyId] = std::make_tuple(x, y, z, vx, vy, vz);
+    enemies[enemyId] = std::make_tuple(x, y, z, vx, vy, vz, bw, bh);
     
     std::cout << "[Client] Enemy spawned: id=" << enemyId 
               << " pos=(" << x << ", " << y << ", " << z << ")" << std::endl;
@@ -298,6 +302,7 @@ void GameClient::handleEnemyUpdate(const std::vector<uint8_t>& data) {
         
         uint32_t enemyId = ntohl(msg->enemyId);
         
+        
         uint32_t xb = ntohl(msg->pos.xBits);
         uint32_t yb = ntohl(msg->pos.yBits);
         uint32_t zb = ntohl(msg->pos.zBits);
@@ -314,10 +319,14 @@ void GameClient::handleEnemyUpdate(const std::vector<uint8_t>& data) {
         std::lock_guard<std::mutex> lock(stateMutex);
         float vz = 0.f;
         auto it = enemies.find(enemyId);
+        float existingWidth = 0.0f;
+        float existingHeight = 0.0f;
         if (it != enemies.end()) {
             vz = std::get<5>(it->second);
+            existingWidth = std::get<6>(it->second);
+            existingHeight = std::get<7>(it->second);
         }
-        enemies[enemyId] = std::make_tuple(x, y, z, vx, vy, vz);
+        enemies[enemyId] = std::make_tuple(x, y, z, vx, vy, vz, existingWidth, existingHeight);
     }
 }
 

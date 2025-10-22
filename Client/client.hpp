@@ -73,7 +73,7 @@ class GameClient {
         /**
          * @brief Maps enemy IDs to their (x,y,velX,velY).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> enemies;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> enemies;
 
         /**
          * @brief Maps player IDs to their current health values.

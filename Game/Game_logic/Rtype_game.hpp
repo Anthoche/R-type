@@ -155,7 +155,7 @@ class ServerGame : public IServerGame {
         void update_enemy_turret(uint32_t id, float dt);
         void update_enemy_boss_phase1(uint32_t id, float dt);
 
-        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz);
+        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz, float width, float height);
         void broadcast_enemy_positions();
         void broadcast_enemy_update(uint32_t enemyId, float x, float y, float z);
         void broadcast_enemy_despawn(uint32_t enemyId);

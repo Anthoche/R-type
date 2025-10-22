@@ -156,7 +156,6 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt) {
 }
 
 void ServerGame::update_enemy_boss_phase1(uint32_t id, float dt) {
-    LOG_DEBUG("[Server] Updating boss enemy ID=" << id << " in phase 1");
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
@@ -264,18 +263,20 @@ void ServerGame::broadcast_enemy_positions() {
     }
 }
 
-void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz) {
+void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz, float width, float height) {
     EnemySpawnMessage msg{};
     msg.type = MessageType::EnemySpawn;
     msg.enemyId = htonl(enemyId);
 
-    uint32_t xb, yb, zb, vxb, vyb, vzb;
+    uint32_t xb, yb, zb, vxb, vyb, vzb, w, h;
     std::memcpy(&xb, &x, sizeof(float));
     std::memcpy(&yb, &y, sizeof(float));
     std::memcpy(&zb, &z, sizeof(float));
     std::memcpy(&vxb, &vx, sizeof(float));
     std::memcpy(&vyb, &vy, sizeof(float));
     std::memcpy(&vzb, &vz, sizeof(float));
+    std::memcpy(&w, &width, sizeof(float));
+    std::memcpy(&h, &height, sizeof(float));
 
     msg.pos.xBits = htonl(xb);
     msg.pos.yBits = htonl(yb);
@@ -283,6 +284,8 @@ void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float
     msg.vel.vxBits = htonl(vxb);
     msg.vel.vyBits = htonl(vyb);
     msg.vel.vzBits = htonl(vzb);
+    msg.width = htonl(w);
+    msg.height = htonl(h);
 
     connexion.broadcast(&msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast enemy spawn: ID=" << enemyId << " pos=(" << x << "," << y << "," << z << ")");

@@ -43,12 +43,12 @@ void ServerGame::check_projectile_enemy_collisions() {
     const float ENEMY_HEIGHT = 30.f;
     const float PROJ_WIDTH = 10.f;
     const float PROJ_HEIGHT = 5.f;
+    const int DAMAGE_PER_HIT = 1;
 
     for (const auto& projKv : projectiles) {
         uint32_t projId = projKv.first;
         float projX = std::get<0>(projKv.second);
         float projY = std::get<1>(projKv.second);
-        // std::get<2> = projZ (pas utilisé pour collision 2D)
 
         float projLeft = projX - PROJ_WIDTH * 0.5f;
         float projRight = projX + PROJ_WIDTH * 0.5f;
@@ -57,7 +57,8 @@ void ServerGame::check_projectile_enemy_collisions() {
 
         for (auto enemyEntity : _enemies) {
             auto pos = get_component_ptr<component::position>(registry_server, enemyEntity);
-            if (!pos)
+            auto health = get_component_ptr<component::health>(registry_server, enemyEntity);
+            if (!pos || !health)
                 continue;
 
             float enemyX = pos->x;
@@ -69,16 +70,22 @@ void ServerGame::check_projectile_enemy_collisions() {
 
             if (check_aabb_overlap(projLeft, projRight, projTop, projBottom,
                                   enemyLeft, enemyRight, enemyTop, enemyBottom)) {
+                
                 projectilesToRemove.push_back(projId);
-                enemiesToRemove.push_back(static_cast<uint32_t>(enemyEntity));
-                totalScore += 10;
-
-                uint32_t killerId = std::get<6>(projKv.second);  // Changé de 4 à 6 (x,y,z,vx,vy,vz,owner)
-                if (playerIndividualScores.find(killerId) == playerIndividualScores.end()) {
-                    playerIndividualScores[killerId] = 0;
+                
+                health->current -= DAMAGE_PER_HIT;
+                
+                uint32_t enemyId = static_cast<uint32_t>(enemyEntity);
+                uint32_t killerId = std::get<6>(projKv.second);
+                
+                if (health->current <= 0) {
+                    enemiesToRemove.push_back(enemyId);
+                    totalScore += 10;
+                    if (playerIndividualScores.find(killerId) == playerIndividualScores.end()) {
+                        playerIndividualScores[killerId] = 0;
+                    }
+                    playerIndividualScores[killerId] += 10;
                 }
-                playerIndividualScores[killerId] += 10;
-                LOG_DEBUG("[Server] Projectile " << projId << " hit enemy " << static_cast<uint32_t>(enemyEntity));
                 break;
             }
         }
@@ -92,10 +99,10 @@ void ServerGame::check_projectile_enemy_collisions() {
     for (uint32_t enemyId : enemiesToRemove) {
         registry_server.kill_entity(static_cast<ecs::entity_t>(enemyId));
         broadcast_enemy_despawn(enemyId);
-        _enemies.erase(std::remove(_enemies.begin(), _enemies.end(), static_cast<ecs::entity_t>(enemyId)), _enemies.end());
+        _enemies.erase(std::remove(_enemies.begin(), _enemies.end(), 
+                                   static_cast<ecs::entity_t>(enemyId)), _enemies.end());
     }
 }
-
 void ServerGame::broadcast_projectile_positions() {
     for (const auto& kv : projectiles) {
         uint32_t id = kv.first;
