@@ -8,6 +8,8 @@
 #pragma once
 
 #include "../../../Engine/Rendering/Raylib.hpp"
+#include <deque>
+#include <string>
 
 /**
  * @class ChatSystem
@@ -52,6 +54,43 @@ public:
 	 */
 	[[nodiscard]] bool isFocused() const { return _isFocused; }
 
+	/**
+	 * @brief Update the player username used when submitting messages.
+	 */
+	void setUsername(std::string username);
+
+	/**
+	 * @brief Append a printable codepoint to the input buffer.
+	 */
+	void appendCharacter(int codepoint);
+
+	/**
+	 * @brief Remove the last character from the input buffer (if any).
+	 */
+	void removeLastCharacter();
+
+	/**
+	 * @brief Submit the current input buffer as a chat message.
+	 *
+	 * The buffer is cleared after submission. Empty buffers are ignored.
+	 */
+	void submitMessage();
+
+	/**
+	 * @brief Clear the current input buffer without submitting.
+	 */
+	void clearInput();
+
+	/**
+	 * @brief Access the current list of messages.
+	 */
+	const std::deque<std::string> &messages() const { return _messages; }
+
+	/**
+	 * @brief Access the current input buffer.
+	 */
+	const std::string &inputBuffer() const { return _inputBuffer; }
+
 private:
 	/**
 	 * @brief Recalculate panel position/size when the window changes.
@@ -63,4 +102,11 @@ private:
 	bool _isFocused{false};
 	float _focusBlend{0.f};
 	float _margin{24.f};
+	float _cursorTimer{0.f};
+	std::string _username;
+	std::string _inputBuffer;
+	std::deque<std::string> _messages;
+	std::size_t _maxMessages{6};
+	int _fontSize{18};
+	float _lineSpacing{4.f};
 };

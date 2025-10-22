@@ -137,3 +137,7 @@ void GameClient::sendHealth(int health) {
 bool GameClient::hasConnectionFailed() const {
     return connectionFailed;
 }
+
+const std::string &GameClient::getClientName() const {
+    return clientName;
+}

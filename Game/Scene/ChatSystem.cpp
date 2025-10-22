@@ -7,6 +7,8 @@
 
 #include "Include/ChatSystem.hpp"
 #include <algorithm>
+#include <cmath>
+#include <format>
 
 namespace {
 	Color mixColor(Color a, Color b, float t)
@@ -34,6 +36,9 @@ void ChatSystem::init()
 	updatePanelGeometry();
 	_focusBlend = 0.f;
 	_isFocused = false;
+	_inputBuffer.clear();
+	_messages.clear();
+	_cursorTimer = 0.f;
 }
 
 void ChatSystem::update(float deltaTime)
@@ -42,6 +47,9 @@ void ChatSystem::update(float deltaTime)
 	const float speed = 8.f;
 	const float step = std::clamp(deltaTime * speed, 0.f, 1.f);
 	_focusBlend += (target - _focusBlend) * step;
+	_cursorTimer += deltaTime;
+	if (_cursorTimer > 1.0f)
+		_cursorTimer -= 1.0f;
 	updatePanelGeometry();
 }
 
@@ -80,6 +88,49 @@ void ChatSystem::render()
 		_raylib.drawRectangleRounded(sheenBounds, 0.18f, 16, glassSheen);
 	}
 
+	const Color messageColor = Color{220, 228, 255, 230};
+	const Color inputColorFocused = Color{240, 248, 255, 240};
+	const Color inputColorIdle = Color{200, 208, 220, 180};
+	const float padding = 14.f;
+	const float inputPadding = 18.f;
+	const float textStartX = _panelBounds.x + padding;
+	const float textAreaTop = _panelBounds.y + padding;
+	const float textAreaBottom = sheenBounds.y - padding;
+	float lineY = textAreaTop;
+	const float lineAdvance = static_cast<float>(_fontSize) + _lineSpacing;
+	std::size_t maxLines = lineAdvance > 0.f ? static_cast<std::size_t>(std::floor((textAreaBottom - textAreaTop) / lineAdvance)) : 0;
+	if (maxLines == 0)
+		maxLines = 1;
+	std::size_t startIndex = _messages.size() > maxLines ? _messages.size() - maxLines : 0;
+
+	for (std::size_t i = startIndex; i < _messages.size(); ++i) {
+		const auto &message = _messages[i];
+		if (lineY + _fontSize > textAreaBottom)
+			break;
+		_raylib.drawText(message, static_cast<int>(textStartX), static_cast<int>(lineY), _fontSize, messageColor);
+		lineY += lineAdvance;
+	}
+
+	std::string inputText;
+	if (_inputBuffer.empty()) {
+		if (_isFocused) {
+			inputText = "> ";
+		} else {
+			inputText = "> Tape un message...";
+		}
+	} else {
+		inputText = std::format("> {}", _inputBuffer);
+	}
+
+	bool caretVisible = _isFocused && _cursorTimer < 0.5f;
+	if (_isFocused) {
+		inputText += caretVisible ? "|" : " ";
+	}
+
+	const float inputTextY = sheenBounds.y + (sheenBounds.height - _fontSize) / 2.f - 2.f;
+	const Color inputColor = _isFocused ? inputColorFocused : inputColorIdle;
+	_raylib.drawText(inputText, static_cast<int>(_panelBounds.x + inputPadding), static_cast<int>(inputTextY), _fontSize, inputColor);
+
 	_raylib.drawRectangleLines(
 		static_cast<int>(_panelBounds.x),
 		static_cast<int>(_panelBounds.y),
@@ -92,6 +143,8 @@ void ChatSystem::render()
 void ChatSystem::toggleFocus()
 {
 	_isFocused = !_isFocused;
+	if (_isFocused)
+		_cursorTimer = 0.f;
 }
 
 void ChatSystem::updatePanelGeometry()
@@ -109,4 +162,45 @@ void ChatSystem::updatePanelGeometry()
 	_panelBounds.height = height;
 	_panelBounds.x = _margin;
 	_panelBounds.y = renderHeight - height - _margin;
+}
+
+void ChatSystem::setUsername(std::string username)
+{
+	_username = std::move(username);
+}
+
+void ChatSystem::appendCharacter(int codepoint)
+{
+	if (codepoint <= 0)
+		return;
+	if (codepoint == 9) // tab
+		return;
+
+	if (codepoint >= 32 && codepoint <= 126) {
+		if (_inputBuffer.size() < 160)
+			_inputBuffer.push_back(static_cast<char>(codepoint));
+	}
+}
+
+void ChatSystem::removeLastCharacter()
+{
+	if (!_inputBuffer.empty())
+		_inputBuffer.pop_back();
+}
+
+void ChatSystem::submitMessage()
+{
+	if (_inputBuffer.empty())
+		return;
+	std::string name = _username.empty() ? "Player" : _username;
+	std::string composed = std::format("{}: {}", name, _inputBuffer);
+	_messages.push_back(std::move(composed));
+	while (_messages.size() > _maxMessages)
+		_messages.pop_front();
+	_inputBuffer.clear();
+}
+
+void ChatSystem::clearInput()
+{
+	_inputBuffer.clear();
 }

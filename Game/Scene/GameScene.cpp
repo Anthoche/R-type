@@ -50,6 +50,7 @@ namespace game::scene {
         _registry.register_component<component::client_id>();
         _ui.init();
         _chat.init();
+        _chat.setUsername(_game.getGameClient().getClientName());
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 
         // Configuration des systèmes
@@ -721,7 +722,9 @@ void GameScene::update() {
         bool leftPressed = _raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT);
         bool rightPressed = _raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT);
 
-        switch (_raylib.getKeyPressed()) {
+        int keyPressed = _raylib.getKeyPressed();
+
+        switch (keyPressed) {
             case KEY_SPACE:
                 if (!_chat.isFocused())
                     handle_shoot(SHOOT_COOLDOWN);
@@ -737,6 +740,24 @@ void GameScene::update() {
         }
 
         if (_chat.isFocused()) {
+            if (keyPressed == KEY_ENTER) {
+                _chat.submitMessage();
+            } else if (keyPressed == KEY_BACKSPACE) {
+                _chat.removeLastCharacter();
+            } else if (keyPressed == KEY_ESCAPE) {
+                _chat.toggleFocus();
+                dispatch_input_events(false, false, false, false);
+                if (myClientId != 0) {
+                    moovePlayer[myClientId] = 0.0f;
+                }
+                return;
+            }
+
+            int codepoint = 0;
+            while ((codepoint = _raylib.getCharPressed()) != 0) {
+                _chat.appendCharacter(codepoint);
+            }
+
             dispatch_input_events(false, false, false, false);
             if (myClientId != 0) {
                 moovePlayer[myClientId] = 0.0f;

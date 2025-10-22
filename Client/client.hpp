@@ -157,6 +157,12 @@ class GameClient {
         void sendHealth(int lives);
 
         /**
+         * @brief Get the local client's display name.
+         * @return Constant reference to the client name.
+         */
+        const std::string &getClientName() const;
+
+        /**
          * @brief Handles an incoming message from the server.
          *
          * @param type The type of the message.
