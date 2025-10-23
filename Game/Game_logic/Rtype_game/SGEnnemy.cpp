@@ -26,7 +26,6 @@
 #define LOG_DEBUG(msg)   std::cout << YELLOW_COLOR << "[DEBUG] " << msg << RESET_COLOR << std::endl
 #define LOG(msg)         std::cout << BLUE_COLOR << msg << RESET_COLOR << std::endl
 
-// Helper pour récupérer un composant via registry actuelle
 template <typename Component>
 inline Component* get_component_ptr(ecs::registry &registry, ecs::entity_t entity) {
     auto &arr = registry.get_components<Component>();
@@ -191,7 +190,7 @@ void ServerGame::update_enemy_figure8(uint32_t id, float dt) {
 void ServerGame::update_enemy_turret(uint32_t id, float dt, float rapidfire) {
     static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
     static std::unordered_map<uint32_t, float> shootCooldowns;
-    static std::unordered_map<uint32_t, bool> initialized; // ✅ NOUVEAU
+    static std::unordered_map<uint32_t, bool> initialized;
     
     ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
@@ -391,6 +390,8 @@ void ServerGame::broadcast_boss_death(uint32_t bossId) {
     msg.bossId = htonl(bossId);
     
     connexion.broadcast(&msg, sizeof(msg));
+    levelTransitionPending = true;
+    levelTransitionTime = std::chrono::steady_clock::now();
 }
 
 void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, float z) {

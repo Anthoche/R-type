@@ -26,7 +26,6 @@ namespace game::scene {
         _raylib.setTargetFPS(60);
         toggleFullScreen();
 
-        // Enregistrement des composants
         _registry.register_component<component::position>();
         _registry.register_component<component::previous_position>();
         _registry.register_component<component::velocity>();
@@ -52,7 +51,6 @@ namespace game::scene {
         _ui.init();
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 
-        // Configuration des systèmes
         setup_movement_system();
         setup_render_system();
         setup_health_system();
@@ -60,11 +58,9 @@ namespace game::scene {
         game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height), 0.f);
         game::entities::setup_hitbox_sync_system(_registry);
 
-        // Création des entités statiques (background, UI, etc.)
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
         game::entities::create_sound(_registry, "../Game/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
         
-        // Indexer les entités existantes dans le registre
         index_existing_entities();
         extract_enemy_sprite_paths();
         extract_obstacle_sprite_paths();
@@ -74,7 +70,7 @@ namespace game::scene {
     }
 
     void GameScene::index_existing_entities() {
-        _player = ecs::entity_t{0}; // Reset le joueur local
+        _player = ecs::entity_t{0};
         _obstacles.clear();
         _enemys.clear();
         _playerEntities.clear();
@@ -318,7 +314,6 @@ void GameScene::update() {
         netObstacles = _game.getGameClient().obstacles;
     }
 
-    // Supprime les obstacles qui n'existent plus côté serveur
     for (auto it = _obstacleMap.begin(); it != _obstacleMap.end(); ) {
         uint32_t serverId = it->first;
         
@@ -335,7 +330,6 @@ void GameScene::update() {
         }
     }
 
-    // Crée ou met à jour les obstacles
     for (auto const &kv : netObstacles) {
         uint32_t serverId = kv.first;
         float x = std::get<0>(kv.second);
@@ -351,10 +345,8 @@ void GameScene::update() {
         auto it = _obstacleMap.find(serverId);
         
         if (it == _obstacleMap.end()) {
-            // Nouvel obstacle : on le crée
             std::string spritePath = "../Game/Assets/sprites/obstacles/default_obstacle.png";
             
-            // Vérifie si on a un sprite path spécifique
             auto spriteIt = _obstacleSpriteMap.find(serverId);
             if (spriteIt != _obstacleSpriteMap.end()) {
                 spritePath = spriteIt->second;
@@ -367,7 +359,6 @@ void GameScene::update() {
             _obstacleMap.emplace(serverId, newObstacle);
             _obstacles.push_back(newObstacle);
             
-            // Initialise position et vélocité
             if (newObstacle.value() < positions.size() && positions[newObstacle.value()]) {
                 positions[newObstacle.value()]->x = x;
                 positions[newObstacle.value()]->y = y;
@@ -379,7 +370,6 @@ void GameScene::update() {
                 velocities[newObstacle.value()]->vz = vz;
             }
         } else {
-            // Obstacle existant : on met à jour sa position et vélocité
             ecs::entity_t clientObstacle = it->second;
 
             if (clientObstacle.value() < velocities.size() && velocities[clientObstacle.value()]) {
@@ -417,7 +407,6 @@ void GameScene::update() {
         _obstacleSpriteMap.clear();   
         for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
             if (sprites[i] && types[i] && types[i]->value == component::entity_type::OBSTACLE) {
-                // Calcule l'ID serveur de l'obstacle (ajuste l'offset si nécessaire)
                 uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
                 
                 if (!sprites[i]->image_path.empty())
@@ -460,7 +449,29 @@ void GameScene::update() {
                 _raylib.playSound(_victorySound);
             }
             _victorySoundPlayed = true;
+            _victoryStartTime = _raylib.getTime();
+    }
+
+    if (_isWin && _victorySoundPlayed) {
+        float currentTime = _raylib.getTime();
+        float timeSinceVictory = currentTime - _victoryStartTime;
+        
+        if (timeSinceVictory >= 6.0f) {
+            _isWin = false;
+            _victorySoundPlayed = false;
+            _game.getGameClient().bossDefeated.store(false);
+
+            _enemyMap.clear();
+            _obstacleMap.clear();
+            _enemys.clear();
+            _obstacles.clear();
+            
+
+            if (_game.isSoundEnabled()) {
+                _raylib.playMusicStream(_music);
+            }
         }
+    }
         _raylib.endDrawing();
     }
 
@@ -469,7 +480,6 @@ void GameScene::update() {
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
 
-        // Render background first
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i])
                 continue;
@@ -479,7 +489,6 @@ void GameScene::update() {
             }
         }
         
-        // Render other entities
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
 

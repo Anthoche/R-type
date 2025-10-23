@@ -95,6 +95,17 @@ void ServerGame::run() {
         broadcast_global_score();
         broadcast_individual_scores();
 
+        if (levelTransitionPending) {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                now - levelTransitionTime
+            ).count();
+            
+            if (elapsed >= LEVEL_TRANSITION_DELAY) {
+                load_next_level();
+                levelTransitionPending = false;
+            }
+        }
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
 }
@@ -235,6 +246,54 @@ void ServerGame::index_existing_entities() {
     LOG_DEBUG("  - Obstacles: " << _obstacles.size());
 }
 
+void ServerGame::load_next_level() {
+    LOG_INFO("[Server] Loading next level...");
+    currentLevel++;
+    clear_level_entities();
+    std::string levelPath = ASSETS_PATH "/Config_assets/Levels/level_0" 
+                          + std::to_string(currentLevel) + ".json";
+    try {
+        load_level(levelPath);
+        index_existing_entities();
+        for (const auto& kv : connexion.getClients()) {
+            broadcast_full_registry_to(kv.second);
+        }
+        LOG_INFO("[Server] Level " << currentLevel << " loaded successfully!");
+    } catch (const std::exception &e) {
+        LOG_ERROR("[Server] Failed to load level " << currentLevel << ": " << e.what());
+        LOG_INFO("[Server] Game completed! No more levels.");
+    }
+}
+
+void ServerGame::clear_level_entities() {
+    auto &types = registry_server.get_components<component::type>();
+    std::vector<ecs::entity_t> entitiesToKill;    
+    for (std::size_t i = 0; i < types.size(); ++i) {
+        if (!types[i]) continue;
+        
+        ecs::entity_t entity = registry_server.entity_from_index(i);
+        
+        switch (types[i]->value) {
+            case component::entity_type::ENEMY:
+            case component::entity_type::OBSTACLE:
+            case component::entity_type::PROJECTILE:
+            case component::entity_type::POWERUP:
+            case component::entity_type::BACKGROUND:
+                entitiesToKill.push_back(entity);
+                break;
+            default:
+                break;
+        }
+    }    
+    for (auto entity : entitiesToKill) {
+        registry_server.kill_entity(entity);
+    }
+    _enemies.clear();
+    _obstacles.clear();
+    projectiles.clear();
+    enemyProjectiles.clear();
+    LOG_DEBUG("[Server] Cleared " << entitiesToKill.size() << " level entities");
+}
 
 void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from) {
     if (data.size() < sizeof(MessageType))
@@ -293,10 +352,10 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     uint32_t projId = nextProjectileId++;
                     float projX = playerX + 20.f;
                     float projY = playerY;
-                    float projZ = 0.f;  // Ajout de Z
+                    float projZ = 0.f;
                     float projVelX = 400.f;
                     float projVelY = 0.f;
-                    float projVelZ = 0.f;  // Ajout de Z
+                    float projVelZ = 0.f;
                     
                     projectiles[projId] = std::make_tuple(projX, projY, projZ, projVelX, projVelY, projVelZ, clientId);
 
@@ -415,7 +474,7 @@ void ServerGame::broadcast_states_to_clients() {
         m.clientId = htonl(id);
         
         uint32_t xbits, ybits, zbits;
-        float z = 0.f;  // Valeur par défaut pour Z
+        float z = 0.f;
         std::memcpy(&xbits, &it->second.first, sizeof(float));
         std::memcpy(&ybits, &it->second.second, sizeof(float));
         std::memcpy(&zbits, &z, sizeof(float));

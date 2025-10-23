@@ -125,6 +125,12 @@ class ServerGame : public IServerGame {
         /** @brief Cached references for enemies. */
         std::vector<ecs::entity_t> _enemies;
 
+         int currentLevel = 1;
+        bool levelTransitionPending = false;
+        std::chrono::steady_clock::time_point levelTransitionTime;
+        const float LEVEL_TRANSITION_DELAY = 6.0f;
+
+
 
         void initialize_player_positions();
         void index_existing_entities();
@@ -175,6 +181,9 @@ class ServerGame : public IServerGame {
         void broadcast_global_score();
         void broadcast_individual_scores();
         void check_projectile_enemy_collisions();
+
+        void load_next_level();
+        void clear_level_entities();
 
         void process_player_inputs(float dt);
         bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
