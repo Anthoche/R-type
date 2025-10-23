@@ -161,6 +161,7 @@ class ServerGame : public IServerGame {
         void broadcast_enemy_positions();
         void broadcast_enemy_update(uint32_t enemyId, float x, float y, float z);
         void broadcast_enemy_despawn(uint32_t enemyId);
+        void broadcast_boss_death(uint32_t bossId);
 
         void shoot_enemy_projectile(uint32_t enemyId, float x, float y, float vx, float vy);
         void update_enemy_projectiles_server_only(float dt);

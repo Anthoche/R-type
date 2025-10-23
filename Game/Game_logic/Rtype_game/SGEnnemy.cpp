@@ -385,6 +385,14 @@ void ServerGame::broadcast_enemy_despawn(uint32_t enemyId) {
     LOG_DEBUG("[Server] Broadcast enemy despawn: ID=" << enemyId);
 }
 
+void ServerGame::broadcast_boss_death(uint32_t bossId) {
+    BossDeathMessage msg{};
+    msg.type = MessageType::BossDeath;
+    msg.bossId = htonl(bossId);
+    
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
 void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, float z) {
     EnemyUpdateMessage msg{};
     msg.type = MessageType::EnemyUpdate;

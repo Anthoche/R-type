@@ -336,7 +336,7 @@ void GameScene::update() {
         _raylib.clearBackground(GRAY);
         if (!_isWin)
             _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
-        _isWin = (/* ici is boss meurt */false);
+        _isWin = _isWin = _game.getGameClient().bossDefeated.load();
         
         _raylib.updateMusicStream(_music);
         render_entities();

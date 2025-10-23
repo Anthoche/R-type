@@ -84,14 +84,24 @@ void ServerGame::check_projectile_enemy_collisions() {
                 
                 uint32_t enemyId = static_cast<uint32_t>(enemyEntity);
                 uint32_t killerId = std::get<6>(projKv.second);
-                
                 if (health->current <= 0) {
+                    bool isBoss = false;
+                    auto pattern_comp = get_component_ptr<component::pattern_element>(registry_server, enemyEntity);
+                    if (pattern_comp && !pattern_comp->pattern_name.empty()) {
+                        std::string pattern = pattern_comp->pattern_name;
+                        isBoss = (pattern.find("boss_phase1") != std::string::npos);
+                    }
+                    if (isBoss) {
+                        broadcast_boss_death(enemyId);
+                        totalScore += 100;
+                    } else {
+                        totalScore += 10;
+                    }
                     enemiesToRemove.push_back(enemyId);
-                    totalScore += 10;
                     if (playerIndividualScores.find(killerId) == playerIndividualScores.end()) {
                         playerIndividualScores[killerId] = 0;
                     }
-                    playerIndividualScores[killerId] += 10;
+                    playerIndividualScores[killerId] += (isBoss ? 100 : 10);
                 }
                 break;
             }
@@ -110,6 +120,7 @@ void ServerGame::check_projectile_enemy_collisions() {
                                    static_cast<ecs::entity_t>(enemyId)), _enemies.end());
     }
 }
+
 void ServerGame::broadcast_projectile_positions() {
     for (const auto& kv : projectiles) {
         uint32_t id = kv.first;

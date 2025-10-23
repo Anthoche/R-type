@@ -50,6 +50,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::EnemyDespawn:
             handleEnemyDespawn(buffer);
             break;
+        case MessageType::BossDeath:
+            handleBossDeath(buffer);
+            break;
         case MessageType::EnemyUpdate:
             handleEnemyUpdate(buffer);
             break;
@@ -294,6 +297,17 @@ void GameClient::handleEnemyDespawn(const std::vector<uint8_t>& data) {
         std::lock_guard<std::mutex> lock(stateMutex);
         enemies.erase(enemyId);
     }
+}
+
+void GameClient::handleBossDeath(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(BossDeathMessage)) {
+        return;
+    }
+    BossDeathMessage msg;
+    std::memcpy(&msg, buffer.data(), sizeof(BossDeathMessage));
+    uint32_t bossId = ntohl(msg.bossId);
+    std::cout << "[AAAAAAAAAAA]" << std::endl;
+    bossDefeated = true;    
 }
 
 void GameClient::handleEnemyUpdate(const std::vector<uint8_t>& data) {

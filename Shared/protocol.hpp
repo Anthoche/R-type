@@ -23,6 +23,7 @@ enum class MessageType : uint8_t {
     EnemyProjectileSpawn,     /**< Server spawns an enemy projectile */
     EnemyProjectileUpdate,    /**< Server updates an enemy projectile */
     EnemyProjectileDespawn,   /**< Server removes an enemy projectile */
+    BossDeath,
     EntityData,               /**< Server → Clients: entity ECS synchronization */
     SceneState,               /**< Client → Server: indicates current scene */
     PlayerDeath,              /**< Server notifies clients that a player has died */
@@ -168,6 +169,11 @@ struct EnemyUpdateMessage {
 struct EnemyDespawnMessage {
     MessageType type;
     uint32_t enemyId;
+};
+
+struct BossDeathMessage {
+    MessageType type;
+    uint32_t bossId;
 };
 
 /**

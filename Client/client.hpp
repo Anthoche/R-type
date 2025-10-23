@@ -90,7 +90,11 @@ class GameClient {
          */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 
+        
         int32_t globalScore = 0;
+
+        std::atomic<bool> bossDefeated{false};
+
 
         /**
          * @brief Constructs a GameClient and connects to the server.
@@ -243,6 +247,9 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleEnemySpawn(const std::vector<uint8_t> &buffer);
+
+    
+        void handleBossDeath(const std::vector<uint8_t> &buffer);
         /**
          * @brief Handles a player death message.
          * @param buffer Raw message data.
