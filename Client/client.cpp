@@ -37,12 +37,17 @@ void GameClient::run() {
 }
 
 void GameClient::sendHello() {
-    ClientHelloMessage msg;
+    ClientHelloMessage msg{};
     msg.type = MessageType::ClientHello;
     msg.clientId = htonl(0);
-    strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
-    msg.clientName[sizeof(msg.clientName) - 1] = '\0';
+
+    std::strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
+
+    std::string difficulty = _game.getDifficulty();
+    std::strncpy(msg.difficulty, difficulty.c_str(), sizeof(msg.difficulty) - 1);
+
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+    std::cout << "[DEBUG] Sent ClientHello with difficulty: " << difficulty << std::endl;
 }
 
 void GameClient::initTcpConnection() {

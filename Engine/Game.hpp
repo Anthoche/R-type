@@ -102,8 +102,16 @@ class Game {
 		 */
     	bool isSoundEnabled() const { return _soundEnabled; }
     	
+		/**
+		 * @brief Set the current game difficulty.
+		 * @param difficulty The difficulty level to set (e.g., "Easy", "Medium", "Hard").
+		 */
 		void setDifficulty(const std::string &difficulty) { _difficulty = difficulty; }
     	
+		/**
+		 * @brief Get the current game difficulty.
+		 * @return The current difficulty level as a string.
+		 */
 		const std::string &getDifficulty() const { return _difficulty; }
 
 	private:
@@ -113,5 +121,5 @@ class Game {
 		std::thread _networkThread; ///< Thread for handling network communication
 		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
 		bool _soundEnabled = true; ///< Sound enabled/disabled flag
-	    std::string _difficulty{"Easy"};
+	    std::string _difficulty; ///< Current game difficulty setting
 };
