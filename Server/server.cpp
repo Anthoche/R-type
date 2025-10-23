@@ -16,12 +16,10 @@ GameServer::GameServer(uint16_t port) : connexion(ioContext, port) {}
 void GameServer::run()
 {
     std::cout << "Serveur démarré. En attente de 4 clients..." << std::endl;
-    // accept clients until game start
     while (!gameStarted) {
         std::vector<uint8_t> data;
         asio::ip::udp::endpoint clientEndpoint;
         
-        // Utilisation d'asyncReceive avec un handler synchrone
         bool received = false;
         connexion.asyncReceive([&](const asio::error_code& error, std::vector<uint8_t> receivedData, asio::ip::udp::endpoint sender) {
             if (!error) {
@@ -43,8 +41,10 @@ void GameServer::run()
         }
     }
     std::cout << "Tous les clients sont connectés. Le jeu commence !" << std::endl;
-    // Delegate to Game module
-    ServerGame game(connexion);
+
+    std::string difficulty = "Hard";
+    ServerGame game(connexion, difficulty);
+    
     game.run();
 }
 
