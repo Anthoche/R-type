@@ -67,6 +67,7 @@ namespace game::scene {
         // Indexer les entités existantes dans le registre
         index_existing_entities();
         extract_enemy_sprite_paths();
+        extract_obstacle_sprite_paths();
         load_entity_textures();
         load_projectile_textures();
         load_music();
@@ -311,6 +312,84 @@ void GameScene::update() {
         }
     }
 
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> netObstacles;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netObstacles = _game.getGameClient().obstacles;
+    }
+
+    // Supprime les obstacles qui n'existent plus côté serveur
+    for (auto it = _obstacleMap.begin(); it != _obstacleMap.end(); ) {
+        uint32_t serverId = it->first;
+        
+        if (netObstacles.find(serverId) == netObstacles.end()) {
+            ecs::entity_t clientEntity = it->second;
+            _registry.kill_entity(clientEntity);
+            _obstacles.erase(
+                std::remove(_obstacles.begin(), _obstacles.end(), clientEntity),
+                _obstacles.end()
+            );
+            it = _obstacleMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // Crée ou met à jour les obstacles
+    for (auto const &kv : netObstacles) {
+        uint32_t serverId = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        float width = std::get<3>(kv.second);
+        float height = std::get<4>(kv.second);
+        float depth = std::get<5>(kv.second);
+        float vx = std::get<6>(kv.second);
+        float vy = std::get<7>(kv.second);
+        float vz = std::get<8>(kv.second);
+        
+        auto it = _obstacleMap.find(serverId);
+        
+        if (it == _obstacleMap.end()) {
+            // Nouvel obstacle : on le crée
+            std::string spritePath = "../Game/Assets/sprites/obstacles/default_obstacle.png";
+            
+            // Vérifie si on a un sprite path spécifique
+            auto spriteIt = _obstacleSpriteMap.find(serverId);
+            if (spriteIt != _obstacleSpriteMap.end()) {
+                spritePath = spriteIt->second;
+            }
+            
+            ecs::entity_t newObstacle = game::entities::create_obstacle(
+                _registry, x, y, z, spritePath, "", vx, width, height
+            );
+            
+            _obstacleMap.emplace(serverId, newObstacle);
+            _obstacles.push_back(newObstacle);
+            
+            // Initialise position et vélocité
+            if (newObstacle.value() < positions.size() && positions[newObstacle.value()]) {
+                positions[newObstacle.value()]->x = x;
+                positions[newObstacle.value()]->y = y;
+                positions[newObstacle.value()]->z = z;
+            }
+            if (newObstacle.value() < velocities.size() && velocities[newObstacle.value()]) {
+                velocities[newObstacle.value()]->vx = vx;
+                velocities[newObstacle.value()]->vy = vy;
+                velocities[newObstacle.value()]->vz = vz;
+            }
+        } else {
+            // Obstacle existant : on met à jour sa position et vélocité
+            ecs::entity_t clientObstacle = it->second;
+
+            if (clientObstacle.value() < velocities.size() && velocities[clientObstacle.value()]) {
+                velocities[clientObstacle.value()]->vx = vx;
+                velocities[clientObstacle.value()]->vy = vy;
+                velocities[clientObstacle.value()]->vz = vz;
+            }
+        }
+    }
+
     _registry.run_systems();
 }
 
@@ -331,6 +410,25 @@ void GameScene::update() {
         }    
     }
 
+    void GameScene::extract_obstacle_sprite_paths() {
+        auto &sprites = _registry.get_components<component::sprite>();
+        auto &types = _registry.get_components<component::type>();
+            
+        _obstacleSpriteMap.clear();   
+        for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
+            if (sprites[i] && types[i] && types[i]->value == component::entity_type::OBSTACLE) {
+                // Calcule l'ID serveur de l'obstacle (ajuste l'offset si nécessaire)
+                uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
+                
+                if (!sprites[i]->image_path.empty())
+                    _obstacleSpriteMap[serverEntityId] = sprites[i]->image_path;
+                
+                ecs::entity_t entity = _registry.entity_from_index(i);
+                _registry.kill_entity(entity);
+            }
+        }    
+    }
+
     void GameScene::render() {
         _raylib.beginDrawing();
         _raylib.clearBackground(GRAY);
@@ -340,7 +438,6 @@ void GameScene::update() {
         
         _raylib.updateMusicStream(_music);
         render_entities();
-        render_network_obstacles();
         render_network_projectiles();
         render_network_enemy_projectiles();
         
@@ -625,7 +722,7 @@ void GameScene::update() {
     }
 
     void GameScene::render_network_obstacles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> obs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             obs = _game.getGameClient().obstacles;
@@ -634,8 +731,8 @@ void GameScene::update() {
         for (auto const &kv: obs) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
-            float w = std::get<2>(kv.second);
-            float h = std::get<3>(kv.second);
+            float w = std::get<3>(kv.second);
+            float h = std::get<4>(kv.second);
             _raylib.drawRectangle((int)(x - w / 2), (int)(y - h / 2), (int)w, (int)h, GRAY);
         }
     }

@@ -118,17 +118,23 @@ void GameClient::handleObstacleSpawn(const std::vector<uint8_t> &buffer) {
     uint32_t wb = ntohl(msg->size.widthBits);
     uint32_t hb = ntohl(msg->size.heightBits);
     uint32_t db = ntohl(msg->size.depthBits);
+    uint32_t vxb = ntohl(msg->vel.vxBits);
+    uint32_t vyb = ntohl(msg->vel.vyBits);
+    uint32_t vzb = ntohl(msg->vel.vzBits);
     
-    float x, y, z, w, h, d;
+    float x, y, z, w, h, d,  vx, vy, vz;
     std::memcpy(&x, &xb, sizeof(float));
     std::memcpy(&y, &yb, sizeof(float));
     std::memcpy(&z, &zb, sizeof(float));
     std::memcpy(&w, &wb, sizeof(float));
     std::memcpy(&h, &hb, sizeof(float));
     std::memcpy(&d, &db, sizeof(float));
+    std::memcpy(&vx, &vxb, sizeof(float));
+    std::memcpy(&vy, &vyb, sizeof(float));
+    std::memcpy(&vz, &vzb, sizeof(float));
     
     std::lock_guard<std::mutex> g(stateMutex);
-    obstacles[id] = std::make_tuple(x, y, z, w, h, d);
+    obstacles[id] = std::make_tuple(x, y, z, w, h, d, vx, vy, vz);
 }
 
 void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {

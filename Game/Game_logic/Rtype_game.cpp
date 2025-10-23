@@ -205,6 +205,31 @@ void ServerGame::index_existing_entities() {
         broadcast_enemy_spawn(id, x, y, z, vx, vy, vz, w, h);
     }
 
+    for (auto obstacle : _obstacles) {
+        uint32_t id = static_cast<uint32_t>(obstacle);
+        if (id >= positions.size() || !positions[id]) continue;
+        
+        float x = positions[id]->x;
+        float y = positions[id]->y;
+        float z = positions[id]->z;
+        float w = 0.0f, h = 0.0f, d = 50.0f;
+        float vx = 0, vy = 0, vz = 0;
+        
+        if (id < drawables.size() && drawables[id]) {
+            w = drawables[id]->width;
+            h = drawables[id]->height;
+            d = drawables[id]->depth;
+        }
+
+        if (id < velocities.size() && velocities[id]) {
+            vx = velocities[id]->vx;
+            vy = velocities[id]->vy;
+            vz = velocities[id]->vz;
+        }
+        
+        broadcast_obstacle_spawn(id, x, y, z, w, h, d, vx, vy, vz);
+    }
+
     LOG_INFO("[Server] Indexed entities:");
     LOG_DEBUG("  - Enemies: " << _enemies.size());
     LOG_DEBUG("  - Obstacles: " << _obstacles.size());

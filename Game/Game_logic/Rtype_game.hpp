@@ -136,7 +136,7 @@ class ServerGame : public IServerGame {
         void broadcast_player_death(uint32_t clientId);
         void initialize_obstacles();
 
-        void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d);
+        void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d, float vx, float vy, float vz);
         void broadcast_obstacle_despawn(uint32_t obstacleId);
 
         void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);

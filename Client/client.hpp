@@ -63,7 +63,7 @@ class GameClient {
         /**
          * @brief Maps obstacle IDs to their (x, y, width, height) values.
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> obstacles;
 
         /**
          * @brief Maps projectiles IDs to their (x,y,width,height).

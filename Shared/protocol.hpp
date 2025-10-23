@@ -184,6 +184,7 @@ struct ObstacleSpawnMessage {
     uint32_t obstacleId;
     Position3D pos;      ///< 3D position
     Size3D size;         ///< 3D size
+    Velocity3D vel;
 };
 
 /**

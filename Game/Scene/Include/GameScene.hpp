@@ -208,6 +208,9 @@ namespace game::scene {
          */
         Texture2D* get_entity_texture(ecs::entity_t entity);
 
+        
+        void extract_obstacle_sprite_paths();
+        
         void toggleFullScreen();
 
         // --- Entities ---
@@ -219,6 +222,8 @@ namespace game::scene {
         bool _victorySoundPlayed = false; ///< Flag to track if victory sound has been played.
         bool _defeatSoundPlayed = false; ///< Flag to track if defeat sound has been played.
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _obstacleMap;  // Map serverId -> client entity
+        std::unordered_map<uint32_t, std::string> _obstacleSpriteMap;  // Map serverId -> sprite path
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
         std::unordered_map<uint32_t, ecs::entity_t> _enemyMap; ///< Map: network enemy ID -> ECS entity.
         std::unordered_map<uint32_t, std::string> _enemySpriteMap; ///< Map: network enemy ID -> sprite path.

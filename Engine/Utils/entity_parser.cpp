@@ -164,7 +164,7 @@ namespace game::parsing
     ecs::entity_t parse_obstacle(ecs::registry &reg, const nlohmann::json &obstacle_data)
     {
         try {
-            float x = 0.0f, y = 0.0f, z = 0.0f;
+            float x = 0.0f, y = 0.0f, z = 0.0f, velocity = 0.0f, width = 0, height = 0;;
 
             if (obstacle_data.contains("position") && obstacle_data["position"].is_object()) {
                 const auto &pos = obstacle_data["position"];
@@ -179,6 +179,9 @@ namespace game::parsing
 
             std::string image_path = obstacle_data.value("image_path", "");
             std::string model_path = obstacle_data.value("model_path", "");
+            velocity = obstacle_data.value("speed", 0.0f);
+            width = obstacle_data.value("w", 0.0f);
+            height = obstacle_data.value("h", 0.0f);
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Obstacle image file not found: " << image_path << std::endl;
@@ -186,7 +189,7 @@ namespace game::parsing
             if (!model_path.empty() && !std::ifstream(model_path).good()) {
                 std::cerr << "[WARNING] Obstacle model file not found: " << model_path << std::endl;
             }
-            return game::entities::create_obstacle(reg, x, y, z, image_path, model_path);
+            return game::entities::create_obstacle(reg, x, y, z, image_path, model_path, velocity, width, height);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse obstacle: ") + e.what());
