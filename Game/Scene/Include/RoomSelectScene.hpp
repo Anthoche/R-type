@@ -8,7 +8,7 @@
 #ifndef ROOMSELECTSCENE_HPP
     #define ROOMSELECTSCENE_HPP
 
-    #include "../../Rendering/scene/AScene.hpp"
+    #include "../../Engine/Rendering/scene/Include/AScene.hpp"
     #include "../Game.hpp"
 
 namespace scene {
