@@ -12,13 +12,12 @@
 #include <cstring>
 #include "Logger.hpp"
 
-GameServer::GameServer(uint16_t port) : connexion(ioContext, port) {
-	roomManager = RoomManager(4);
-	roomManager.addRoom(Room(4, 2, "Rtype"));
-	roomManager.addRoom(Room(4, 4, "Rtype 2"));
-	roomManager.addRoom(Room(6, 4, "Test Game"));
-	roomManager.addRoom(Room(2, 2, "Test Duo"));
-	roomManager.addRoom(Room(12, 10, "Test bonjour")); // Normally, this room should not be created.
+GameServer::GameServer(uint16_t port) : connexion(ioContext, port), roomManager(4) {
+	roomManager.addRoom(Room(connexion, 4, 2, "Rtype"));
+	roomManager.addRoom(Room(connexion, 4, 4, "Rtype 2"));
+	roomManager.addRoom(Room(connexion, 6, 4, "Test Game"));
+	roomManager.addRoom(Room(connexion, 2, 2, "Test Duo"));
+	roomManager.addRoom(Room(connexion, 12, 10, "Test bonjour")); // Normally, this room should not be created.
 }
 
 static void sigintHandler(int s) {
@@ -135,10 +134,10 @@ void GameServer::handleClientFetchRooms(const std::vector<uint8_t> &data, const 
 	for (auto &room: rooms) {
 		game::serializer::RoomData r{};
 
-		r.gameName = room.second.getGameName();
-		r.minPlayers = room.second.getMinPlayers();
-		r.maxPlayers = room.second.getMaxPlayers();
-		r.currentPlayers = room.second.getClients().size();
+		r.gameName = room.second->getGameName();
+		r.minPlayers = room.second->getMinPlayers();
+		r.maxPlayers = room.second->getMaxPlayers();
+		r.currentPlayers = room.second->getClients().size();
 		r.status = GameStatus::PENDING_START;
 		roomsData.insert_or_assign(room.first, r);
 	}

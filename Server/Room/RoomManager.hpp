@@ -14,7 +14,7 @@
 
 class RoomManager {
 	private:
-		std::map<int, Room> _rooms;
+		std::map<int, std::shared_ptr<Room>> _rooms;
 		int _currentId;
 		int _maxRooms;
 
@@ -23,8 +23,8 @@ class RoomManager {
 		~RoomManager() = default;
 
 		int getMaxRooms() const;
-		Room& getRoom(int id);
-		std::map<int, Room> const &getRooms() const;
+		std::shared_ptr<Room> getRoom(int id);
+		std::map<int, std::shared_ptr<Room>> &getRooms();
 		bool roomExists(int id) const;
 
 		void addRoom(Room const &room);

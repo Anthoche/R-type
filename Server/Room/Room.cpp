@@ -7,14 +7,11 @@
 
 #include "Room.hpp"
 
-Room::Room(int maxPlayers, int minPlayers, std::string const &game) {
-	_maxPlayers = maxPlayers;
-	_minPlayers = minPlayers;
-	_gameName = game;
-	_roomHost = -1;
-}
+#include "Rtype_game.hpp"
 
-Room::Room(int maxPlayers, int minPlayers, int roomHost, std::string const &game) {
+Room::Room(Connexion &connexion, int maxPlayers, int minPlayers, std::string const &game, int roomHost) : _connexion(connexion) {
+	_game = std::make_shared<ServerGame>(_connexion);
+	_gameStatus = GameStatus::WAITING_PLAYERS;
 	_maxPlayers = maxPlayers;
 	_minPlayers = minPlayers;
 	_gameName = game;
@@ -27,6 +24,14 @@ int Room::getMaxPlayers() const {
 
 int Room::getMinPlayers() const {
 	return _minPlayers;
+}
+
+GameStatus Room::getGameStatus() const {
+	return _gameStatus;
+}
+
+std::shared_ptr<IServerGame> Room::getGame() {
+	return _game;
 }
 
 std::string Room::getGameName() const {
@@ -78,4 +83,12 @@ void Room::setMaxPlayers(int value) {
 
 void Room::setMinPlayers(int value) {
 	_minPlayers = value;
+}
+
+void Room::setGameStatus(GameStatus status) {
+	_gameStatus = status;
+}
+
+void Room::startGame() {
+	_game->run();
 }

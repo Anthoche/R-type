@@ -11,7 +11,7 @@
 #include "../../Core/Include/registry.hpp"
 #include "../../Core/Entities/Include/components.hpp"
 #include "entity_parser.hpp"
-#include "../../Server/Room/Room.hpp"
+#include "GameStatus.hpp"
 
 namespace game::serializer {
 	nlohmann::json serialize_entity(ecs::registry &reg, ecs::entity_t entity);

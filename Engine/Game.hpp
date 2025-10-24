@@ -10,7 +10,7 @@
 #include <string>
 #include <thread>
 
-#include "GameStatus.hpp"
+#include "../Shared/GameStatus.hpp"
 #include "../Client/client.hpp"
 #include "../Game/Scene/Include/SceneHandler.hpp"
 
