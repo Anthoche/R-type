@@ -39,20 +39,31 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
     registry_server.register_component<component::position>();
     registry_server.register_component<component::previous_position>();
     registry_server.register_component<component::velocity>();
-    registry_server.register_component<component::controllable>();
-    registry_server.register_component<component::health>();
-    registry_server.register_component<component::type>();
-    registry_server.register_component<component::client_id>();
+    registry_server.register_component<component::rotation>();
+    registry_server.register_component<component::scale>();
+    registry_server.register_component<component::dynamic_position>();
     registry_server.register_component<component::drawable>();
     registry_server.register_component<component::sprite>();
+    registry_server.register_component<component::model3D>();
+    registry_server.register_component<component::audio>();
+    registry_server.register_component<component::text>();
+    registry_server.register_component<component::font>();
+    registry_server.register_component<component::clickable>();
+    registry_server.register_component<component::hoverable>();
+    registry_server.register_component<component::controllable>();
+    registry_server.register_component<component::health>();
+    registry_server.register_component<component::damage>();
     registry_server.register_component<component::collision_box>();
     registry_server.register_component<component::hitbox_link>();
+    registry_server.register_component<component::type>();
+    registry_server.register_component<component::client_id>();
 }
+
 
 void ServerGame::run() {
     LOG("[Server] Starting game loop...");
-    load_players("../Engine/Assets/Config_assets/Players/players.json");
-    load_level("../Engine/Assets/Config_assets/Levels/level_01.json");
+    load_players(ASSETS_PATH "/Config_assets/Players/players.json");
+    load_level(ASSETS_PATH "/Config_assets/Levels/level.json");
     initialize_player_positions();
     index_existing_entities();
 
@@ -61,6 +72,9 @@ void ServerGame::run() {
 
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
+
+        process_pending_messages();
+        process_player_inputs(dt);
 
         update_projectiles_server_only(dt);
         update_enemies(dt);
@@ -75,13 +89,11 @@ void ServerGame::run() {
         broadcast_enemy_positions();
         broadcast_enemy_projectile_positions();
 
-        process_pending_messages();
         broadcast_states_to_clients();
-      
         broadcast_player_health();
         broadcast_global_score();
         broadcast_individual_scores();
-        
+
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
 }
@@ -111,7 +123,6 @@ void ServerGame::load_players(const std::string &path) {
     try {
         auto json = load_json_from_file(path);
         game::storage::store_players(registry_server, json);
-        LOG_DEBUG("===== Loaded Players =====");
         auto &positions = registry_server.get_components<component::position>();
         auto &clientIds = registry_server.get_components<component::client_id>();
         for (std::size_t i = 0; i < positions.size(); ++i) {
@@ -119,7 +130,6 @@ void ServerGame::load_players(const std::string &path) {
                 auto &pos = positions[i].value();
                 auto &cid = clientIds[i].value();
                 ecs::entity_t entity = registry_server.entity_from_index(i);
-                LOG("Player entity " << entity << " client_id=" << cid.id << " pos=(" << pos.x << ", " << pos.y << ")");
             }
         }
     } catch (const std::exception &e) {
@@ -131,13 +141,11 @@ void ServerGame::load_level(const std::string &path) {
     try {
         auto json = load_json_from_file(path);
         game::storage::store_level_entities(registry_server, json);
-        LOG_DEBUG("===== Loaded Level Entities =====");
         auto &positions = registry_server.get_components<component::position>();
         for (std::size_t i = 0; i < positions.size(); ++i) {
             if (positions[i].has_value()) {
                 auto &pos = positions[i].value();
                 ecs::entity_t entity = registry_server.entity_from_index(i);
-                LOG("Entity " << entity << " pos=(" << pos.x << ", " << pos.y << ")");
             }
         }
     } catch (const std::exception &e) {
@@ -185,21 +193,25 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 uint32_t id = ntohl(msg->clientId);
                 if (deadPlayers.find(id) != deadPlayers.end())
                     break;
-                float inputX, inputY;
-                uint32_t xbits = ntohl(msg->inputXBits);
-                uint32_t ybits = ntohl(msg->inputYBits);
-                std::memcpy(&inputX, &xbits, sizeof(float));
-                std::memcpy(&inputY, &ybits, sizeof(float));
-                auto& pos = playerPositions[id];
-                float speed = 200.f / 60.f;
-                const float playerWidth = 30.f;
-                const float playerHeight = 30.f;
-                float newX = pos.first + inputX * speed;
-                float newY = pos.second + inputY * speed;
-                if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles))
-                    pos.first = newX;
-                if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
-                    pos.second = newY;
+                InputCode code = static_cast<InputCode>(msg->inputCode);
+                bool pressed = msg->isPressed != 0;
+                switch (code) {
+                    case InputCode::Up:
+                    case InputCode::Down:
+                    case InputCode::Left:
+                    case InputCode::Right:
+                        playerInputBuffers[id].push_back({code, pressed});
+                        LOG_DEBUG("[Server][Input] queued event from client " << id
+                                  << " code=" << inputCodeToString(code)
+                                  << " pressed=" << pressed
+                                  << " buffered=" << playerInputBuffers[id].size());
+                        break;
+                    default:
+                        LOG_DEBUG("[Server][Input] ignored unknown code "
+                                  << static_cast<int>(msg->inputCode)
+                                  << " from client " << id);
+                        break;
+                }
             }
             break;
         }
@@ -234,14 +246,36 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     uint32_t projId = nextProjectileId++;
                     float projX = playerX + 20.f;
                     float projY = playerY;
+                    float projZ = 0.f;  // Ajout de Z
                     float projVelX = 400.f;
                     float projVelY = 0.f;
+                    float projVelZ = 0.f;  // Ajout de Z
                     
-                    projectiles[projId] = std::make_tuple(projX, projY, projVelX, projVelY, clientId);
+                    projectiles[projId] = std::make_tuple(projX, projY, projZ, projVelX, projVelY, projVelZ, clientId);
 
-                    broadcast_projectile_spawn(projId, clientId, projX, projY, projVelX, projVelY);
+                    broadcast_projectile_spawn(projId, clientId, projX, projY, projZ, projVelX, projVelY, projVelZ);
 
                     LOG_DEBUG("[Server] Client " << clientId << " shot projectile " << projId);
+                }
+            }
+            break;
+        }
+        case MessageType::InitialHealth: {
+            if (data.size() >= sizeof(InitialHealthMessage)) {
+                const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(data.data());
+                uint32_t clientId = ntohl(msg->clientId);
+                int16_t initialHealth = ntohs(msg->initialHealth);
+                auto& healths = registry_server.get_components<component::health>();
+                auto& clientIds = registry_server.get_components<component::client_id>();
+                for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+                    if (clientIds[i] && clientIds[i]->id == clientId) {
+                        if (healths[i]) {
+                            healths[i]->current = initialHealth;
+                            healths[i]->max = initialHealth;
+                            LOG_DEBUG("[Server] Set initial health of client " << clientId << " to " << initialHealth);
+                        }
+                        break;
+                    }
                 }
             }
             break;
@@ -265,6 +299,66 @@ void ServerGame::process_pending_messages() {
     }
 }
 
+void ServerGame::process_player_inputs(float dt) {
+    constexpr float speedPerSecond = 200.f;
+    constexpr float playerWidth = 30.f;
+    constexpr float playerHeight = 30.f;
+
+    for (auto &kv : playerPositions) {
+        uint32_t clientId = kv.first;
+        if (deadPlayers.find(clientId) != deadPlayers.end())
+            continue;
+
+        auto &buffer = playerInputBuffers[clientId];
+        auto &state = playerInputStates[clientId];
+
+        for (const auto &event : buffer) {
+            switch (event.code) {
+                case InputCode::Up:
+                    state.up = event.pressed;
+                    break;
+                case InputCode::Down:
+                    state.down = event.pressed;
+                    break;
+                case InputCode::Left:
+                    state.left = event.pressed;
+                    break;
+                case InputCode::Right:
+                    state.right = event.pressed;
+                    break;
+                default:
+                    break;
+            }
+        }
+        buffer.clear();
+
+        float inputX = 0.f;
+        float inputY = 0.f;
+
+        if (state.left != state.right)
+            inputX = state.left ? -1.f : 1.f;
+        if (state.up != state.down)
+            inputY = state.up ? -1.f : 1.f;
+
+        if (inputX == 0.f && inputY == 0.f)
+            continue;
+
+        auto &pos = kv.second;
+        float distance = speedPerSecond * dt;
+        float newX = pos.first + inputX * distance;
+        float newY = pos.second + inputY * distance;
+
+        if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles))
+            pos.first = newX;
+        if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
+            pos.second = newY;
+
+        LOG_DEBUG("[Server][Input] applied movement for client " << clientId
+                  << " dir=(" << inputX << "," << inputY << ")"
+                  << " newPos=(" << pos.first << "," << pos.second << ")");
+    }
+}
+
 void ServerGame::broadcast_states_to_clients() {
     for (const auto& kv : connexion.getClients()) {
         uint32_t id = kv.second;
@@ -272,14 +366,21 @@ void ServerGame::broadcast_states_to_clients() {
             continue;
         auto it = playerPositions.find(id);
         if (it == playerPositions.end()) continue;
+        
         StateUpdateMessage m;
         m.type = MessageType::StateUpdate;
         m.clientId = htonl(id);
-        uint32_t xbits, ybits;
+        
+        uint32_t xbits, ybits, zbits;
+        float z = 0.f;  // Valeur par défaut pour Z
         std::memcpy(&xbits, &it->second.first, sizeof(float));
         std::memcpy(&ybits, &it->second.second, sizeof(float));
-        m.posXBits = htonl(xbits);
-        m.posYBits = htonl(ybits);
+        std::memcpy(&zbits, &z, sizeof(float));
+        
+        m.pos.xBits = htonl(xbits);
+        m.pos.yBits = htonl(ybits);
+        m.pos.zBits = htonl(zbits);
+        
         connexion.broadcast(&m, sizeof(m));
     }
 }

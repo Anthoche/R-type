@@ -90,27 +90,37 @@ target_include_directories(ecs PUBLIC
 )
 
 # -------------------------
-# Game Logic library (auto-discovered)
+# Game Logic library (auto-découverte COMPLÈTE)
 # -------------------------
-file(GLOB_RECURSE GAME_LOGIC_SOURCES
-    "${GAME_DIR}/Game_logic/*.cpp"
-    "${GAME_DIR}/Game_logic/**/*.cpp"
-)
+# Recherche récursive de TOUS les .cpp dans Game/
+file(GLOB_RECURSE GAME_ALL_SOURCES "${GAME_DIR}/*.cpp")
 
-message(STATUS "Game logic sources found:")
-foreach(src ${GAME_LOGIC_SOURCES})
-    message(STATUS "  - ${src}")
+# Recherche récursive de TOUS les .hpp et .h dans Game/
+file(GLOB_RECURSE GAME_ALL_HEADERS "${GAME_DIR}/*.hpp" "${GAME_DIR}/*.h")
+
+# Extraction de tous les répertoires contenant des headers
+set(GAME_INCLUDE_DIRS "")
+foreach(header ${GAME_ALL_HEADERS})
+    get_filename_component(dir ${header} DIRECTORY)
+    list(APPEND GAME_INCLUDE_DIRS ${dir})
 endforeach()
+list(REMOVE_DUPLICATES GAME_INCLUDE_DIRS)
 
-add_library(game_logic STATIC
-    ${GAME_LOGIC_SOURCES}
-)
+message(STATUS "=== Game library configuration ===")
+message(STATUS "Game sources found: ${GAME_ALL_SOURCES}")
+message(STATUS "Game include directories: ${GAME_INCLUDE_DIRS}")
+
+add_library(game_logic STATIC ${GAME_ALL_SOURCES})
 
 target_include_directories(game_logic PUBLIC
-    ${GAME_DIR}/Game_logic
+    ${GAME_DIR}
+    ${GAME_INCLUDE_DIRS}
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
+    ${ENGINE_RENDERING_DIR}
+    ${ENGINE_SCENE_DIR}/Include
     ${ENGINE_UTILS_DIR}/Include
+    ${ENGINE_PHYSICS_DIR}/Include
     ${SHARED_DIR}
 )
 
@@ -119,39 +129,46 @@ target_link_libraries(game_logic PUBLIC
     nlohmann_json::nlohmann_json
 )
 
+# Définir ASSETS_PATH pour game_logic
+target_compile_definitions(game_logic PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/assets")
+
 # -------------------------
 # r-type_client executable
 # -------------------------
 add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
     ${CLIENT_DIR}/client.cpp
-    ${CLIENT_DIR}/Handler/client_handler.cpp
+    ${CLIENT_DIR}/Handler/ClientHandler.cpp
     ${ENGINE_DIR}/Game.cpp
-    ${ENGINE_ENTITIES_DIR}/player.cpp
-    ${ENGINE_ENTITIES_DIR}/enemy.cpp
-    ${ENGINE_ENTITIES_DIR}/hitbox.cpp
-    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
     ${ENGINE_ENTITIES_DIR}/background.cpp
-    ${ENGINE_ENTITIES_DIR}/sound.cpp
-    ${ENGINE_ENTITIES_DIR}/text.cpp
-    ${ENGINE_ENTITIES_DIR}/projectile.cpp
     ${ENGINE_ENTITIES_DIR}/button.cpp
-    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/checkpoint.cpp
+    ${ENGINE_ENTITIES_DIR}/decoration.cpp
+    ${ENGINE_ENTITIES_DIR}/enemy.cpp
+    ${ENGINE_ENTITIES_DIR}/gate.cpp
+    ${ENGINE_ENTITIES_DIR}/hitbox.cpp
     ${ENGINE_ENTITIES_DIR}/image.cpp
+    ${ENGINE_ENTITIES_DIR}/item.cpp
+    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
+    ${ENGINE_ENTITIES_DIR}/platform.cpp
+    ${ENGINE_ENTITIES_DIR}/player.cpp
+    ${ENGINE_ENTITIES_DIR}/png.cpp
+    ${ENGINE_ENTITIES_DIR}/powerup.cpp
+    ${ENGINE_ENTITIES_DIR}/projectile.cpp
+    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/sound.cpp
+    ${ENGINE_ENTITIES_DIR}/spawner.cpp
+    ${ENGINE_ENTITIES_DIR}/text.cpp
+    ${ENGINE_ENTITIES_DIR}/trap.cpp
+    ${ENGINE_ENTITIES_DIR}/triggerzone.cpp
+    ${ENGINE_ENTITIES_DIR}/weapon.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
     ${ENGINE_RENDERING_DIR}/Raylib.cpp
     ${ENGINE_RENDERING_DIR}/RenderUtils.cpp
     ${ENGINE_SCENE_DIR}/AScene.cpp
-    ${ENGINE_SCENE_DIR}/SceneHandler.cpp
-    ${ENGINE_DIR}/Scene/GameScene.cpp
-    ${ENGINE_DIR}/Scene/UI.cpp
-    ${ENGINE_DIR}/Scene/MenuScene.cpp
-    ${ENGINE_DIR}/Scene/RoomSelectScene.cpp
-    ${ENGINE_DIR}/Scene/SettingsScene.cpp
-    ${ENGINE_DIR}/Scene/WaitingScene.cpp
-    ${ENGINE_DIR}/Scene/ServerWaitScene.cpp
+    ${ENGINE_SCENE_DIR}/ASceneHandler.cpp
     ${ENGINE_PHYSICS_DIR}/Collision.cpp
 )
 
@@ -161,8 +178,7 @@ target_include_directories(r-type_client PRIVATE
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_RENDERING_DIR}
-    ${ENGINE_SCENE_DIR}
-    ${ENGINE_DIR}/Scene/Include
+    ${ENGINE_SCENE_DIR}/Include
     ${ENGINE_UTILS_DIR}/Include
     ${ENGINE_PHYSICS_DIR}/Include
     ${SHARED_DIR}
@@ -171,6 +187,7 @@ target_include_directories(r-type_client PRIVATE
 
 target_link_libraries(r-type_client PRIVATE
     ecs
+    game_logic
     shared_sockets
     raylib
     glfw
@@ -195,18 +212,32 @@ add_executable(r-type_server
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
-    ${ENGINE_ENTITIES_DIR}/player.cpp
-    ${ENGINE_ENTITIES_DIR}/enemy.cpp
-    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
     ${ENGINE_ENTITIES_DIR}/background.cpp
-    ${ENGINE_ENTITIES_DIR}/sound.cpp
-    ${ENGINE_ENTITIES_DIR}/text.cpp
-    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/button.cpp
+    ${ENGINE_ENTITIES_DIR}/checkpoint.cpp
+    ${ENGINE_ENTITIES_DIR}/decoration.cpp
+    ${ENGINE_ENTITIES_DIR}/enemy.cpp
+    ${ENGINE_ENTITIES_DIR}/gate.cpp
     ${ENGINE_ENTITIES_DIR}/hitbox.cpp
+    ${ENGINE_ENTITIES_DIR}/image.cpp
+    ${ENGINE_ENTITIES_DIR}/item.cpp
+    ${ENGINE_ENTITIES_DIR}/obstacle.cpp
+    ${ENGINE_ENTITIES_DIR}/platform.cpp
+    ${ENGINE_ENTITIES_DIR}/player.cpp
+    ${ENGINE_ENTITIES_DIR}/png.cpp
+    ${ENGINE_ENTITIES_DIR}/powerup.cpp
+    ${ENGINE_ENTITIES_DIR}/projectile.cpp
+    ${ENGINE_ENTITIES_DIR}/random_element.cpp
+    ${ENGINE_ENTITIES_DIR}/sound.cpp
+    ${ENGINE_ENTITIES_DIR}/spawner.cpp
+    ${ENGINE_ENTITIES_DIR}/text.cpp
+    ${ENGINE_ENTITIES_DIR}/trap.cpp
+    ${ENGINE_ENTITIES_DIR}/triggerzone.cpp
+    ${ENGINE_ENTITIES_DIR}/weapon.cpp
 )
 
 target_include_directories(r-type_server PRIVATE
-    ${SERVER_DIR}/include
+    ${SERVER_DIR}/Include
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_UTILS_DIR}/Include
@@ -258,10 +289,14 @@ install(TARGETS r-type_client r-type_server ecs shared_sockets game_logic
 # -------------------------
 # Assets setup
 # -------------------------
+# Copier les assets depuis Game/Assets vers le build directory
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/Engine/Assets/
+        ${CMAKE_SOURCE_DIR}/Game/Assets/
         ${CMAKE_BINARY_DIR}/assets
 )
 
 target_compile_definitions(r-type_client PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/assets")
+
+# Définir également pour le serveur si nécessaire
+target_compile_definitions(r-type_server PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/assets")

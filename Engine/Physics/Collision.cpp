@@ -5,7 +5,7 @@
 ** Collision
 */
 
-#include "../Scene/Include/GameScene.hpp"
+#include "../../../Game/Scene/Include/GameScene.hpp"
 #include <iostream>
 #include <cmath>
 

@@ -6,7 +6,7 @@
 */
 
 #include <raylib.h>
-#include "AScene.hpp"
+#include "Include/AScene.hpp"
 
 AScene::AScene(int const &width, int const &height, std::string const &title) {
 	_width = width;
