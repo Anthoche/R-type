@@ -10,7 +10,15 @@
 Room::Room(int maxPlayers, int minPlayers, std::string const &game) {
 	_maxPlayers = maxPlayers;
 	_minPlayers = minPlayers;
-	_game = game;
+	_gameName = game;
+	_roomHost = -1;
+}
+
+Room::Room(int maxPlayers, int minPlayers, int roomHost, std::string const &game) {
+	_maxPlayers = maxPlayers;
+	_minPlayers = minPlayers;
+	_gameName = game;
+	_roomHost = roomHost;
 }
 
 int Room::getMaxPlayers() const {
@@ -21,8 +29,8 @@ int Room::getMinPlayers() const {
 	return _minPlayers;
 }
 
-std::string Room::getGame() const {
-	return _game;
+std::string Room::getGameName() const {
+	return _gameName;
 }
 
 std::vector<uint32_t> Room::getClients() const {
@@ -43,6 +51,10 @@ bool Room::isClientInRoom(uint32_t clientId) const {
 			return true;
 	}
 	return false;
+}
+
+int Room::getRoomHost() const {
+	return _roomHost;
 }
 
 void Room::addClient(u_int32_t clientId) {

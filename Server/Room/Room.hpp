@@ -16,20 +16,23 @@ class Room {
 	private:
 		int _maxPlayers;
 		int _minPlayers;
-		std::string _game;
+		std::string _gameName;
 		std::vector<uint32_t> _clients;
+		int _roomHost;
 
 	public:
-		Room(int maxPlayers, int minPlayers, std::string const &game);
+		Room(int maxPlayers, int minPlayers, std::string const &gameName);
+		Room(int maxPlayers, int minPlayers, int _roomHost, std::string const &gameName);
 		~Room() = default;
 
 		int getMaxPlayers() const;
 		int getMinPlayers() const;
-		std::string getGame() const;
+		std::string getGameName() const;
 		std::vector<uint32_t> getClients() const;
 		bool isFull() const;
 		bool isEmpty() const;
 		bool isClientInRoom(uint32_t clientId) const;
+		int getRoomHost() const;
 
 		void addClient(uint32_t clientId);
 		void removeClient(uint32_t clientId);

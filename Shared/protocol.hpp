@@ -18,6 +18,7 @@ enum class MessageType : uint8_t {
 	ClientHello, /**< Client greeting the server */
 	ServerAssignId, /**< Server assigns an ID to the client */
 	ClientRoomIdAsk, /**< Client asking for a connexion to a specific room */
+	ClientRoomCreate, /**< Client create a new room */
 	ServerRoomAssignId, /**< Assign room to client */
 	ClientFetchRooms, /**< Fetch room list actions for client */
 	ServerSendRooms, /**< Send rooms to client */
@@ -93,6 +94,14 @@ struct ClientRoomIdAskMessage {
 	MessageType type;
 	uint32_t clientId;
 	uint32_t roomId;
+};
+
+/**
+ * @brief Message sent by client to ask the server to create a room
+ */
+struct ClientRoomCreateMessage {
+	MessageType type;
+	uint32_t clientId;
 };
 
 /**

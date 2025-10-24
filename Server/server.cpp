@@ -135,7 +135,7 @@ void GameServer::handleClientFetchRooms(const std::vector<uint8_t> &data, const 
 	for (auto &room: rooms) {
 		game::serializer::RoomData r{};
 
-		r.gameName = room.second.getGame();
+		r.gameName = room.second.getGameName();
 		r.minPlayers = room.second.getMinPlayers();
 		r.maxPlayers = room.second.getMaxPlayers();
 		r.currentPlayers = room.second.getClients().size();
