@@ -6,6 +6,7 @@
 */
 
 #include "Include/server.hpp"
+#include "Logger.hpp"
 
 bool is_number(std::string const &str) {
 	std::string::const_iterator it = str.begin();
@@ -20,13 +21,15 @@ bool is_number(std::string const &str) {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
+		LOG_ERROR("You must enter a port for the server to listen on.");
 		std::cerr << "Usage: " << argv[0] << " <server_port> " << std::endl;
 		return 1;
 	}
 	std::string const port = std::string(argv[1]);
 
+	LOG_INFO("Starting server...");
 	if (port == "" || !is_number(port)) {
-		std::cerr << "The port number entered is invalid! Port must not be empty and contains only numbers!" << std::endl;
+		LOG_ERROR("The port number entered is invalid! Port must not be empty and contains only numbers!");
 		std::cerr << "Usage: " << argv[0] << " <server_port> " << std::endl;
 		return 1;
 	}

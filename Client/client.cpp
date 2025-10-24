@@ -4,7 +4,9 @@
 ** File description:
 ** client
 */
+
 #include "client.hpp"
+#include "Logger.hpp"
 #include "../Engine/Game.hpp"
 #include "../Engine/Utils/Include/serializer.hpp"
 #include <asio.hpp>
@@ -45,6 +47,24 @@ void GameClient::sendHello() {
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
+void GameClient::sendRoomAsk(uint32_t room_id) {
+    ClientRoomIdAskMessage msg;
+    msg.type = MessageType::ClientRoomIdAsk;
+    msg.clientId = clientId;
+    msg.roomId = room_id;
+    LOG_DEBUG(std::format("Envoi de la demande de roomId={}", room_id));
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+void GameClient::sendRoomsFetch() {
+    ClientFetchRoomsMessage msg;
+    msg.type = MessageType::ClientFetchRooms;
+    msg.clientId = clientId;
+    LOG_DEBUG("Envoi de la demande de rooms list");
+    rooms.clear();
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
 void GameClient::initTcpConnection() {
     if (clientId == 0) return;
 
@@ -52,7 +72,7 @@ void GameClient::initTcpConnection() {
     tcpClient = std::make_unique<TCP_socket>(); // Mode client (constructeur par défaut)
 
     if (!tcpClient->connectToServer(serverIpStr, tcpPort)) {
-        std::cerr << "[Client] Impossible de se connecter en TCP" << std::endl;
+        LOG_ERROR("Client: Impossible de se connecter en TCP");
         return;
     }
 }
