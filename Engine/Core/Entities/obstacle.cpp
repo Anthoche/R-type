@@ -46,8 +46,6 @@ namespace game::entities {
             reg.add_component<component::model3D>(obstacle, std::move(model));
         }
 
-        create_hitbox_for(reg, obstacle);
-
         return obstacle;
     }
 }

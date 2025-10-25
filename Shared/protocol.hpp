@@ -15,6 +15,7 @@ enum class MessageType : uint8_t {
     EnemyUpdate,              /**< Server updates an enemy's position */
     EnemyDespawn,             /**< Server removes an enemy */
     ObstacleSpawn,            /**< Server spawns a new obstacle */
+    ObstacleUpdate,
     ObstacleDespawn,          /**< Server removes an obstacle */
     ClientShoot,              /**< Client sends a shoot event */
     ProjectileSpawn,          /**< Server creates a projectile */
@@ -184,6 +185,13 @@ struct ObstacleSpawnMessage {
     uint32_t obstacleId;
     Position3D pos;      ///< 3D position
     Size3D size;         ///< 3D size
+    Velocity3D vel;
+};
+
+struct ObstacleUpdateMessage {
+    MessageType type;
+    uint32_t obstacleId;
+    Position3D pos;      ///< 3D position
     Velocity3D vel;
 };
 

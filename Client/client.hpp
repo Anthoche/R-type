@@ -193,6 +193,8 @@ class GameClient {
          */
         void handleObstacleSpawn(const std::vector<uint8_t> &buffer);
 
+        void handleObstacleUpdate(const std::vector<uint8_t> &buffer);
+
         /**
          * @brief Handles an ObstacleDespawn message.
          * @param buffer Raw message data.

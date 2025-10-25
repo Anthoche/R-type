@@ -143,6 +143,9 @@ class ServerGame : public IServerGame {
         void initialize_obstacles();
 
         void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d, float vx, float vy, float vz);
+        void broadcast_obstacle_positions();
+        void broadcast_obstacle_update(uint32_t obstacleId, float x, float y, float z,
+                                          float vx, float vy, float vz);
         void broadcast_obstacle_despawn(uint32_t obstacleId);
 
         void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
@@ -162,6 +165,7 @@ class ServerGame : public IServerGame {
         void update_enemy_boss_phase1(uint32_t id, float dt);
         void update_enemy_figure8(uint32_t id, float dt);
         void update_enemy_spiral(uint32_t id, float dt);
+        void update_obstacles(float dt);
 
         void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz, float width, float height);
         void broadcast_enemy_positions();

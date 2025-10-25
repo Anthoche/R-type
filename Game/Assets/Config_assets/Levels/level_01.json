@@ -39,6 +39,8 @@
       {"x": 1000.0, "y": 600.0, "image_path": "../Game/Assets/sprites/r-typesheet37.png", "type": "boss", "health": 1, "speed": 0.55, "pattern": "boss_phase1", "w": 590.0, "h": 180.0}
     ],
     "obstacles": [
+       {"x": 600.0, "y": 445.0, "image_path": "../Game/Assets/sprites/obstacles/r-typesheet28.png", "speed": 0.55, "w":130.0, "h":50.0},
+      {"x": 600.0, "y": 490.0, "image_path": "../Game/Assets/sprites/obstacles/r-typesheet28.png", "speed": 0.55, "w":130.0, "h":50.0}
     ],
     "random_elements": [
       {"x": 1400.0, "y": 450.0, "width": 32.0, "height": 32.0, "image_path": "assets/items/powerup.png", "sound_path": "assets/sfx/powerup.wav", "volume": 0.8, "type": "powerup"},

@@ -23,6 +23,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::ObstacleSpawn:
             handleObstacleSpawn(buffer);
             break;
+        case MessageType::ObstacleUpdate:
+            handleObstacleUpdate(buffer);
+            break;
         case MessageType::ObstacleDespawn:
             handleObstacleDespawn(buffer);
             break;
@@ -136,6 +139,44 @@ void GameClient::handleObstacleSpawn(const std::vector<uint8_t> &buffer) {
     std::lock_guard<std::mutex> g(stateMutex);
     obstacles[id] = std::make_tuple(x, y, z, w, h, d, vx, vy, vz);
 }
+
+void GameClient::handleObstacleUpdate(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(ObstacleUpdateMessage)) {
+        std::cerr << "[ERROR] Invalid ObstacleUpdate message size\n";
+        return;
+    }
+    
+    const ObstacleUpdateMessage *msg = reinterpret_cast<const ObstacleUpdateMessage *>(buffer.data());
+    
+    uint32_t id = ntohl(msg->obstacleId);
+    uint32_t xb = ntohl(msg->pos.xBits);
+    uint32_t yb = ntohl(msg->pos.yBits);
+    uint32_t zb = ntohl(msg->pos.zBits);
+    uint32_t vxb = ntohl(msg->vel.vxBits);
+    uint32_t vyb = ntohl(msg->vel.vyBits);
+    uint32_t vzb = ntohl(msg->vel.vzBits);
+    
+    float x, y, z, vx, vy, vz;
+    std::memcpy(&x, &xb, sizeof(float));
+    std::memcpy(&y, &yb, sizeof(float));
+    std::memcpy(&z, &zb, sizeof(float));
+    std::memcpy(&vx, &vxb, sizeof(float));
+    std::memcpy(&vy, &vyb, sizeof(float));
+    std::memcpy(&vz, &vzb, sizeof(float));
+    
+    std::lock_guard<std::mutex> g(stateMutex);
+    
+    auto it = obstacles.find(id);
+    if (it != obstacles.end()) {
+        float existingWidth = std::get<3>(it->second);
+        float existingHeight = std::get<4>(it->second);
+        float existingDepth = std::get<5>(it->second);
+        obstacles[id] = std::make_tuple(x, y, z, existingWidth, existingHeight, existingDepth, vx, vy, vz);
+    } else {
+        std::cerr << "[WARNING] Received update for unknown obstacle: " << id << std::endl;
+    }
+}
+
 
 void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
     if (buffer.size() < sizeof(ObstacleDespawnMessage)) return;
