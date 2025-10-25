@@ -105,7 +105,13 @@ namespace game::parsing
                 z = player_data.value("z", 0.0f);
             }
 
+            float width = player_data.value("width", 33.0f);
+            float height = player_data.value("height", 16.0f);
+            float depth = player_data.value("depth", 16.0f);
+
             uint32_t clientId = player_data.value("client_id", 0u);
+            int health = player_data.value("health", 100);
+            float speed = player_data.value("speed", 300.0f);
 
             std::string image_path = player_data.value("image_path", "");
             std::string model_path = player_data.value("model_path", "");
@@ -116,7 +122,8 @@ namespace game::parsing
             if (!model_path.empty() && !std::ifstream(model_path).good()) {
                 std::cerr << "[WARNING] Player model file not found: " << model_path << std::endl;
             }
-            return game::entities::create_player(reg, x, y, z, image_path, model_path, clientId);
+
+            return game::entities::create_player(reg, x, y, z, width, height, depth, image_path, model_path,  clientId, health, speed);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse player: ") + e.what());
@@ -171,6 +178,10 @@ namespace game::parsing
                 z = obstacle_data.value("z", 0.0f);
             }
 
+            float width = obstacle_data.value("width", 33.0f);
+            float height = obstacle_data.value("height", 16.0f);
+            float depth = obstacle_data.value("depth", 16.0f);
+
             std::string image_path = obstacle_data.value("image_path", "");
             std::string model_path = obstacle_data.value("model_path", "");
 
@@ -180,7 +191,7 @@ namespace game::parsing
             if (!model_path.empty() && !std::ifstream(model_path).good()) {
                 std::cerr << "[WARNING] Obstacle model file not found: " << model_path << std::endl;
             }
-            return game::entities::create_obstacle(reg, x, y, z, image_path, model_path);
+            return game::entities::create_obstacle(reg, x, y, z, width, height, depth, image_path, model_path);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse obstacle: ") + e.what());

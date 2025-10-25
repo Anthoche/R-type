@@ -82,10 +82,6 @@ void GameClient::sendInputEvent(InputCode code, bool pressed) {
     m.inputCode = static_cast<uint8_t>(code);
     m.isPressed = pressed ? 1 : 0;
     socket.sendTo(&m, sizeof(m), serverEndpoint);
-    std::cout << "[Client][Input] send "
-              << (pressed ? "PRESS" : "RELEASE")
-              << " (" << inputCodeToString(code) << ")"
-              << " to server" << std::endl;
 }
 
 void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
@@ -110,7 +106,6 @@ void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
             std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
             return;
         }
-        std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
         game::serializer::deserialize_entities(*registry, fullRegistry);
     }
 }

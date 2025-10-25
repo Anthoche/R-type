@@ -16,72 +16,33 @@
 #include <mutex>
 #include <vector>
 
-/**
- * @class ServerGame
- * @brief Implementation of IServerGame for R-Type multiplayer gameplay.
- *
- * This class handles:
- * - The main server game loop (~60 FPS).
- * - Player management, movement, shooting, and death.
- * - Enemy spawning, movement patterns, and AI projectiles.
- * - Collision detection between all entities.
- * - Broadcasting of all gameplay updates to clients.
- */
 class ServerGame : public IServerGame {
     public:
-        /**
-         * @brief Constructs a ServerGame instance.
-         * @param conn Reference to the Connexion handler for network communication.
-         */
         explicit ServerGame(Connexion &conn);
 
-        /**
-         * @brief Main server game loop.
-         */
         void run() override;
 
-        /**
-         * @brief Loads player data from a JSON configuration file.
-         */
         void load_players(const std::string &path);
 
-        /**
-         * @brief Loads level entities from a JSON configuration file.
-         */
         void load_level(const std::string &path);
 
-        /**
-         * @brief Sends the complete game registry state to a specific client.
-         */
         void broadcast_full_registry_to(uint32_t clientId);
 
     private:
-        /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
-
-        /** @brief Counter for assigning unique enemy projectile IDs. */
-        uint32_t nextEnemyProjectileId = 100000;
-
-        /** @brief Reference to the network connection handler. */
         Connexion &connexion;
 
-        /** @brief ECS registry containing all server-side game entities and components. */
         ecs::registry registry_server;
 
-        /** @brief Maps client IDs to their current scene state (MENU or GAME). */
         std::unordered_map<uint32_t, SceneState> clientScenes;
 
-        /** @brief Maps player IDs to their (x, y) positions. Note: keeping 2D for backward compat, add z if needed */
         std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
 
-        /** @brief Maps obstacle IDs to their (x, y, z, width, height, depth). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
+        std::unordered_map<uint32_t, float> playerVelocities;
 
-        /** @brief Maps projectile IDs to their (x, y, z, velX, velY, velZ, ownerId). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> projectiles;
-
-        /** @brief Cooldown timestamps to avoid damage spam. */
         std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
+
+        // NEW: Jump counter for each player (max 2 additional jumps)
+        std::unordered_map<uint32_t, int> playerJumpCount;
 
         struct InputEvent {
             InputCode code;
@@ -98,85 +59,48 @@ class ServerGame : public IServerGame {
         std::unordered_map<uint32_t, std::vector<InputEvent>> playerInputBuffers;
         std::unordered_map<uint32_t, PlayerInputState> playerInputStates;
 
-        /** @brief Counter for assigning unique projectile IDs. */
-        uint32_t nextProjectileId = 1;
-
-        /** @brief Mutex for thread-safe access. */
         std::mutex mtx;
 
-        /** @brief Set of dead player IDs. */
         std::unordered_set<uint32_t> deadPlayers;
 
-        /** @brief Counter for assigning unique enemy IDs. */
-        uint32_t nextEnemyId = 1;
-
-        /** @brief Individual scores per player. */
         std::unordered_map<uint32_t, int> playerIndividualScores;
 
-        /** @brief Total cumulative score. */
         int totalScore = 0;
 
-        /** @brief Enemy movement pattern registry. */
-        std::unordered_map<uint32_t, std::string> enemyPatterns;
-
-        /** @brief Cached references for obstacles. */
         std::vector<ecs::entity_t> _obstacles;
-
-        /** @brief Cached references for enemies. */
-        std::vector<ecs::entity_t> _enemies;
-
+        std::vector<ecs::entity_t> _platforms;
 
         void initialize_player_positions();
         void index_existing_entities();
+        void initialize_obstacles();
 
         void process_pending_messages();
-        void handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);
-        void broadcast_states_to_clients();
+        void handle_client_message(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
+        void process_player_inputs(float dt);
+        void apply_gravity(float dt);
+        void check_death_zone();
+        void check_win_condition();
+
+        bool is_on_ground(float x, float y, float playerWidth, float playerHeight);
+        float snap_to_platform_top(float x, float y, float playerWidth, float playerHeight);
+
         void check_player_enemy_collisions();
+        bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
+                                float left2, float right2, float top2, float bottom2);
+        bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
+                                const std::vector<ecs::entity_t> &obstacles);
+        bool is_position_blocked_platform(float testX, float testY, float playerWidth, float playerHeight,
+                                         const std::vector<ecs::entity_t> &platforms, bool movingDown, bool isDownPressed = false);
+
+        void broadcast_states_to_clients();
         void broadcast_player_death(uint32_t clientId);
-        void initialize_obstacles();
+        void broadcast_player_health();
+        void broadcast_global_score();
+        void broadcast_individual_scores();
+        void broadcast_game_winner(uint32_t winnerId);
 
         void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d);
         void broadcast_obstacle_despawn(uint32_t obstacleId);
 
-        void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
-
-        void update_projectiles_server_only(float dt);
-        void broadcast_projectile_positions();
-        void check_projectile_collisions();
-        void broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float z, float vx, float vy, float vz);
-        void broadcast_projectile_despawn(uint32_t projId);
-
-        void update_enemies(float dt);
-        void update_enemy_default(uint32_t id, float dt);
-        void update_enemy_straight(uint32_t id, float dt);
-        void update_enemy_zigzag(uint32_t id, float dt);
-        void update_enemy_circle(uint32_t id, float dt);
-        void update_enemy_turret(uint32_t id, float dt);
-        void update_enemy_boss_phase1(uint32_t id, float dt);
-
-        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz);
-        void broadcast_enemy_positions();
-        void broadcast_enemy_update(uint32_t enemyId, float x, float y, float z);
-        void broadcast_enemy_despawn(uint32_t enemyId);
-
-        void shoot_enemy_projectile(uint32_t enemyId, float x, float y, float vx, float vy);
-        void update_enemy_projectiles_server_only(float dt);
-        void check_enemy_projectile_player_collisions();
-
-        void broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float z, float vx, float vy, float vz);
-        void broadcast_enemy_projectile_positions();
-        void broadcast_enemy_projectile_despawn(uint32_t projId);
-
-        void broadcast_player_health();
-        void broadcast_global_score();
-        void broadcast_individual_scores();
-        void check_projectile_enemy_collisions();
-
-        void process_player_inputs(float dt);
-        bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
-                                float left2, float right2, float top2, float bottom2);
-
-        bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
-                                const std::vector<ecs::entity_t> &obstacles);
+        void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point &start, int tick_ms);
 };

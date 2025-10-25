@@ -37,6 +37,6 @@ void ServerGame::broadcast_player_death(uint32_t clientId) {
 void ServerGame::initialize_player_positions() {
     LOG_DEBUG("Initializing player positions...");
     for (const auto& kv : connexion.getClients()) {
-        playerPositions[kv.second] = {100.f + (kv.second - 1) * 50.f, 300.f};
+        playerPositions[kv.second] = {300.f + (kv.second - 1) * 50.f, 300.f};
     }
 }

@@ -73,29 +73,23 @@ void ServerGame::run() {
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
 
+        // --- Handle players only ---
         process_pending_messages();
         process_player_inputs(dt);
+        apply_gravity(dt);
+        check_death_zone();
+        check_win_condition();
 
-        update_projectiles_server_only(dt);
-        update_enemies(dt);
-        update_enemy_projectiles_server_only(dt);
-
-        check_enemy_projectile_player_collisions();
-        check_projectile_collisions();
-        check_projectile_enemy_collisions();
-        check_player_enemy_collisions();
-
-        broadcast_projectile_positions();
-        broadcast_enemy_positions();
-        broadcast_enemy_projectile_positions();
-
+        // --- Broadcast only players ---
         broadcast_states_to_clients();
         broadcast_player_health();
         broadcast_global_score();
         broadcast_individual_scores();
 
+        // --- Maintain tick rate ---
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
+
 }
 
 bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
@@ -155,7 +149,7 @@ void ServerGame::load_level(const std::string &path) {
 
 void ServerGame::index_existing_entities() {
     _obstacles.clear();
-    _enemies.clear();
+    _platforms.clear();
 
     auto &types = registry_server.get_components<component::type>();
 
@@ -165,20 +159,19 @@ void ServerGame::index_existing_entities() {
 
         ecs::entity_t entity = registry_server.entity_from_index(i);
         switch (types[i]->value) {
-            case component::entity_type::ENEMY:
-                _enemies.push_back(entity);
-                break;
             case component::entity_type::OBSTACLE:
                 _obstacles.push_back(entity);
+                break;
+            case component::entity_type::PLATFORM:
+                _platforms.push_back(entity);
                 break;
             default:
                 break;
         }
     }
-
-    LOG_INFO("[Server] Indexed entities:");
-    LOG_DEBUG("  - Enemies: " << _enemies.size());
-    LOG_DEBUG("  - Obstacles: " << _obstacles.size());
+    
+    LOG_DEBUG("[Server] Indexed entities: Obstacles=" << _obstacles.size() 
+              << ", Platforms=" << _platforms.size());
 }
 
 
@@ -201,15 +194,8 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     case InputCode::Left:
                     case InputCode::Right:
                         playerInputBuffers[id].push_back({code, pressed});
-                        LOG_DEBUG("[Server][Input] queued event from client " << id
-                                  << " code=" << inputCodeToString(code)
-                                  << " pressed=" << pressed
-                                  << " buffered=" << playerInputBuffers[id].size());
                         break;
                     default:
-                        LOG_DEBUG("[Server][Input] ignored unknown code "
-                                  << static_cast<int>(msg->inputCode)
-                                  << " from client " << id);
                         break;
                 }
             }
@@ -227,35 +213,6 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 LOG_DEBUG("[Server] Client " << id << " switched to scene = " << static_cast<int>(scene));
                 if (scene == SceneState::GAME) {
                     broadcast_full_registry_to(id);
-                }
-            }
-            break;
-        }
-        case MessageType::ClientShoot: {
-            if (data.size() >= sizeof(ClientShootMessage)) {
-                const ClientShootMessage* msg = reinterpret_cast<const ClientShootMessage*>(data.data());
-                uint32_t clientId = ntohl(msg->clientId);
-                if (deadPlayers.find(clientId) != deadPlayers.end())
-                    break;
-
-                auto it = playerPositions.find(clientId);
-                if (it != playerPositions.end()) {
-                    float playerX = it->second.first;
-                    float playerY = it->second.second;
-
-                    uint32_t projId = nextProjectileId++;
-                    float projX = playerX + 20.f;
-                    float projY = playerY;
-                    float projZ = 0.f;  // Ajout de Z
-                    float projVelX = 400.f;
-                    float projVelY = 0.f;
-                    float projVelZ = 0.f;  // Ajout de Z
-                    
-                    projectiles[projId] = std::make_tuple(projX, projY, projZ, projVelX, projVelY, projVelZ, clientId);
-
-                    broadcast_projectile_spawn(projId, clientId, projX, projY, projZ, projVelX, projVelY, projVelZ);
-
-                    LOG_DEBUG("[Server] Client " << clientId << " shot projectile " << projId);
                 }
             }
             break;
@@ -333,29 +290,169 @@ void ServerGame::process_player_inputs(float dt) {
         buffer.clear();
 
         float inputX = 0.f;
-        float inputY = 0.f;
 
         if (state.left != state.right)
             inputX = state.left ? -1.f : 1.f;
-        if (state.up != state.down)
-            inputY = state.up ? -1.f : 1.f;
 
-        if (inputX == 0.f && inputY == 0.f)
+        if (inputX != 0.f) {
+            auto &pos = kv.second;
+            float distance = speedPerSecond * dt;
+            float newX = pos.first + inputX * distance;
+
+            if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles) &&
+                !is_position_blocked_platform(newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down))
+                pos.first = newX;
+        }
+    }
+}
+
+void ServerGame::apply_gravity(float dt) {
+    constexpr float gravity = 600.f;
+    constexpr float jumpForce = -400.f;
+    constexpr float playerWidth = 30.f;
+    constexpr float playerHeight = 30.f;
+    constexpr int maxJumps = 2; // Player can jump 2 additional times after leaving ground
+
+    for (auto &kv : playerPositions) {
+        uint32_t clientId = kv.first;
+        if (deadPlayers.find(clientId) != deadPlayers.end())
             continue;
 
         auto &pos = kv.second;
-        float distance = speedPerSecond * dt;
-        float newX = pos.first + inputX * distance;
-        float newY = pos.second + inputY * distance;
+        auto &velocity = playerVelocities[clientId];
+        auto &state = playerInputStates[clientId];
+        auto &jumpCount = playerJumpCount[clientId];
 
-        if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles))
-            pos.first = newX;
-        if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
-            pos.second = newY;
+        bool onGround = is_on_ground(pos.first, pos.second, playerWidth, playerHeight);
 
-        LOG_DEBUG("[Server][Input] applied movement for client " << clientId
-                  << " dir=(" << inputX << "," << inputY << ")"
-                  << " newPos=(" << pos.first << "," << pos.second << ")");
+        // Reset jump count when on ground
+        if (onGround) {
+            jumpCount = 0;
+        }
+
+        // Handle jumping with counter
+        if (state.up) {
+            if (onGround || jumpCount < maxJumps) {
+                velocity = jumpForce;
+                if (!onGround) {
+                    jumpCount++;
+                    LOG_DEBUG("[Server] Player " << clientId << " performed air jump " << jumpCount << "/" << maxJumps);
+                }
+                state.up = false;
+            }
+        }
+
+        velocity += gravity * dt;
+
+        float newY = pos.second + velocity * dt;
+
+        if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles)) {
+            bool movingDown = (velocity > 0.f);
+            
+            // If down is pressed, pass through platforms
+            if (!is_position_blocked_platform(pos.first, newY, playerWidth, playerHeight, _platforms, movingDown, state.down)) {
+                pos.second = newY;
+            } else {
+                if (movingDown) {
+                    pos.second = snap_to_platform_top(pos.first, pos.second, playerWidth, playerHeight);
+                    velocity = 0.f;
+                }
+            }
+        } else {
+            velocity = 0.f;
+        }
+
+        if (onGround && velocity > 0.f) {
+            velocity = 0.f;
+        }
+    }
+}
+
+bool ServerGame::is_on_ground(float x, float y, float playerWidth, float playerHeight) {
+    constexpr float checkDistance = 2.f;
+    float testY = y + checkDistance;
+    
+    return is_position_blocked(x, testY, playerWidth, playerHeight, _obstacles) ||
+           is_position_blocked_platform(x, testY, playerWidth, playerHeight, _platforms, true, false);
+}
+
+template <typename Component>
+inline Component* get_component_ptr_obstacle(ecs::registry &registry, ecs::entity_t entity) {
+    auto &arr = registry.get_components<Component>();
+    auto idx = static_cast<std::size_t>(entity);
+    if (idx >= arr.size() || !arr[idx].has_value()) {
+        return nullptr;
+    }
+    return &arr[idx].value();
+}
+
+float ServerGame::snap_to_platform_top(float x, float y, float playerWidth, float playerHeight) {
+    constexpr float epsilon = 5.f;
+    
+    for (auto entity : _platforms) {
+        auto pos = get_component_ptr_obstacle<component::position>(registry_server, entity);
+        auto box = get_component_ptr_obstacle<component::collision_box>(registry_server, entity);
+
+        if (!pos || !box)
+            continue;
+
+        float pLeft = x - playerWidth / 2.f;
+        float pRight = x + playerWidth / 2.f;
+        float oLeft = pos->x - box->width / 2.f;
+        float oRight = pos->x + box->width / 2.f;
+
+        if (pRight > oLeft && pLeft < oRight) {
+            float platformTop = pos->y - box->height / 2.f;
+            if (std::abs(y + playerHeight / 2.f - platformTop) < epsilon) {
+                return platformTop - playerHeight / 2.f;
+            }
+        }
+    }
+    return y;
+}
+
+void ServerGame::check_death_zone() {
+    constexpr float deathX = 1080.f; // Changed from Y to X
+    
+    for (auto &kv : playerPositions) {
+        uint32_t clientId = kv.first;
+        if (deadPlayers.find(clientId) != deadPlayers.end())
+            continue;
+
+        auto &pos = kv.second;
+        if (pos.first > deathX) { // Check X instead of Y
+            LOG_INFO("[Server] Player " << clientId << " went past X=" << deathX << " and died");
+            deadPlayers.insert(clientId);
+            broadcast_player_death(clientId);
+            
+            auto& healths = registry_server.get_components<component::health>();
+            auto& clientIds = registry_server.get_components<component::client_id>();
+            for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+                if (clientIds[i] && clientIds[i]->id == clientId && healths[i]) {
+                    healths[i]->current = 0;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void ServerGame::check_win_condition() {
+    int alivePlayers = 0;
+    uint32_t lastAlivePlayer = 0;
+
+    for (const auto& kv : connexion.getClients()) {
+        uint32_t clientId = kv.second;
+        if (deadPlayers.find(clientId) == deadPlayers.end()) {
+            alivePlayers++;
+            lastAlivePlayer = clientId;
+        }
+    }
+
+    // Win condition: only 1 player remaining and at least 2 players total
+    if (alivePlayers == 1 && connexion.getClients().size() >= 2) {
+        LOG_INFO("[Server] Player " << lastAlivePlayer << " is the last one alive and WINS!");
+        broadcast_game_winner(lastAlivePlayer);
     }
 }
 
@@ -372,7 +469,7 @@ void ServerGame::broadcast_states_to_clients() {
         m.clientId = htonl(id);
         
         uint32_t xbits, ybits, zbits;
-        float z = 0.f;  // Valeur par défaut pour Z
+        float z = 0.f;
         std::memcpy(&xbits, &it->second.first, sizeof(float));
         std::memcpy(&ybits, &it->second.second, sizeof(float));
         std::memcpy(&zbits, &z, sizeof(float));
@@ -428,6 +525,13 @@ void ServerGame::broadcast_individual_scores() {
         
         connexion.broadcast(&msg, sizeof(msg));
     }
+}
+
+void ServerGame::broadcast_game_winner(uint32_t winnerId) {
+    // You'll need to define a GameWinnerMessage in your protocol
+    // For now, logging it
+    LOG_INFO("[Server] Broadcasting winner: Player " << winnerId);
+    // TODO: Implement actual broadcast message for winner
 }
 
 void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {

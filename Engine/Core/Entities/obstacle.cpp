@@ -10,7 +10,7 @@
 
 namespace game::entities {
 
-    ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, float z,
+    ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, float z, float width, float height, float depth,
         const std::string &imagePath, const std::string &modelPath) {
         auto obstacle = reg.spawn_entity();
 
@@ -28,10 +28,9 @@ namespace game::entities {
 
         // ====== Visuals ======
         component::drawable draw;
-        draw.width = 130.f;
-        draw.height = 50.f;
-        draw.depth = 50.f; // 3D depth
-        draw.color = GRAY;
+        draw.width = width;
+        draw.height = height;
+        draw.depth = depth;
         reg.add_component<component::drawable>(obstacle, std::move(draw));
 
         if (!imagePath.empty()) {

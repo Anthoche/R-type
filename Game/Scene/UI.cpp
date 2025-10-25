@@ -81,7 +81,7 @@ void UI::init() {
 		maxHealth = it->second.second;
 		playerID = myClientId;
 	}
-	maxPlayerLives = (playerHealth + 24) / 25;
+	int playerLives = (playerHealth + 24) / 25;
 
 	float offsetX = 0;
 	for (size_t i = 0; i < maxPlayerLives; ++i) {

@@ -23,7 +23,7 @@ namespace game::entities {
      * @param modelPath Optional 3D model path
      * @return The created obstacle entity
      */
-    ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, float z = 0.f,
+    ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, float z = 0.f, float width = 32.f, float height = 32.f, float depth = 0.f,
         const std::string &imagePath = "", const std::string &modelPath = "" );
 
 }
