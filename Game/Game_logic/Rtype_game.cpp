@@ -36,6 +36,7 @@ static nlohmann::json load_json_from_file(const std::string &path) {
 }
 
 ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
+    _roomId = -1;
     registry_server.register_component<component::position>();
     registry_server.register_component<component::previous_position>();
     registry_server.register_component<component::velocity>();
@@ -60,8 +61,9 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
 }
 
 
-void ServerGame::run() {
+void ServerGame::run(int roomId) {
     LOG("[Server] Starting game loop...");
+    _roomId = roomId;
     load_players(ASSETS_PATH "/Config_assets/Players/players.json");
     load_level(ASSETS_PATH "/Config_assets/Levels/level.json");
     initialize_player_positions();

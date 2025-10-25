@@ -31,4 +31,5 @@ class RoomManager {
 		void addClientInRoom(uint32_t clientId, int roomId);
 		void removeRoom(int id);
 		void clearRooms();
+		void startRoom(int id);
 };

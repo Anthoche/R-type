@@ -21,6 +21,7 @@ enum class MessageType : uint8_t {
 	ServerRoomAssignId, /**< Assign room to client */
 	ClientFetchRooms, /**< Fetch room list actions for client */
 	ServerSendRooms, /**< Send rooms to client */
+	ServerSetRoomReady, /**< Sends a message that notifies the client that the room is ready */
 	GameStart, /**< Server notifies clients that the game is starting */
 	ClientInput, /**< Client sends input for the current frame */
 	StateUpdate, /**< Server sends updated state for a client */
@@ -122,6 +123,14 @@ struct ClientHelloMessage {
 struct GameStartMessage {
 	MessageType type;
 	uint32_t clientCount;
+};
+
+/**
+ * @brief Message sent by server notifying the client that the room is ready
+ */
+struct RoomReadyMessage {
+	MessageType type;
+	uint32_t roomId;
 };
 
 /**

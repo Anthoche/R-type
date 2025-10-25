@@ -37,8 +37,9 @@ class ServerGame : public IServerGame {
 
         /**
          * @brief Main server game loop.
+         * @param roomId The id of the room to listen on
          */
-        void run() override;
+        void run(int roomId) override;
 
         /**
          * @brief Loads player data from a JSON configuration file.
@@ -125,6 +126,10 @@ class ServerGame : public IServerGame {
         /** @brief Cached references for enemies. */
         std::vector<ecs::entity_t> _enemies;
 
+        /**
+         * @brief The id of the room to listen on
+         */
+        int _roomId;
 
         void initialize_player_positions();
         void index_existing_entities();

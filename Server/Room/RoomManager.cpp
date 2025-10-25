@@ -6,6 +6,7 @@
 */
 
 #include "RoomManager.hpp"
+#include "Logger.hpp"
 
 RoomManager::RoomManager(int maxRooms) {
 	_maxRooms = maxRooms;
@@ -62,4 +63,13 @@ void RoomManager::removeRoom(int id) {
 
 void RoomManager::clearRooms() {
 	_rooms.clear();
+}
+
+void RoomManager::startRoom(int id) {
+	if (!roomExists(id))
+		return;
+	LOG_INFO(std::format("Starting game for room {}", id));
+	auto room = getRoom(id);
+	std::thread t(&Room::startGame, room, id);
+	t.detach();
 }

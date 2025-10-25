@@ -50,6 +50,10 @@ bool Room::isEmpty() const {
 	return _clients.empty();
 }
 
+bool Room::isReady() const {
+	return _clients.size() >= _minPlayers;
+}
+
 bool Room::isClientInRoom(uint32_t clientId) const {
 	for (auto const &client: _clients) {
 		if (client == clientId)
@@ -89,6 +93,6 @@ void Room::setGameStatus(GameStatus status) {
 	_gameStatus = status;
 }
 
-void Room::startGame() {
-	_game->run();
+void Room::startGame(int roomId) {
+	_game->run(roomId);
 }

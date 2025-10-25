@@ -4,6 +4,7 @@
 ** File description:
 ** server
 */
+
 #include "Include/server.hpp"
 #include "Include/IServerGame.hpp"
 #include "../Game/Game_logic/Rtype_game.hpp"
@@ -71,7 +72,7 @@ void GameServer::run() {
 	/*std::cout << "Tous les clients sont connectés. Le jeu commence !" << std::endl;
 	// Delegate to Game module
 	ServerGame game(connexion);
-	game.run();*/
+	game.run(0);*/
 }
 
 void GameServer::handleClientHello(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &clientEndpoint) {
@@ -111,6 +112,7 @@ void GameServer::assignClientToRoom(const std::vector<uint8_t> &data, const asio
 		LOG_WARN(std::format("Room with id '{}' does not exists. Skipping.", roomId));
 		return;
 	}
+	auto room = roomManager.getRoom(roomId);
 
 	ServerRoomAssignIdMessage assignMsg{};
 	assignMsg.type = MessageType::ServerRoomAssignId;
@@ -119,6 +121,15 @@ void GameServer::assignClientToRoom(const std::vector<uint8_t> &data, const asio
 	LOG_DEBUG("Sending room assignment");
 	connexion.sendTo(&assignMsg, sizeof(assignMsg), from);
 	roomManager.addClientInRoom(msg->clientId, roomId);
+
+	if (room->isReady()) {
+		RoomReadyMessage roomReadyMsg{};
+		roomReadyMsg.type = MessageType::ServerSetRoomReady;
+		roomReadyMsg.roomId = roomId;
+
+		LOG_DEBUG("Room is considered ready. Sending room ready message to clients in room.");
+		// TODO: Broadcast roomReadyMsg to clients in room roomId
+	}
 	LOG_INFO(std::format("Assigned client {} to room {}", msg->clientId, roomId));
 }
 

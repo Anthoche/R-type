@@ -39,6 +39,7 @@ class Room {
 		std::vector<uint32_t> getClients() const;
 		bool isFull() const;
 		bool isEmpty() const;
+		bool isReady() const;
 		bool isClientInRoom(uint32_t clientId) const;
 		int getRoomHost() const;
 
@@ -47,7 +48,7 @@ class Room {
 		void setMaxPlayers(int value);
 		void setMinPlayers(int value);
 		void setGameStatus(GameStatus status);
-		void startGame();
+		void startGame(int roomId);
 
 		//TODO: Run one instance of a game for each room in a separate thread
 };

@@ -17,5 +17,5 @@ class IServerGame {
     public:
         virtual ~IServerGame() = default;
 
-        virtual void run() = 0;
+        virtual void run(int roomId) = 0;
 };
