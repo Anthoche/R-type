@@ -82,7 +82,7 @@ set(TESTS
     Engine/Core/ZipperTests.cpp
     Engine/Core/entities/ComponentTests.cpp
   #  Engine/Core/entities/EnemyTests.cpp
-  #  Engine/Core/entities/ProjectileTests.cpp
+    Engine/Core/entities/ProjectileTests.cpp
     Engine/Core/entities/HitboxTests.cpp
  #   Engine/Core/entities/BackgroundTests.cpp
  #   Engine/Core/entities/ButtonTests.cpp

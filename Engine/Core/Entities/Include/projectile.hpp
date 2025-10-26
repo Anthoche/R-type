@@ -1,3 +1,10 @@
+/*
+** EPITECH PROJECT, 2025
+** R-Type
+** File description:
+** projectile entity
+*/
+
 #pragma once
 #include <stdint.h>
 #include "components.hpp"
