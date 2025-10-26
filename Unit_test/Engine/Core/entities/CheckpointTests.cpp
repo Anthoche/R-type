@@ -57,9 +57,7 @@ TEST(Checkpoint, multiple_checkpoints_unique_entities) {
     EXPECT_FLOAT_EQ(positions[static_cast<std::size_t>(e1)]->x, 0.f);
     EXPECT_FLOAT_EQ(positions[static_cast<std::size_t>(e2)]->x, 1.f);
 }
-// -------------------------
-// Test: Checkpoint creates entity with all components
-// -------------------------
+
 TEST(Checkpoint, creates_entity_with_all_components) {
     registry reg;
 
@@ -93,9 +91,6 @@ TEST(Checkpoint, creates_entity_with_all_components) {
     EXPECT_TRUE(hitbox_found);
 }
 
-// -------------------------
-// Test: Checkpoint hitbox position synced to owner
-// -------------------------
 TEST(Checkpoint, hitbox_position_sync) {
     registry reg;
 

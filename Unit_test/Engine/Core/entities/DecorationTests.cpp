@@ -1,3 +1,10 @@
+/*
+** EPITECH PROJECT, 2025
+** R-Type
+** File description:
+** DecorationTests.cpp
+*/
+
 #include <gtest/gtest.h>
 #include "decoration.hpp"
 #include "registry.hpp"
@@ -10,8 +17,6 @@ using namespace component;
 
 TEST(Decoration, creates_entity_with_all_components) {
     registry reg;
-
-    // Register components
     reg.register_component<position>();
     reg.register_component<previous_position>();
     reg.register_component<velocity>();
@@ -20,27 +25,24 @@ TEST(Decoration, creates_entity_with_all_components) {
     reg.register_component<drawable>();
     reg.register_component<sprite>();
     reg.register_component<model3D>();
-    reg.register_component<hitbox_link>(); // <- register the link, not hitbox
+    reg.register_component<hitbox_link>();
 
     float x = 5.f, y = 10.f, z = 2.f;
     float width = 32.f, height = 32.f, depth = 32.f;
     std::string imagePath = "deco.png";
     std::string modelPath = "deco.obj";
-
     auto deco = create_decoration(reg, x, y, z, width, height, depth, imagePath, modelPath);
-
     auto &positions = reg.get_components<position>();
     auto &types = reg.get_components<type>();
     auto &sprites = reg.get_components<sprite>();
     auto &models = reg.get_components<model3D>();
-    auto &hitboxes = reg.get_components<hitbox_link>(); // <- use hitbox_link
+    auto &hitboxes = reg.get_components<hitbox_link>();
 
     EXPECT_TRUE(positions[static_cast<std::size_t>(deco)].has_value());
     EXPECT_TRUE(types[static_cast<std::size_t>(deco)].has_value());
     EXPECT_TRUE(sprites[static_cast<std::size_t>(deco)].has_value());
     EXPECT_TRUE(models[static_cast<std::size_t>(deco)].has_value());
 
-    // Hitbox entity should exist, linked to deco
     bool hitbox_found = false;
     for (size_t i = 0; i < hitboxes.size(); ++i) {
         if (hitboxes[i] && hitboxes[i]->owner == deco) {
@@ -49,17 +51,11 @@ TEST(Decoration, creates_entity_with_all_components) {
         }
     }
     EXPECT_TRUE(hitbox_found);
-
     EXPECT_EQ(types[static_cast<std::size_t>(deco)]->value, entity_type::DECORATION);
     EXPECT_EQ(sprites[static_cast<std::size_t>(deco)]->image_path, "deco.png");
     EXPECT_EQ(models[static_cast<std::size_t>(deco)]->model_path, "deco.obj");
 }
 
-
-
-// -------------------------
-// Test: Decoration without image or model
-// -------------------------
 TEST(Decoration, creates_entity_without_image_or_model) {
     registry reg;
 
@@ -74,7 +70,6 @@ TEST(Decoration, creates_entity_without_image_or_model) {
     reg.register_component<hitbox_link>();
 
     auto deco = create_decoration(reg, 0.f, 0.f, 0.f, 32.f, 32.f, 32.f, "", "");
-
     auto &sprites = reg.get_components<sprite>();
     auto &models = reg.get_components<model3D>();
     auto &types = reg.get_components<type>();
@@ -84,9 +79,6 @@ TEST(Decoration, creates_entity_without_image_or_model) {
     EXPECT_TRUE(types[deco.value()].has_value());
 }
 
-// -------------------------
-// Test: Multiple decorations have unique entities
-// -------------------------
 TEST(Decoration, multiple_decorations_have_unique_entities) {
     registry reg;
 
@@ -100,12 +92,9 @@ TEST(Decoration, multiple_decorations_have_unique_entities) {
 
     auto deco1 = create_decoration(reg, 1.f, 1.f, 0.f, 32.f, 32.f, 32.f, "", "");
     auto deco2 = create_decoration(reg, 2.f, 2.f, 0.f, 32.f, 32.f, 32.f, "", "");
-
     EXPECT_NE(deco1.value(), deco2.value());
-
     auto &hitboxes = reg.get_components<hitbox_link>();
 
-    // Ensure both have a hitbox
     bool hitbox1 = false, hitbox2 = false;
     for (size_t i = 0; i < hitboxes.size(); ++i) {
         if (hitboxes[i]) {
@@ -117,9 +106,6 @@ TEST(Decoration, multiple_decorations_have_unique_entities) {
     EXPECT_TRUE(hitbox2);
 }
 
-// -------------------------
-// Test: Decoration hitbox position synced to owner
-// -------------------------
 TEST(Decoration, hitbox_position_sync) {
     registry reg;
 
@@ -132,10 +118,8 @@ TEST(Decoration, hitbox_position_sync) {
     reg.register_component<hitbox_link>();
 
     auto deco = create_decoration(reg, 5.f, 10.f, 2.f, 32.f, 32.f, 32.f, "", "");
-
     setup_hitbox_sync_system(reg);
     reg.run_systems();
-
     auto &positions = reg.get_components<position>();
     auto &hitboxes = reg.get_components<hitbox_link>();
 
