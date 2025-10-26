@@ -42,6 +42,9 @@ set(SRC
     ${ENTITIES_DIR}/random_element.cpp
     ${ENTITIES_DIR}/sound.cpp
     ${ENTITIES_DIR}/text.cpp
+    ${ENTITIES_DIR}/checkpoint.cpp
+  #  ${ENTITIES_DIR}/decoration.cpp
+
 )
 
 # -------------------------
@@ -64,6 +67,8 @@ set(HEAD
     ${ENTITIES_DIR}/Include/random_element.hpp
     ${ENTITIES_DIR}/Include/sound.hpp
     ${ENTITIES_DIR}/Include/text.hpp
+    ${ENTITIES_DIR}/Include/checkpoint.hpp
+  #  ${ENTITIES_DIR}/Include/decoration.hpp
 
 )
 
@@ -77,7 +82,7 @@ set(TESTS
     Engine/Core/ZipperTests.cpp
     Engine/Core/entities/ComponentTests.cpp
   #  Engine/Core/entities/EnemyTests.cpp
-#    Engine/Core/entities/ProjectileTests.cpp
+  #  Engine/Core/entities/ProjectileTests.cpp
     Engine/Core/entities/HitboxTests.cpp
  #   Engine/Core/entities/BackgroundTests.cpp
  #   Engine/Core/entities/ButtonTests.cpp
@@ -85,6 +90,9 @@ set(TESTS
     Engine/Core/entities/SoundTests.cpp
     Engine/Core/entities/TextTests.cpp
   #  Engine/Core/entities/Random_elementTests.cpp
+      Engine/Core/entities/CheckpointTests.cpp
+   #         Engine/Core/entities/DecorationTests.cpp
+
 )
 
 # -------------------------
