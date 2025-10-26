@@ -56,6 +56,7 @@ class ServerGame : public IServerGame {
         void broadcast_full_registry_to(uint32_t clientId);
 
     private:
+        /** @brief Game difficulty setting ("Easy", "Medium", "Hard"). */
         std::string _difficulty;
 
         /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */

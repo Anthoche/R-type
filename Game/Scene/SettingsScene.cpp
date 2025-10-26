@@ -232,6 +232,7 @@ namespace scene {
 		else if (id == "button_difficulty") cycleDifficulty();
 		else if (id == "button_language") toggleLanguage();
 	}
+	
 	void SettingsScene::toggleSound() {
 		_values[2] =
 			(_values[2] == "On" || _values[2] == "Active" || _values[2] == "Attivo")
