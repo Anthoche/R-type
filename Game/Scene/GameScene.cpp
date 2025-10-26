@@ -450,6 +450,7 @@ void GameScene::update() {
             }
             _victorySoundPlayed = true;
             _victoryStartTime = _raylib.getTime();
+            _stopShoot = true;
     }
 
     if (_isWin && _victorySoundPlayed) {
@@ -458,6 +459,7 @@ void GameScene::update() {
         
         if (timeSinceVictory >= 6.0f) {
             _isWin = false;
+            _stopShoot = false;
             _victorySoundPlayed = false;
             _game.getGameClient().bossDefeated.store(false);
 
@@ -839,7 +841,8 @@ void GameScene::update() {
 
         switch (_raylib.getKeyPressed()) {
             case KEY_SPACE:
-                handle_shoot(SHOOT_COOLDOWN);
+                if (!_stopShoot)
+                    handle_shoot(SHOOT_COOLDOWN);
                 break;
             case KEY_F11:
                 toggleFullScreen();
@@ -871,7 +874,7 @@ void GameScene::update() {
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                 leftPressed = true;
 
-            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) && !_stopShoot) {
                 handle_shoot(SHOOT_COOLDOWN);
                 if (_game.isSoundEnabled()) {
                     _raylib.playSound(_shootSound);

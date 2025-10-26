@@ -235,6 +235,7 @@ namespace game::scene {
         std::unordered_map<uint32_t, float> moovePlayer; ///< Map: client ID -> movement offset for sprite rendering.
         float _backgroundScrollX = 0.0f; ///< Background scrolling offset.
         float _victoryStartTime = 0.0f;
+        float _stopShoot = false;
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
