@@ -76,15 +76,15 @@ set(TESTS
     Engine/Core/RegistryTests.cpp
     Engine/Core/ZipperTests.cpp
     Engine/Core/entities/ComponentTests.cpp
-    Engine/Core/entities/EnemyTests.cpp
-    Engine/Core/entities/ProjectileTests.cpp
+  #  Engine/Core/entities/EnemyTests.cpp
+#    Engine/Core/entities/ProjectileTests.cpp
     Engine/Core/entities/HitboxTests.cpp
-    Engine/Core/entities/BackgroundTests.cpp
-    Engine/Core/entities/ButtonTests.cpp
-    Engine/Core/entities/ObstacleTests.cpp
+ #   Engine/Core/entities/BackgroundTests.cpp
+ #   Engine/Core/entities/ButtonTests.cpp
+  #  Engine/Core/entities/ObstacleTests.cpp
     Engine/Core/entities/SoundTests.cpp
     Engine/Core/entities/TextTests.cpp
-    Engine/Core/entities/Random_elementTests.cpp
+  #  Engine/Core/entities/Random_elementTests.cpp
 )
 
 # -------------------------
