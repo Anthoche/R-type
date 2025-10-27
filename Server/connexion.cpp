@@ -40,6 +40,14 @@ void Connexion::broadcast(const void* msg, size_t size) {
     }
 }
 
+void Connexion::broadcastToRoom(Room const &room, const void* msg, size_t size) {
+    try {
+        socket.broadcastToRoom(room, msg, size);
+    } catch (const std::exception& e) {
+        LOG_ERROR(std::format("Connexion::broadcastToRoom(): {}", e.what()));
+    }
+}
+
 void Connexion::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t id) {
     try {
         std::string addrStr = endpoint.address().to_string() + ":" + std::to_string(endpoint.port());

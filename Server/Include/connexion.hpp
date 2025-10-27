@@ -65,6 +65,14 @@ class Connexion {
          */
         void broadcast(const void* msg, size_t size);
 
+		/**
+		* @brief Broadcasts a UDP message to all connected clients to a specific room.
+		* @param room The room to broadcast.
+		* @param data Pointer to the data to broadcast.
+		* @param size Size of the data in bytes.
+		*/
+        void broadcastToRoom(Room const &room, const void* data, size_t size);
+
         /**
          * @brief Registers a new client with the connection manager.
          * @param endpoint UDP endpoint of the client.
