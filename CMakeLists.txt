@@ -206,7 +206,6 @@ add_executable(r-type_server
     ${SERVER_DIR}/main.cpp
     ${SERVER_DIR}/server.cpp
     ${SERVER_DIR}/connexion.cpp
-    ${SERVER_DIR}/game_setup.cpp
     ${SERVER_DIR}/Room/Room.cpp
     ${SERVER_DIR}/Room/RoomManager.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
