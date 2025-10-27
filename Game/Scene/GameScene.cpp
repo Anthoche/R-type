@@ -664,8 +664,12 @@ void GameScene::update() {
     void GameScene::render_death_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{255, 0, 0, 100});
         bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+        bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
-        const char* deathText = isFrench ? "VOUS ÊTES MORT!" : "YOU DIED!";
+        const char* deathText = 
+            isFrench ? "VOUS ÊTES MORT!" :
+            isItalian ? "SEI MORTO!"
+            : "YOU ARE DEAD!";
         int fontSize = 72;
         int textWidth = _raylib.measureText(deathText, fontSize);
         _raylib.drawText(
@@ -680,7 +684,13 @@ void GameScene::update() {
     void GameScene::render_win_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
         
-        const char* winText = "YOU WIN!";
+        bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+        bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
+
+        const char* winText = 
+            isFrench ? "GAGNE!" :
+            isItalian ? "VINCI!"
+            : "YOU WIN!";
         int fontSize = 72;
         int textWidth = _raylib.measureText(winText, fontSize);
         _raylib.drawText(
