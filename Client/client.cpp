@@ -189,3 +189,17 @@ void GameClient::fetchFullRegistryAsync() {
         fullRegistryFetchInFlight.store(false, std::memory_order_release);
     }).detach();
 }
+
+const std::string &GameClient::getClientName() const {
+    return clientName;
+}
+
+std::vector<std::pair<std::string, std::string>> GameClient::consumeChatMessages() {
+    std::vector<std::pair<std::string, std::string>> messages;
+    std::lock_guard<std::mutex> lock(stateMutex);
+    while (!_chatQueue.empty()) {
+        messages.emplace_back(std::move(_chatQueue.front()));
+        _chatQueue.pop_front();
+    }
+    return messages;
+}
