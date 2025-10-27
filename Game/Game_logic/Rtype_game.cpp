@@ -70,6 +70,7 @@ void ServerGame::run() {
 
     const int tick_ms = 16;
     float dt = 0.016f;
+    _isEndless = true;
 
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
@@ -77,27 +78,29 @@ void ServerGame::run() {
         process_pending_messages();
         process_player_inputs(dt);
 
-        update_projectiles_server_only(dt);
-        update_enemies(dt);
-        update_obstacles(dt);
-        update_enemy_projectiles_server_only(dt);
+        if (!gameCompleted) {
+            update_projectiles_server_only(dt);
+            update_enemies(dt);
+            update_obstacles(dt);
+            update_enemy_projectiles_server_only(dt);
 
-        check_enemy_projectile_player_collisions();
-        check_projectile_collisions();
-        check_projectile_enemy_collisions();
-        check_player_enemy_collisions();
+            check_enemy_projectile_player_collisions();
+            check_projectile_collisions();
+            check_projectile_enemy_collisions();
+            check_player_enemy_collisions();
 
-        broadcast_projectile_positions();
-        broadcast_obstacle_positions();
-        broadcast_enemy_positions();
-        broadcast_enemy_projectile_positions();
+            broadcast_projectile_positions();
+            broadcast_obstacle_positions();
+            broadcast_enemy_positions();
+            broadcast_enemy_projectile_positions();
+        }
 
         broadcast_states_to_clients();
         broadcast_player_health();
         broadcast_global_score();
         broadcast_individual_scores();
 
-        if (levelTransitionPending) {
+        if (levelTransitionPending && !gameCompleted) {
             auto now = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
                 now - levelTransitionTime
@@ -107,11 +110,10 @@ void ServerGame::run() {
                 load_next_level();
                 levelTransitionPending = false;
             }
-        }
+        }       
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
 }
-
 bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
                         float left2, float right2, float top2, float bottom2) {
     return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
@@ -251,10 +253,27 @@ void ServerGame::index_existing_entities() {
 void ServerGame::load_next_level() {
     LOG_INFO("[Server] Loading next level...");
     currentLevel++;
+    if (currentLevel > MAX_LEVELS) {
+        LOG_INFO("[Server] Reached maximum level. Game completed!");
+        if (_isEndless) {
+            currentLevel = 1;
+        } else {
+            gameCompleted = true;
+            return;
+        }
+    }
     clear_level_entities();
     std::string levelPath = ASSETS_PATH "/Config_assets/Levels/level_0" 
                           + std::to_string(currentLevel) + ".json";
     try {
+        std::ifstream testFile(levelPath);
+        if (!testFile.good()) {
+            LOG_INFO("[Server] Level file not found: " << levelPath);
+            LOG_INFO("[Server] Game completed! No more levels.");
+            gameCompleted = true;
+            return;
+        }
+        testFile.close();
         load_level(levelPath);
         index_existing_entities();
         for (const auto& kv : connexion.getClients()) {

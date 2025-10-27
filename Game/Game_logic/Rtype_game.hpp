@@ -56,6 +56,10 @@ class ServerGame : public IServerGame {
         void broadcast_full_registry_to(uint32_t clientId);
 
     private:
+
+        static constexpr int MAX_LEVELS = 3;
+        bool _isEndless = false;
+        bool gameCompleted = false;
         /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 
