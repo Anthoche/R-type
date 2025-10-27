@@ -117,7 +117,7 @@ void ChatSystem::render()
 		if (_isFocused) {
 			inputText = "> ";
 		} else {
-			inputText = "> Tape un message...";
+			inputText = "> Type a message...";
 		}
 	} else {
 		inputText = std::format("> {}", _inputBuffer);
@@ -161,8 +161,8 @@ void ChatSystem::updatePanelGeometry()
 
 	_panelBounds.width = width;
 	_panelBounds.height = height;
-	_panelBounds.x = _margin;
-	_panelBounds.y = renderHeight - height - _margin;
+	_panelBounds.x = renderWidth - width - _margin;
+	_panelBounds.y = _margin;
 }
 
 void ChatSystem::setUsername(std::string username)
