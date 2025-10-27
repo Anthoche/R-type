@@ -10,6 +10,8 @@
 #include <cmath>
 #include <tuple>
 #include <algorithm>
+#include <nlohmann/json.hpp>
+#include "../../Engine/Utils/Include/serializer.hpp"
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -61,10 +63,9 @@ namespace game::scene {
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
         game::entities::create_sound(_registry, "../Game/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
         
-        index_existing_entities();
-        extract_enemy_sprite_paths();
-        extract_obstacle_sprite_paths();
-        load_entity_textures();
+        if (!processPendingFullRegistry()) {
+            std::cerr << "[WARN] Aucun full registry disponible lors de l'initialisation." << std::endl;
+        }
         load_projectile_textures();
         load_music();
     }
@@ -383,39 +384,126 @@ void GameScene::update() {
     _registry.run_systems();
 }
 
-    void GameScene::extract_enemy_sprite_paths() {
-        auto &sprites = _registry.get_components<component::sprite>();
+    void GameScene::clearLevelEntitiesForReload() {
         auto &types = _registry.get_components<component::type>();
-            
-        _enemySpriteMap.clear();   
-        for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
-            if (sprites[i] && types[i] && types[i]->value == component::entity_type::ENEMY) {
-                uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
-                
-                if (!sprites[i]->image_path.empty())
-                    _enemySpriteMap[serverEntityId] = sprites[i]->image_path;
-                ecs::entity_t entity = _registry.entity_from_index(i);
-                _registry.kill_entity(entity);
+        std::vector<ecs::entity_t> toKill;
+
+        for (std::size_t i = 0; i < types.size(); ++i) {
+            if (!types[i])
+                continue;
+
+            switch (types[i]->value) {
+                case component::entity_type::ENEMY:
+                case component::entity_type::OBSTACLE:
+                case component::entity_type::PROJECTILE:
+                case component::entity_type::POWERUP:
+                case component::entity_type::BACKGROUND:
+                case component::entity_type::PLAYER:
+                    toKill.push_back(_registry.entity_from_index(i));
+                    break;
+                default:
+                    break;
             }
-        }    
+        }
+
+        for (auto entity : toKill) {
+            auto texIt = _entityTextures.find(entity.value());
+            if (texIt != _entityTextures.end()) {
+                _raylib.unloadTexture(texIt->second);
+                _entityTextures.erase(texIt);
+            }
+            _registry.kill_entity(entity);
+        }
+
+        _enemyMap.clear();
+        _obstacleMap.clear();
+        _enemys.clear();
+        _obstacles.clear();
+        _playerEntities.clear();
+        moovePlayer.clear();
+        _player = ecs::entity_t{0};
     }
 
-    void GameScene::extract_obstacle_sprite_paths() {
-        auto &sprites = _registry.get_components<component::sprite>();
+    void GameScene::removeEntitiesOfType(component::entity_type type) {
         auto &types = _registry.get_components<component::type>();
-            
-        _obstacleSpriteMap.clear();   
-        for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
-            if (sprites[i] && types[i] && types[i]->value == component::entity_type::OBSTACLE) {
-                uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
-                
-                if (!sprites[i]->image_path.empty())
-                    _obstacleSpriteMap[serverEntityId] = sprites[i]->image_path;
-                
-                ecs::entity_t entity = _registry.entity_from_index(i);
-                _registry.kill_entity(entity);
+        std::vector<ecs::entity_t> toKill;
+
+        for (std::size_t i = 0; i < types.size(); ++i) {
+            if (types[i] && types[i]->value == type) {
+                toKill.push_back(_registry.entity_from_index(i));
             }
-        }    
+        }
+
+        for (auto entity : toKill) {
+            auto texIt = _entityTextures.find(entity.value());
+            if (texIt != _entityTextures.end()) {
+                _raylib.unloadTexture(texIt->second);
+                _entityTextures.erase(texIt);
+            }
+            _registry.kill_entity(entity);
+        }
+    }
+
+    void GameScene::buildSpriteMapsFromRegistry(const nlohmann::json &registryJson) {
+        _enemySpriteMap.clear();
+        _obstacleSpriteMap.clear();
+
+        if (registryJson.is_null())
+            return;
+
+        const nlohmann::json &entities = registryJson.contains("entities")
+            ? registryJson.at("entities")
+            : registryJson;
+
+        if (!entities.is_array())
+            return;
+
+        for (const auto &entity : entities) {
+            if (!entity.contains("entity_id") || !entity.contains("type"))
+                continue;
+
+            uint32_t serverEntityId = entity.at("entity_id").get<uint32_t>();
+            int typeValue = entity.at("type").get<int>();
+            auto imageIt = entity.find("image_path");
+            if (imageIt == entity.end() || !imageIt->is_string())
+                continue;
+
+            std::string imagePath = imageIt->get<std::string>();
+
+            switch (static_cast<component::entity_type>(typeValue)) {
+                case component::entity_type::ENEMY:
+                    if (!imagePath.empty())
+                        _enemySpriteMap[serverEntityId] = imagePath;
+                    break;
+                case component::entity_type::OBSTACLE:
+                    if (!imagePath.empty())
+                        _obstacleSpriteMap[serverEntityId] = imagePath;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    bool GameScene::processPendingFullRegistry() {
+        auto registryOpt = _game.getGameClient().consumeFullRegistry();
+        if (!registryOpt.has_value())
+            return false;
+
+        const nlohmann::json &fullRegistry = registryOpt.value();
+
+        if (_hasLevelData) {
+            clearLevelEntitiesForReload();
+            game::serializer::deserialize_entities(_registry, fullRegistry);
+        }
+
+        buildSpriteMapsFromRegistry(fullRegistry);
+        removeEntitiesOfType(component::entity_type::ENEMY);
+        removeEntitiesOfType(component::entity_type::OBSTACLE);
+        load_entity_textures();
+        index_existing_entities();
+        _hasLevelData = true;
+        return true;
     }
 
     void GameScene::render() {
@@ -451,29 +539,29 @@ void GameScene::update() {
             _victorySoundPlayed = true;
             _victoryStartTime = _raylib.getTime();
             _stopShoot = true;
-    }
+        }
 
-    if (_isWin && _victorySoundPlayed) {
-        float currentTime = _raylib.getTime();
-        float timeSinceVictory = currentTime - _victoryStartTime;
-        
-        if (timeSinceVictory >= 6.0f) {
-            _isWin = false;
-            _stopShoot = false;
-            _victorySoundPlayed = false;
-            _game.getGameClient().bossDefeated.store(false);
-
-            _enemyMap.clear();
-            _obstacleMap.clear();
-            _enemys.clear();
-            _obstacles.clear();
+        if (_isWin && _victorySoundPlayed) {
+            float currentTime = _raylib.getTime();
+            float timeSinceVictory = currentTime - _victoryStartTime;
             
-
-            if (_game.isSoundEnabled()) {
-                _raylib.playMusicStream(_music);
+            if (timeSinceVictory >= 6.0f) {
+                _isWin = false;
+                _stopShoot = false;
+                _victorySoundPlayed = false;
+                _game.getGameClient().bossDefeated.store(false);
+                _levelReloadPending = true;
             }
         }
-    }
+
+        if (_levelReloadPending) {
+            if (processPendingFullRegistry()) {
+                _levelReloadPending = false;
+                if (_game.isSoundEnabled()) {
+                    _raylib.playMusicStream(_music);
+                }
+            }
+        }
         _raylib.endDrawing();
     }
 

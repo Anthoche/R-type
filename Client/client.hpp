@@ -20,6 +20,8 @@
 #include <unordered_map>
 #include <atomic>
 #include <utility>
+#include <optional>
+#include <nlohmann/json.hpp>
 
 class Game;
 
@@ -47,6 +49,13 @@ class GameClient {
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
+        std::mutex registryMutex;
+        nlohmann::json latestFullRegistry;
+        std::atomic<bool> hasPendingFullRegistry{false};
+        std::atomic<bool> fullRegistryFetchInFlight{false};
+
+        void storeFullRegistry(const nlohmann::json &registryJson, bool markPending);
+        void fetchFullRegistryAsync();
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         
@@ -159,6 +168,7 @@ class GameClient {
          * @param lives Current number of lives.
          */
         void sendHealth(int lives);
+        std::optional<nlohmann::json> consumeFullRegistry();
 
         /**
          * @brief Handles an incoming message from the server.

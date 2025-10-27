@@ -11,8 +11,10 @@
 #include "../../Engine/Rendering/scene/Include/AScene.hpp"
 #include "../Game.hpp"
 #include "../../Shared/protocol.hpp"
+#include "../../Engine/Core/Entities/Include/components.hpp"
 #include <unordered_map>
 #include "UI.hpp"
+#include <nlohmann/json_fwd.hpp>
 
 namespace game::scene {
     /**
@@ -209,7 +211,10 @@ namespace game::scene {
         Texture2D* get_entity_texture(ecs::entity_t entity);
 
         
-        void extract_obstacle_sprite_paths();
+        bool processPendingFullRegistry();
+        void clearLevelEntitiesForReload();
+        void removeEntitiesOfType(component::entity_type type);
+        void buildSpriteMapsFromRegistry(const nlohmann::json &registryJson);
         
         void toggleFullScreen();
 
@@ -236,6 +241,8 @@ namespace game::scene {
         float _backgroundScrollX = 0.0f; ///< Background scrolling offset.
         float _victoryStartTime = 0.0f;
         float _stopShoot = false;
+        bool _hasLevelData = false;
+        bool _levelReloadPending = false;
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
@@ -252,11 +259,6 @@ namespace game::scene {
          * @brief Render ECS entities organized by layer.
          */
         void draw_ecs_layers();
-
-        /**
-         * @brief Extract enemy sprite paths from the registry to the enemy sprite map.
-         */
-        void extract_enemy_sprite_paths();
 
         // --- Indexation des entités ---
         void index_existing_entities();
