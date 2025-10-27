@@ -14,7 +14,6 @@
 #include <mutex>
 #include <cstdint>
 #include <iostream>
-#include "../../Server/Room/Room.hpp"
 
 /**
  * @class UDP_socket
@@ -76,12 +75,12 @@ class UDP_socket {
         void broadcast(const void* data, size_t size);
 
 		/**
-		* @brief Broadcasts a UDP message to all connected clients.
-		* @param room The room to broadcast.
+		* @brief Broadcasts a UDP message to specified clients.
+		* @param roomClients The clients to broadcast.
 		* @param data Pointer to the data to broadcast.
 		* @param size Size of the data in bytes.
 		*/
-        void broadcastToRoom(Room const &room, const void* data, size_t size);
+        void broadcastToClients(std::vector<uint32_t> const &roomClients, const void* data, size_t size);
 
         /**
          * @brief Registers a client with a unique ID (server mode only).

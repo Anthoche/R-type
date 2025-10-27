@@ -12,9 +12,9 @@
 #include <memory>
 #include "../Include/IServerGame.hpp"
 #include "GameStatus.hpp"
-#include "../Include/connexion.hpp"
 
 class IServerGame;
+class Connexion;
 
 class Room {
 	private:

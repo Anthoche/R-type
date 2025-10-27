@@ -10,12 +10,15 @@
 #include "../../Shared/Sockets/Include/UDP_socket.hpp"
 #include "../../Shared/Sockets/Include/TCP_socket.hpp"
 #include "../../Shared/protocol.hpp"
+#include "../../Server/Room/Room.hpp"
 #include <vector>
 #include <unordered_map>
 #include <asio.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
+
+class Room;
 
 /**
  * @class Connexion

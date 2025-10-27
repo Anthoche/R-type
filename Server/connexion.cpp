@@ -42,7 +42,7 @@ void Connexion::broadcast(const void* msg, size_t size) {
 
 void Connexion::broadcastToRoom(Room const &room, const void* msg, size_t size) {
     try {
-        socket.broadcastToRoom(room, msg, size);
+        socket.broadcastToClients(room.getClients(), msg, size);
     } catch (const std::exception& e) {
         LOG_ERROR(std::format("Connexion::broadcastToRoom(): {}", e.what()));
     }

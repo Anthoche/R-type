@@ -130,7 +130,7 @@ void UDP_socket::broadcast(const void* data, size_t size) {
     }
 }
 
-void UDP_socket::broadcastToRoom(Room const &room, const void* data, size_t size) {
+void UDP_socket::broadcastToClients(std::vector<uint32_t> const &roomClients, const void* data, size_t size) {
     if (!isServerMode) {
         std::cerr << "[WARN] broadcastToRoom() called on client-mode socket, ignoring." << std::endl;
         return;
@@ -139,7 +139,7 @@ void UDP_socket::broadcastToRoom(Room const &room, const void* data, size_t size
     std::lock_guard<std::mutex> lock(clientsMutex);
     asio::error_code ec;
 
-    for (auto &p : room.getClients()) {
+    for (auto &p : roomClients) {
         for (const auto& [addrStr, clientId] : clients) {
             if (p != clientId)
                 continue;
