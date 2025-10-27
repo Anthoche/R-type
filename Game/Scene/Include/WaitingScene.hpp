@@ -67,12 +67,14 @@ class WaitingScene: public AScene {
             std::string name;
             std::string path;
             Texture2D texture{};
+            Rectangle source{0.f, 0.f, 0.f, 0.f};
         };
 
         std::vector<SkinOption> _skinOptions;
         std::size_t _currentSkinIndex{0};
         Vector2 _previewCenter{0.f, 0.f};
         Vector2 _previewBounds{220.f, 140.f};
+        bool _ignoreInitialClick{false};
 
         void resetButtonStates();
         void handleButtonClick(std::string const &id);

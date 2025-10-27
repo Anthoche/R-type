@@ -10,7 +10,11 @@
 #include "components.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
+#include <raylib.h>
 #include <algorithm>
+#include <filesystem>
+#include <cctype>
+#include <unordered_map>
 #include <vector>
 
 namespace scene {
@@ -62,6 +66,10 @@ namespace scene {
 	void WaitingScene::handleEvents() {
 		resetButtonStates();
 
+		if (_ignoreInitialClick && !_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+			_ignoreInitialClick = false;
+		}
+
 		int key = _raylib.getKeyPressed();
 		switch (key) {
 			case KEY_LEFT:
@@ -88,7 +96,7 @@ namespace scene {
 			if (mousePos.x > positions[i]->x && mousePos.x < positions[i]->x + drawables[i]->width &&
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				hoverable[i]->isHovered = true;
-				if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT) && clickable[i]->enabled) {
+				if (!_ignoreInitialClick && _raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT) && clickable[i]->enabled) {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
@@ -100,6 +108,7 @@ namespace scene {
 		_isOpen = true;
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
+		_ignoreInitialClick = true;
 
 		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
@@ -236,29 +245,108 @@ namespace scene {
 		}
 	}
 
-	void WaitingScene::loadSkinOptions() {
-		unloadSkinTextures();
-		_skinOptions.clear();
+    void WaitingScene::loadSkinOptions() {
+        unloadSkinTextures();
+        _skinOptions.clear();
 
-		const std::vector<SkinOption> defaults = {
-			{"Falcon", ASSETS_PATH "/sprites/player/r-typesheet42.png", {}},
-			{"Nova", ASSETS_PATH "/sprites/player/r-typesheet2.png", {}}
-		};
+        const std::string previouslySelected = _game.getSelectedSkinPath();
+        const std::filesystem::path playerDir{ASSETS_PATH "/sprites/player"};
+        std::error_code ec;
 
-		for (auto const &base : defaults) {
-			SkinOption option = base;
-			if (!option.path.empty()) {
-				option.texture = _raylib.loadTexture(option.path);
-			}
-			_skinOptions.push_back(std::move(option));
-		}
+        std::vector<std::filesystem::directory_entry> files;
+        if (std::filesystem::exists(playerDir, ec)) {
+            for (const auto &entry : std::filesystem::directory_iterator(playerDir, ec)) {
+                if (!entry.is_regular_file())
+                    continue;
+                std::string ext = entry.path().extension().string();
+                std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                if (ext != ".png")
+                    continue;
+                files.push_back(entry);
+            }
+        }
 
-		if (_skinOptions.empty()) {
-			_skinOptions.push_back({"Default", "", {}});
-		}
+        std::sort(files.begin(), files.end(), [](const auto &lhs, const auto &rhs) {
+            return lhs.path().filename().string() < rhs.path().filename().string();
+        });
 
-		_currentSkinIndex = 0;
-	}
+        auto formatName = [](std::string stem) {
+            if (stem.empty())
+                return std::string("Unnamed");
+            for (auto &ch : stem) {
+                if (ch == '_' || ch == '-')
+                    ch = ' ';
+            }
+            if (!stem.empty())
+                stem[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(stem[0])));
+            return stem;
+        };
+
+        for (const auto &entry : files) {
+            const auto path = entry.path();
+            const std::string stem = path.stem().string();
+            const std::string fullPath = path.string();
+
+            if (stem == "r-typesheet42" || stem == "r-typesheet2") {
+                continue;
+            }
+
+            SkinOption option;
+            option.name = formatName(stem);
+            option.path = fullPath;
+
+            option.texture = _raylib.loadTexture(option.path);
+            if (option.texture.id == 0) {
+                _skinOptions.push_back(std::move(option));
+                continue;
+            }
+
+            option.source = {0.f, 0.f, static_cast<float>(option.texture.width), static_cast<float>(option.texture.height)};
+
+            Image image = LoadImage(option.path.c_str());
+            if (image.data != nullptr) {
+                Rectangle alpha = GetImageAlphaBorder(image, 0.05f);
+                if (alpha.width > 0.f && alpha.height > 0.f) {
+                    option.source = alpha;
+                    constexpr float desiredWidth = 33.f;
+                    constexpr float desiredHeight = 16.f;
+
+                    if (option.source.width > desiredWidth) {
+                        float reduce = option.source.width - desiredWidth;
+                        option.source.x += reduce * 0.5f;
+                        option.source.width = desiredWidth;
+                    }
+                    if (option.source.height > desiredHeight) {
+                        float reduce = option.source.height - desiredHeight;
+                        option.source.y += reduce * 0.5f;
+                        option.source.height = desiredHeight;
+                    }
+
+                    option.source.x = std::clamp(option.source.x, 0.f, static_cast<float>(option.texture.width) - option.source.width);
+                    option.source.y = std::clamp(option.source.y, 0.f, static_cast<float>(option.texture.height) - option.source.height);
+                }
+                UnloadImage(image);
+            }
+
+            _skinOptions.push_back(std::move(option));
+        }
+
+        if (_skinOptions.empty()) {
+            _skinOptions.push_back({"Default", "", {}, {0.f, 0.f, 0.f, 0.f}});
+        }
+
+        _currentSkinIndex = 0;
+        if (!_skinOptions.empty() && !previouslySelected.empty()) {
+            for (std::size_t idx = 0; idx < _skinOptions.size(); ++idx) {
+                if (_skinOptions[idx].path == previouslySelected) {
+                    _currentSkinIndex = idx;
+                    break;
+                }
+            }
+        }
+
+        selectSkin(_currentSkinIndex);
+    }
 
 	void WaitingScene::unloadSkinTextures() {
 		for (auto &skin : _skinOptions) {
@@ -321,16 +409,36 @@ namespace scene {
 			return;
 		}
 
-		Texture2D &texture = _skinOptions[_currentSkinIndex].texture;
-		float scale = std::min(
-			_previewBounds.x / static_cast<float>(texture.width),
-			_previewBounds.y / static_cast<float>(texture.height));
+		SkinOption &current = _skinOptions[_currentSkinIndex];
+		Texture2D &texture = current.texture;
 
-		Vector2 drawPos = {
-			_previewCenter.x - (texture.width * scale) / 2.f,
-			_previewCenter.y - (texture.height * scale) / 2.f
+		Rectangle source = current.source;
+		if (source.width <= 0.f || source.height <= 0.f) {
+			source = {0.f, 0.f, static_cast<float>(texture.width), static_cast<float>(texture.height)};
+		}
+
+		float scale = 1.f;
+		if (source.width > 0.f && source.height > 0.f) {
+			float fitW = _previewBounds.x / source.width;
+			float fitH = _previewBounds.y / source.height;
+			scale = std::min(fitW, fitH) * 0.92f;
+		}
+
+		Rectangle dest = {
+			_previewCenter.x - (source.width * scale) / 2.f,
+			_previewCenter.y - (source.height * scale) / 2.f,
+			source.width * scale,
+			source.height * scale
 		};
 
-		_raylib.drawTextureEx(texture, drawPos, 0.f, scale, WHITE);
+		_raylib.drawTexturePro(texture, source, dest, {0.f, 0.f}, 0.f, WHITE);
+
+		std::string const &skinName = current.name;
+		if (!skinName.empty()) {
+			float labelSize = 20.f;
+			Vector2 textSize = _raylib.measureTextEx(_font, skinName.c_str(), labelSize, -0.5f);
+			Vector2 textPos = {_previewCenter.x - textSize.x / 2.f, panel.y + panel.height + 12.f};
+			_raylib.drawTextEx(_font, skinName.c_str(), textPos, labelSize, -0.5f, Color{210, 235, 255, 255});
+		}
 	}
 } // namespace scene

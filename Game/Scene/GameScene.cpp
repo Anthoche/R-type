@@ -122,9 +122,27 @@ namespace game::scene {
 
     void GameScene::load_entity_textures() {
         auto &sprites = _registry.get_components<component::sprite>();
+        auto &types = _registry.get_components<component::type>();
+        auto &clientIds = _registry.get_components<component::client_id>();
+
+        const std::string &selectedSkin = _game.getSelectedSkinPath();
+        uint32_t localClientId = _game.getGameClient().clientId;
 
         for (std::size_t i = 0; i < sprites.size(); ++i) {
-            if (sprites[i] && !sprites[i]->image_path.empty()) {
+            if (sprites[i]) {
+                if (!selectedSkin.empty() &&
+                    i < types.size() && types[i] &&
+                    types[i]->value == component::entity_type::PLAYER &&
+                    i < clientIds.size() && clientIds[i] &&
+                    clientIds[i]->id == localClientId &&
+                    sprites[i]->image_path != selectedSkin) {
+                    sprites[i]->image_path = selectedSkin;
+                }
+
+                if (sprites[i]->image_path.empty()) {
+                    continue;
+                }
+
                 ecs::entity_t entity = _registry.entity_from_index(i);
                 
                 if (_entityTextures.find(entity.value()) == _entityTextures.end()) {
@@ -205,6 +223,9 @@ void GameScene::update() {
     }
 
     auto &positions = _registry.get_components<component::position>();
+    const std::string &selectedSkinPath = _game.getSelectedSkinPath();
+    uint32_t myClientId = _game.getGameClient().clientId;
+    constexpr const char *fallbackPlayerSkin = "../Game/Assets/sprites/player/r-typesheet42.png";
     for (auto const &kv : netPlayers) {
         uint32_t id = kv.first;
         float x = std::get<0>(kv.second);
@@ -212,7 +233,13 @@ void GameScene::update() {
         float z = std::get<2>(kv.second);
         auto f = _playerEntities.find(id);
         if (f == _playerEntities.end()) {
-            ecs::entity_t e = game::entities::create_player(_registry, x, y, z);
+            bool isLocalPlayer = (id == myClientId);
+            std::string spritePath = fallbackPlayerSkin;
+            if (isLocalPlayer && !selectedSkinPath.empty()) {
+                spritePath = selectedSkinPath;
+            }
+
+            ecs::entity_t e = game::entities::create_player(_registry, x, y, z, spritePath, "", id);
             _playerEntities.emplace(id, e);
         } else {
             ecs::entity_t e = f->second;
@@ -224,7 +251,6 @@ void GameScene::update() {
         }
     }
     
-    uint32_t myClientId = _game.getGameClient().clientId;
     auto myPlayerIt = _playerEntities.find(myClientId);
     if (myPlayerIt != _playerEntities.end())
         _player = myPlayerIt->second;
