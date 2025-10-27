@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <cctype>
-#include <unordered_map>
 #include <vector>
 
 namespace scene {
@@ -294,6 +293,7 @@ namespace scene {
             SkinOption option;
             option.name = formatName(stem);
             option.path = fullPath;
+            option.filename = path.filename().string();
 
             option.texture = _raylib.loadTexture(option.path);
             if (option.texture.id == 0) {
@@ -332,7 +332,7 @@ namespace scene {
         }
 
         if (_skinOptions.empty()) {
-            _skinOptions.push_back({"Default", "", {}, {0.f, 0.f, 0.f, 0.f}});
+            _skinOptions.push_back({"Default", "", "", {}, {0.f, 0.f, 0.f, 0.f}});
         }
 
         _currentSkinIndex = 0;
@@ -363,11 +363,14 @@ namespace scene {
 		}
 
 		_currentSkinIndex = index % _skinOptions.size();
-		const auto &skin = _skinOptions[_currentSkinIndex];
-		if (!skin.path.empty()) {
-			_game.setSelectedSkinPath(skin.path);
+	const auto &skin = _skinOptions[_currentSkinIndex];
+	if (!skin.path.empty()) {
+		_game.setSelectedSkinPath(skin.path);
+		if (!skin.filename.empty()) {
+			_game.getGameClient().sendSkinSelection(skin.filename);
 		}
 	}
+}
 
 	void WaitingScene::selectNextSkin() {
 		if (_skinOptions.empty()) return;

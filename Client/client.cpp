@@ -8,6 +8,7 @@
 #include "../Engine/Game.hpp"
 #include "../Engine/Utils/Include/serializer.hpp"
 #include <asio.hpp>
+#include <cstring>
 
 GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
     : socket(), clientName(name), _game(game), serverIpStr(serverIp) {
@@ -136,4 +137,36 @@ void GameClient::sendHealth(int health) {
 
 bool GameClient::hasConnectionFailed() const {
     return connectionFailed;
+}
+
+void GameClient::sendSkinSelection(const std::string &skinFilename) {
+    if (skinFilename.empty()) {
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        pendingSkinSelection = skinFilename;
+        if (clientId != 0) {
+            playerSkins[clientId] = skinFilename;
+        }
+    }
+
+    if (clientId == 0) {
+        return;
+    }
+
+    PlayerSkinMessage msg{};
+    msg.type = MessageType::PlayerSkinUpdate;
+    msg.clientId = htonl(clientId);
+    std::memset(msg.skinFilename, 0, sizeof(msg.skinFilename));
+    std::strncpy(msg.skinFilename, skinFilename.c_str(), sizeof(msg.skinFilename) - 1);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        if (pendingSkinSelection == skinFilename) {
+            pendingSkinSelection.clear();
+        }
+    }
 }

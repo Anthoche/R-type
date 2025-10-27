@@ -19,6 +19,7 @@
 #include <tuple>
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 /**
  * @class GameServer
@@ -41,6 +42,7 @@ class GameServer {
     std::unordered_map<uint32_t, std::pair<float, float>> enemies; ///< Maps enemy IDs to positions
     float enemySpawnTimerSec = 0.f; ///< Timer for enemy spawning
     std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles; ///< Maps obstacle IDs to (x, y, width, height)
+    std::unordered_map<uint32_t, std::string> waitingPlayerSkins;
 
     public:
         /**
@@ -80,6 +82,13 @@ class GameServer {
          * @param from Sender's UDP endpoint.
          */
         void handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);
+        
+        /**
+         * @brief Handles a PlayerSkinUpdate message from a client.
+         * @param data Raw message data.
+         * @param from Sender's UDP endpoint.
+         */
+        void handlePlayerSkinUpdate(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);
 
         /**
          * @brief Sleeps to maintain a fixed server tick rate.

@@ -66,6 +66,7 @@ class WaitingScene: public AScene {
         struct SkinOption {
             std::string name;
             std::string path;
+            std::string filename;
             Texture2D texture{};
             Rectangle source{0.f, 0.f, 0.f, 0.f};
         };

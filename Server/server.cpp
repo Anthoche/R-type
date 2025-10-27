@@ -10,6 +10,7 @@
 #include <chrono>
 #include <thread>
 #include <cstring>
+#include <string>
 
 GameServer::GameServer(uint16_t port) : connexion(ioContext, port) {}
 
@@ -38,13 +39,21 @@ void GameServer::run()
         if (data.size() < sizeof(MessageType))
             continue;
         MessageType type = *reinterpret_cast<MessageType*>(data.data());
-        if (type == MessageType::ClientHello) {
-            handleClientHello(data, clientEndpoint);
+        switch (type) {
+            case MessageType::ClientHello:
+                handleClientHello(data, clientEndpoint);
+                break;
+            case MessageType::PlayerSkinUpdate:
+                handlePlayerSkinUpdate(data, clientEndpoint);
+                break;
+            default:
+                break;
         }
     }
     std::cout << "Tous les clients sont connectés. Le jeu commence !" << std::endl;
     // Delegate to Game module
     ServerGame game(connexion);
+    game.setInitialPlayerSkins(waitingPlayerSkins);
     game.run();
 }
 
@@ -68,6 +77,14 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data, const asio:
     assignMsg.type = MessageType::ServerAssignId;
     assignMsg.clientId = htonl(clientId);
     connexion.sendTo(&assignMsg, sizeof(assignMsg), clientEndpoint);
+    for (const auto &[otherId, skin] : waitingPlayerSkins) {
+        PlayerSkinMessage skinMsg{};
+        skinMsg.type = MessageType::PlayerSkinUpdate;
+        skinMsg.clientId = htonl(otherId);
+        std::memset(skinMsg.skinFilename, 0, sizeof(skinMsg.skinFilename));
+        std::strncpy(skinMsg.skinFilename, skin.c_str(), sizeof(skinMsg.skinFilename) - 1);
+        connexion.sendTo(&skinMsg, sizeof(skinMsg), clientEndpoint);
+    }
     std::cout << "Client connecté : " << msg->clientName
               << " (ID: " << clientId << ")"
               << " [" << connexion.getClientCount() << "/4]" << std::endl;
@@ -75,6 +92,25 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data, const asio:
         gameStarted = true;
         broadcastGameStart();
     }
+}
+
+void GameServer::handlePlayerSkinUpdate(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint&) {
+    if (data.size() < sizeof(PlayerSkinMessage)) return;
+    const PlayerSkinMessage *msg = reinterpret_cast<const PlayerSkinMessage*>(data.data());
+    uint32_t clientId = ntohl(msg->clientId);
+    std::string filename(msg->skinFilename);
+    if (filename.empty()) {
+        waitingPlayerSkins.erase(clientId);
+    } else {
+        waitingPlayerSkins[clientId] = filename;
+    }
+
+    PlayerSkinMessage broadcastMsg{};
+    broadcastMsg.type = MessageType::PlayerSkinUpdate;
+    broadcastMsg.clientId = htonl(clientId);
+    std::memset(broadcastMsg.skinFilename, 0, sizeof(broadcastMsg.skinFilename));
+    std::strncpy(broadcastMsg.skinFilename, filename.c_str(), sizeof(broadcastMsg.skinFilename) - 1);
+    connexion.broadcast(&broadcastMsg, sizeof(broadcastMsg));
 }
 
 

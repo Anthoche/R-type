@@ -55,6 +55,8 @@ class ServerGame : public IServerGame {
          */
         void broadcast_full_registry_to(uint32_t clientId);
 
+        void setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins);
+
     private:
         /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
@@ -112,6 +114,9 @@ class ServerGame : public IServerGame {
 
         /** @brief Individual scores per player. */
         std::unordered_map<uint32_t, int> playerIndividualScores;
+
+        /** @brief Cached skin filename per client. */
+        std::unordered_map<uint32_t, std::string> _playerSkins;
 
         /** @brief Total cumulative score. */
         int totalScore = 0;
@@ -179,4 +184,7 @@ class ServerGame : public IServerGame {
 
         bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
                                 const std::vector<ecs::entity_t> &obstacles);
+
+        void broadcast_player_skin(uint32_t clientId, const std::string &filename);
+        void send_player_skins_to(uint32_t clientId);
 };

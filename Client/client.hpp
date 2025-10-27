@@ -14,6 +14,7 @@
 #include <asio.hpp>
 #include <cstring>
 #include <iostream>
+#include <string>
 #include <thread>
 #include <vector>
 #include <mutex>
@@ -47,6 +48,7 @@ class GameClient {
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
+        std::string pendingSkinSelection;
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         
@@ -89,6 +91,11 @@ class GameClient {
          * @brief Maps enemy projectile IDs to their (x,y,velX,velY,ownerId).
          */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
+
+        /**
+         * @brief Maps client IDs to their chosen skin filename.
+         */
+        std::unordered_map<uint32_t, std::string> playerSkins;
 
         int32_t globalScore = 0;
 
@@ -181,6 +188,17 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handlePlayerUpdate(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Sends the currently selected skin filename to the server.
+         */
+        void sendSkinSelection(const std::string &skinFilename);
+
+        /**
+         * @brief Handles a PlayerSkinUpdate message from the server.
+         * @param buffer Raw message data.
+         */
+        void handlePlayerSkinUpdate(const std::vector<uint8_t> &buffer);
 
 
         /**

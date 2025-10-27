@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <string>
 
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"
@@ -59,6 +60,10 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
     registry_server.register_component<component::client_id>();
 }
 
+void ServerGame::setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins) {
+    _playerSkins = skins;
+}
+
 
 void ServerGame::run() {
     LOG("[Server] Starting game loop...");
@@ -66,6 +71,22 @@ void ServerGame::run() {
     load_level(ASSETS_PATH "/Config_assets/Levels/level.json");
     initialize_player_positions();
     index_existing_entities();
+
+    if (!_playerSkins.empty()) {
+        const std::string assetsPlayerDir = std::string(ASSETS_PATH) + "/sprites/player/";
+        auto &sprites = registry_server.get_components<component::sprite>();
+        auto &clientIds = registry_server.get_components<component::client_id>();
+        for (std::size_t i = 0; i < sprites.size() && i < clientIds.size(); ++i) {
+            if (!sprites[i] || !clientIds[i]) continue;
+            auto it = _playerSkins.find(clientIds[i]->id);
+            if (it != _playerSkins.end() && !it->second.empty()) {
+                sprites[i]->image_path = assetsPlayerDir + it->second;
+            }
+        }
+        for (const auto &entry : _playerSkins) {
+            broadcast_player_skin(entry.first, entry.second);
+        }
+    }
 
     const int tick_ms = 16;
     float dt = 0.016f;
@@ -227,6 +248,35 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 LOG_DEBUG("[Server] Client " << id << " switched to scene = " << static_cast<int>(scene));
                 if (scene == SceneState::GAME) {
                     broadcast_full_registry_to(id);
+                    send_player_skins_to(id);
+                }
+            }
+            break;
+        }
+        case MessageType::PlayerSkinUpdate: {
+            if (data.size() >= sizeof(PlayerSkinMessage)) {
+                const PlayerSkinMessage *msg = reinterpret_cast<const PlayerSkinMessage*>(data.data());
+                uint32_t clientId = ntohl(msg->clientId);
+                std::string filename(msg->skinFilename);
+                if (filename.empty()) {
+                    _playerSkins.erase(clientId);
+                } else {
+                    _playerSkins[clientId] = filename;
+                }
+                broadcast_player_skin(clientId, filename);
+
+                const std::string assetsPlayerDir = std::string(ASSETS_PATH) + "/sprites/player/";
+                auto &sprites = registry_server.get_components<component::sprite>();
+                auto &clientIds = registry_server.get_components<component::client_id>();
+                for (std::size_t i = 0; i < sprites.size() && i < clientIds.size(); ++i) {
+                    if (clientIds[i] && clientIds[i]->id == clientId && sprites[i]) {
+                        if (!filename.empty()) {
+                            sprites[i]->image_path = assetsPlayerDir + filename;
+                        } else {
+                            sprites[i]->image_path = assetsPlayerDir + "r-typesheet42.png";
+                        }
+                        break;
+                    }
                 }
             }
             break;
@@ -427,6 +477,25 @@ void ServerGame::broadcast_individual_scores() {
         msg.score = htonl(score);
         
         connexion.broadcast(&msg, sizeof(msg));
+    }
+}
+
+void ServerGame::broadcast_player_skin(uint32_t clientId, const std::string &filename) {
+    PlayerSkinMessage msg{};
+    msg.type = MessageType::PlayerSkinUpdate;
+    msg.clientId = htonl(clientId);
+    std::memset(msg.skinFilename, 0, sizeof(msg.skinFilename));
+    std::strncpy(msg.skinFilename, filename.c_str(), sizeof(msg.skinFilename) - 1);
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::send_player_skins_to(uint32_t clientId) {
+    (void)clientId;
+    if (_playerSkins.empty()) {
+        return;
+    }
+    for (const auto &entry : _playerSkins) {
+        broadcast_player_skin(entry.first, entry.second);
     }
 }
 
