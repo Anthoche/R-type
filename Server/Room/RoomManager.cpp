@@ -68,8 +68,11 @@ void RoomManager::clearRooms() {
 void RoomManager::startRoom(int id) {
 	if (!roomExists(id))
 		return;
-	LOG_INFO(std::format("Starting game for room {}", id));
 	auto room = getRoom(id);
+
+	if (room->isGameServerStarted())
+		return;
+	LOG_INFO(std::format("Starting game for room {}", id));
 	std::thread t(&Room::startGame, room, id);
 	t.detach();
 }

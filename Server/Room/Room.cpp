@@ -16,6 +16,7 @@ Room::Room(Connexion &connexion, int maxPlayers, int minPlayers, std::string con
 	_minPlayers = minPlayers;
 	_gameName = game;
 	_roomHost = roomHost;
+	_isGameServerStarted = false;
 }
 
 int Room::getMaxPlayers() const {
@@ -66,6 +67,10 @@ int Room::getRoomHost() const {
 	return _roomHost;
 }
 
+bool Room::isGameServerStarted() const {
+	return _isGameServerStarted;
+}
+
 void Room::addClient(u_int32_t clientId) {
 	if (isClientInRoom(clientId) || isFull())
 		return;
@@ -94,5 +99,6 @@ void Room::setGameStatus(GameStatus status) {
 }
 
 void Room::startGame(int roomId) {
+	_isGameServerStarted = true;
 	_game->run(roomId);
 }

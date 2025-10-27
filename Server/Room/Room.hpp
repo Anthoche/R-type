@@ -24,6 +24,7 @@ class Room {
 		std::string _gameName;
 		GameStatus _gameStatus;
 		std::shared_ptr<IServerGame> _game;
+		bool _isGameServerStarted;
 		std::vector<uint32_t> _clients;
 		int _roomHost;
 
@@ -42,6 +43,7 @@ class Room {
 		bool isReady() const;
 		bool isClientInRoom(uint32_t clientId) const;
 		int getRoomHost() const;
+		bool isGameServerStarted() const;
 
 		void addClient(uint32_t clientId);
 		void removeClient(uint32_t clientId);

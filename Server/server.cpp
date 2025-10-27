@@ -128,7 +128,8 @@ void GameServer::assignClientToRoom(const std::vector<uint8_t> &data, const asio
 		roomReadyMsg.roomId = roomId;
 
 		LOG_DEBUG("Room is considered ready. Sending room ready message to clients in room.");
-		// TODO: Broadcast roomReadyMsg to clients in room roomId
+		roomManager.startRoom(roomId);
+		connexion.broadcast(&roomReadyMsg, sizeof(roomReadyMsg));
 	}
 	LOG_INFO(std::format("Assigned client {} to room {}", msg->clientId, roomId));
 }

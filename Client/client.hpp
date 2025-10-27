@@ -191,6 +191,12 @@ class GameClient {
         void handleServerRooms(const std::vector<uint8_t> &buffer);
 
         /**
+         * @brief Handles a RoomReady message, notifying players that room is ready to start
+         * @param buffer Raw message data.
+         */
+        void handleRoomReady(const std::vector<uint8_t> &buffer);
+
+        /**
          * @brief Handles a GameStart message, signaling the start of gameplay.
          * @param buffer Raw message data.
          */

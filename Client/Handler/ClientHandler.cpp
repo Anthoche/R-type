@@ -24,6 +24,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 		case MessageType::GameStart:
 			handleGameStart(buffer);
 			break;
+		case MessageType::ServerSetRoomReady:
+			handleRoomReady(buffer);
+			break;
 		case MessageType::StateUpdate:
 			handlePlayerUpdate(buffer);
 			break;
@@ -99,6 +102,15 @@ void GameClient::handleServerRooms(const std::vector<uint8_t> &buffer) {
 	LOG_DEBUG(std::format("Received JSON:\n{}\n", msg->jsonData));
 	nlohmann::json json = nlohmann::json::parse(msg->jsonData);
 	rooms = game::serializer::deserialize_rooms(json);
+}
+
+void GameClient::handleRoomReady(const std::vector<uint8_t> &buffer) {
+	if (buffer.size() < sizeof(RoomReadyMessage)) return;
+	const RoomReadyMessage *msg = reinterpret_cast<const RoomReadyMessage *>(buffer.data());
+
+	if (msg->roomId != roomId)
+		return;
+	_game.setGameStatus(GameStatus::PENDING_START);
 }
 
 void GameClient::handleGameStart(const std::vector<uint8_t> &buffer) {

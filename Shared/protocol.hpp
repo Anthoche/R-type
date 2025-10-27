@@ -123,6 +123,7 @@ struct ClientHelloMessage {
 struct GameStartMessage {
 	MessageType type;
 	uint32_t clientCount;
+	uint32_t roomId;
 };
 
 /**
