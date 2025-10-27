@@ -20,6 +20,8 @@
 #include <unordered_map>
 #include <atomic>
 #include <utility>
+#include <optional>
+#include <nlohmann/json.hpp>
 #include <deque>
 
 class Game;
@@ -48,6 +50,13 @@ class GameClient {
         std::string serverPortStr; ///< Server port address as a string.
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
+        std::mutex registryMutex;
+        nlohmann::json latestFullRegistry;
+        std::atomic<bool> hasPendingFullRegistry{false};
+        std::atomic<bool> fullRegistryFetchInFlight{false};
+
+        void storeFullRegistry(const nlohmann::json &registryJson, bool markPending);
+        void fetchFullRegistryAsync();
         /**
          * @brief Pending chat messages retrieved from the network thread.
          */
@@ -68,7 +77,7 @@ class GameClient {
         /**
          * @brief Maps obstacle IDs to their (x, y, width, height) values.
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> obstacles;
 
         /**
          * @brief Maps projectiles IDs to their (x,y,width,height).
@@ -78,7 +87,7 @@ class GameClient {
         /**
          * @brief Maps enemy IDs to their (x,y,velX,velY).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> enemies;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> enemies;
 
         /**
          * @brief Maps player IDs to their current health values.
@@ -95,7 +104,11 @@ class GameClient {
          */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 
+        
         int32_t globalScore = 0;
+
+        std::atomic<bool> bossDefeated{false};
+
 
         /**
          * @brief Constructs a GameClient and connects to the server.
@@ -160,6 +173,7 @@ class GameClient {
          * @param lives Current number of lives.
          */
         void sendHealth(int lives);
+        std::optional<nlohmann::json> consumeFullRegistry();
 
         /**
          * @brief Sends a chat message to be relayed by the server.
@@ -204,6 +218,8 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleObstacleSpawn(const std::vector<uint8_t> &buffer);
+
+        void handleObstacleUpdate(const std::vector<uint8_t> &buffer);
 
         /**
          * @brief Handles an ObstacleDespawn message.
@@ -259,6 +275,9 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleEnemySpawn(const std::vector<uint8_t> &buffer);
+
+    
+        void handleBossDeath(const std::vector<uint8_t> &buffer);
         /**
          * @brief Handles a player death message.
          * @param buffer Raw message data.

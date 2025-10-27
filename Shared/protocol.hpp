@@ -15,6 +15,7 @@ enum class MessageType : uint8_t {
     EnemyUpdate,              /**< Server updates an enemy's position */
     EnemyDespawn,             /**< Server removes an enemy */
     ObstacleSpawn,            /**< Server spawns a new obstacle */
+    ObstacleUpdate,
     ObstacleDespawn,          /**< Server removes an obstacle */
     ClientShoot,              /**< Client sends a shoot event */
     ProjectileSpawn,          /**< Server creates a projectile */
@@ -23,6 +24,7 @@ enum class MessageType : uint8_t {
     EnemyProjectileSpawn,     /**< Server spawns an enemy projectile */
     EnemyProjectileUpdate,    /**< Server updates an enemy projectile */
     EnemyProjectileDespawn,   /**< Server removes an enemy projectile */
+    BossDeath,
     EntityData,               /**< Server → Clients: entity ECS synchronization */
     SceneState,               /**< Client → Server: indicates current scene */
     PlayerDeath,              /**< Server notifies clients that a player has died */
@@ -161,6 +163,8 @@ struct EnemySpawnMessage {
     uint32_t enemyId;
     Position3D pos;      ///< 3D position
     Velocity3D vel;      ///< 3D velocity
+    float width;
+    float height;
 };
 
 /**
@@ -182,6 +186,11 @@ struct EnemyDespawnMessage {
     uint32_t enemyId;
 };
 
+struct BossDeathMessage {
+    MessageType type;
+    uint32_t bossId;
+};
+
 /**
  * @brief Message sent by server to spawn a static obstacle (3D position and size).
  */
@@ -190,6 +199,14 @@ struct ObstacleSpawnMessage {
     uint32_t obstacleId;
     Position3D pos;      ///< 3D position
     Size3D size;         ///< 3D size
+    Velocity3D vel;
+};
+
+struct ObstacleUpdateMessage {
+    MessageType type;
+    uint32_t obstacleId;
+    Position3D pos;      ///< 3D position
+    Velocity3D vel;
 };
 
 /**

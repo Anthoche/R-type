@@ -11,8 +11,10 @@
 #include "../../Engine/Rendering/scene/Include/AScene.hpp"
 #include "../Game.hpp"
 #include "../../Shared/protocol.hpp"
+#include "../../Engine/Core/Entities/Include/components.hpp"
 #include <unordered_map>
 #include "UI.hpp"
+#include <nlohmann/json_fwd.hpp>
 #include "ChatSystem.hpp"
 
 namespace game::scene {
@@ -209,6 +211,12 @@ namespace game::scene {
          */
         Texture2D* get_entity_texture(ecs::entity_t entity);
 
+        
+        bool processPendingFullRegistry();
+        void clearLevelEntitiesForReload();
+        void removeEntitiesOfType(component::entity_type type);
+        void buildSpriteMapsFromRegistry(const nlohmann::json &registryJson);
+        
         void toggleFullScreen();
 
         // --- Entities ---
@@ -220,6 +228,8 @@ namespace game::scene {
         bool _victorySoundPlayed = false; ///< Flag to track if victory sound has been played.
         bool _defeatSoundPlayed = false; ///< Flag to track if defeat sound has been played.
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _obstacleMap;  // Map serverId -> client entity
+        std::unordered_map<uint32_t, std::string> _obstacleSpriteMap;  // Map serverId -> sprite path
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
         std::unordered_map<uint32_t, ecs::entity_t> _enemyMap; ///< Map: network enemy ID -> ECS entity.
         std::unordered_map<uint32_t, std::string> _enemySpriteMap; ///< Map: network enemy ID -> sprite path.
@@ -230,6 +240,10 @@ namespace game::scene {
         std::unordered_map<std::string, Texture2D> _projectileTextures; ///< Map: projectile type -> loaded texture.
         std::unordered_map<uint32_t, float> moovePlayer; ///< Map: client ID -> movement offset for sprite rendering.
         float _backgroundScrollX = 0.0f; ///< Background scrolling offset.
+        float _victoryStartTime = 0.0f;
+        float _stopShoot = false;
+        bool _hasLevelData = false;
+        bool _levelReloadPending = false;
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
@@ -247,11 +261,6 @@ namespace game::scene {
          * @brief Render ECS entities organized by layer.
          */
         void draw_ecs_layers();
-
-        /**
-         * @brief Extract enemy sprite paths from the registry to the enemy sprite map.
-         */
-        void extract_enemy_sprite_paths();
 
         // --- Indexation des entités ---
         void index_existing_entities();

@@ -10,6 +10,8 @@
 #include <cmath>
 #include <tuple>
 #include <algorithm>
+#include <nlohmann/json.hpp>
+#include "../../Engine/Utils/Include/serializer.hpp"
 #include <vector>
 
 namespace game::scene {
@@ -27,7 +29,6 @@ namespace game::scene {
         _raylib.setTargetFPS(60);
         toggleFullScreen();
 
-        // Enregistrement des composants
         _registry.register_component<component::position>();
         _registry.register_component<component::previous_position>();
         _registry.register_component<component::velocity>();
@@ -49,12 +50,12 @@ namespace game::scene {
         _registry.register_component<component::hitbox_link>();
         _registry.register_component<component::type>();
         _registry.register_component<component::client_id>();
+        _registry.register_component<component::pattern_element>();
         _ui.init();
         _chat.init();
         _chat.setUsername(_game.getGameClient().getClientName());
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 
-        // Configuration des systèmes
         setup_movement_system();
         setup_render_system();
         setup_health_system();
@@ -62,20 +63,18 @@ namespace game::scene {
         game::entities::setup_player_bounds_system(_registry, static_cast<float>(_width), static_cast<float>(_height), 0.f);
         game::entities::setup_hitbox_sync_system(_registry);
 
-        // Création des entités statiques (background, UI, etc.)
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
         game::entities::create_sound(_registry, "../Game/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
         
-        // Indexer les entités existantes dans le registre
-        index_existing_entities();
-        extract_enemy_sprite_paths();
-        load_entity_textures();
+        if (!processPendingFullRegistry()) {
+            std::cerr << "[WARN] Aucun full registry disponible lors de l'initialisation." << std::endl;
+        }
         load_projectile_textures();
         load_music();
     }
 
     void GameScene::index_existing_entities() {
-        _player = ecs::entity_t{0}; // Reset le joueur local
+        _player = ecs::entity_t{0};
         _obstacles.clear();
         _enemys.clear();
         _playerEntities.clear();
@@ -241,7 +240,7 @@ void GameScene::update() {
         }
     }
 
-    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> netEnemies;
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> netEnemies;
     {
         std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
         netEnemies = _game.getGameClient().enemies;
@@ -273,6 +272,8 @@ void GameScene::update() {
         float vx = std::get<3>(kv.second);
         float vy = std::get<4>(kv.second);
         float vz = std::get<5>(kv.second);
+        float width = std::get<6>(kv.second);
+        float height = std::get<7>(kv.second);
         
         auto it = _enemyMap.find(serverId);
         
@@ -282,14 +283,8 @@ void GameScene::update() {
             auto spriteIt = _enemySpriteMap.find(serverId);
             if (spriteIt != _enemySpriteMap.end()) {
                 spritePath = spriteIt->second;
-                std::cout << "[DEBUG] Using mapped sprite for enemy " << serverId 
-                          << ": " << spritePath << std::endl;
-            } else {
-                std::cout << "[WARNING] No sprite mapped for enemy " << serverId 
-                          << ", using default" << std::endl;
             }
-            
-            ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, z, spritePath);
+            ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, z, spritePath, width, height);
             _enemyMap.emplace(serverId, newEnemy);
             _enemys.push_back(newEnemy);
             if (newEnemy.value() < positions.size() && positions[newEnemy.value()]) {
@@ -317,25 +312,201 @@ void GameScene::update() {
         }
     }
 
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> netObstacles;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netObstacles = _game.getGameClient().obstacles;
+    }
+
+    for (auto it = _obstacleMap.begin(); it != _obstacleMap.end(); ) {
+        uint32_t serverId = it->first;
+        
+        if (netObstacles.find(serverId) == netObstacles.end()) {
+            ecs::entity_t clientEntity = it->second;
+            _registry.kill_entity(clientEntity);
+            _obstacles.erase(
+                std::remove(_obstacles.begin(), _obstacles.end(), clientEntity),
+                _obstacles.end()
+            );
+            it = _obstacleMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto const &kv : netObstacles) {
+        uint32_t serverId = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        float width = std::get<3>(kv.second);
+        float height = std::get<4>(kv.second);
+        float depth = std::get<5>(kv.second);
+        float vx = std::get<6>(kv.second);
+        float vy = std::get<7>(kv.second);
+        float vz = std::get<8>(kv.second);
+        
+        auto it = _obstacleMap.find(serverId);
+        
+        if (it == _obstacleMap.end()) {
+            std::string spritePath = "../Game/Assets/sprites/obstacles/default_obstacle.png";
+            
+            auto spriteIt = _obstacleSpriteMap.find(serverId);
+            if (spriteIt != _obstacleSpriteMap.end()) {
+                spritePath = spriteIt->second;
+            }
+            
+            ecs::entity_t newObstacle = game::entities::create_obstacle(
+                _registry, x, y, z, spritePath, "", vx, width, height
+            );
+            
+            _obstacleMap.emplace(serverId, newObstacle);
+            _obstacles.push_back(newObstacle);
+            
+            if (newObstacle.value() < positions.size() && positions[newObstacle.value()]) {
+                positions[newObstacle.value()]->x = x;
+                positions[newObstacle.value()]->y = y;
+                positions[newObstacle.value()]->z = z;
+            }
+            if (newObstacle.value() < velocities.size() && velocities[newObstacle.value()]) {
+                velocities[newObstacle.value()]->vx = vx;
+                velocities[newObstacle.value()]->vy = vy;
+                velocities[newObstacle.value()]->vz = vz;
+            }
+        } else {
+            ecs::entity_t clientObstacle = it->second;
+
+            if (clientObstacle.value() < velocities.size() && velocities[clientObstacle.value()]) {
+                velocities[clientObstacle.value()]->vx = vx;
+                velocities[clientObstacle.value()]->vy = vy;
+                velocities[clientObstacle.value()]->vz = vz;
+            }
+        }
+    }
+
     _registry.run_systems();
 }
 
-    void GameScene::extract_enemy_sprite_paths() {
-        auto &sprites = _registry.get_components<component::sprite>();
-            auto &types = _registry.get_components<component::type>();
-            
-            _enemySpriteMap.clear();    
-            for (std::size_t i = 0; i < sprites.size() && i < types.size(); ++i) {
-                if (sprites[i] && types[i] && types[i]->value == component::entity_type::ENEMY) {
-                    uint32_t serverEntityId = static_cast<uint32_t>(i - 7);
-                    
-                    if (!sprites[i]->image_path.empty())
-                        _enemySpriteMap[serverEntityId] = sprites[i]->image_path;
-                    
-                    ecs::entity_t entity = _registry.entity_from_index(i);
-                    _registry.kill_entity(entity);
-                }
-            }    
+    void GameScene::clearLevelEntitiesForReload() {
+        auto &types = _registry.get_components<component::type>();
+        std::vector<ecs::entity_t> toKill;
+
+        for (std::size_t i = 0; i < types.size(); ++i) {
+            if (!types[i])
+                continue;
+
+            switch (types[i]->value) {
+                case component::entity_type::ENEMY:
+                case component::entity_type::OBSTACLE:
+                case component::entity_type::PROJECTILE:
+                case component::entity_type::POWERUP:
+                case component::entity_type::BACKGROUND:
+                case component::entity_type::PLAYER:
+                    toKill.push_back(_registry.entity_from_index(i));
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        for (auto entity : toKill) {
+            auto texIt = _entityTextures.find(entity.value());
+            if (texIt != _entityTextures.end()) {
+                _raylib.unloadTexture(texIt->second);
+                _entityTextures.erase(texIt);
+            }
+            _registry.kill_entity(entity);
+        }
+
+        _enemyMap.clear();
+        _obstacleMap.clear();
+        _enemys.clear();
+        _obstacles.clear();
+        _playerEntities.clear();
+        moovePlayer.clear();
+        _player = ecs::entity_t{0};
+    }
+
+    void GameScene::removeEntitiesOfType(component::entity_type type) {
+        auto &types = _registry.get_components<component::type>();
+        std::vector<ecs::entity_t> toKill;
+
+        for (std::size_t i = 0; i < types.size(); ++i) {
+            if (types[i] && types[i]->value == type) {
+                toKill.push_back(_registry.entity_from_index(i));
+            }
+        }
+
+        for (auto entity : toKill) {
+            auto texIt = _entityTextures.find(entity.value());
+            if (texIt != _entityTextures.end()) {
+                _raylib.unloadTexture(texIt->second);
+                _entityTextures.erase(texIt);
+            }
+            _registry.kill_entity(entity);
+        }
+    }
+
+    void GameScene::buildSpriteMapsFromRegistry(const nlohmann::json &registryJson) {
+        _enemySpriteMap.clear();
+        _obstacleSpriteMap.clear();
+
+        if (registryJson.is_null())
+            return;
+
+        const nlohmann::json &entities = registryJson.contains("entities")
+            ? registryJson.at("entities")
+            : registryJson;
+
+        if (!entities.is_array())
+            return;
+
+        for (const auto &entity : entities) {
+            if (!entity.contains("entity_id") || !entity.contains("type"))
+                continue;
+
+            uint32_t serverEntityId = entity.at("entity_id").get<uint32_t>();
+            int typeValue = entity.at("type").get<int>();
+            auto imageIt = entity.find("image_path");
+            if (imageIt == entity.end() || !imageIt->is_string())
+                continue;
+
+            std::string imagePath = imageIt->get<std::string>();
+
+            switch (static_cast<component::entity_type>(typeValue)) {
+                case component::entity_type::ENEMY:
+                    if (!imagePath.empty())
+                        _enemySpriteMap[serverEntityId] = imagePath;
+                    break;
+                case component::entity_type::OBSTACLE:
+                    if (!imagePath.empty())
+                        _obstacleSpriteMap[serverEntityId] = imagePath;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    bool GameScene::processPendingFullRegistry() {
+        auto registryOpt = _game.getGameClient().consumeFullRegistry();
+        if (!registryOpt.has_value())
+            return false;
+
+        const nlohmann::json &fullRegistry = registryOpt.value();
+
+        if (_hasLevelData) {
+            clearLevelEntitiesForReload();
+            game::serializer::deserialize_entities(_registry, fullRegistry);
+        }
+
+        buildSpriteMapsFromRegistry(fullRegistry);
+        removeEntitiesOfType(component::entity_type::ENEMY);
+        removeEntitiesOfType(component::entity_type::OBSTACLE);
+        load_entity_textures();
+        index_existing_entities();
+        _hasLevelData = true;
+        return true;
     }
 
     void GameScene::render() {
@@ -343,11 +514,10 @@ void GameScene::update() {
         _raylib.clearBackground(GRAY);
         if (!_isWin)
             _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
-        _isWin = (30 <= _game.getGameClient().globalScore);
+        _isWin = _isWin = _game.getGameClient().bossDefeated.load();
         
         _raylib.updateMusicStream(_music);
         render_entities();
-        render_network_obstacles();
         render_network_projectiles();
         render_network_enemy_projectiles();
         
@@ -377,6 +547,30 @@ void GameScene::update() {
                 _raylib.playSound(_victorySound);
             }
             _victorySoundPlayed = true;
+            _victoryStartTime = _raylib.getTime();
+            _stopShoot = true;
+        }
+
+        if (_isWin && _victorySoundPlayed) {
+            float currentTime = _raylib.getTime();
+            float timeSinceVictory = currentTime - _victoryStartTime;
+            
+            if (timeSinceVictory >= 6.0f) {
+                _isWin = false;
+                _stopShoot = false;
+                _victorySoundPlayed = false;
+                _game.getGameClient().bossDefeated.store(false);
+                _levelReloadPending = true;
+            }
+        }
+
+        if (_levelReloadPending) {
+            if (processPendingFullRegistry()) {
+                _levelReloadPending = false;
+                if (_game.isSoundEnabled()) {
+                    _raylib.playMusicStream(_music);
+                }
+            }
         }
         _raylib.endDrawing();
     }
@@ -386,7 +580,6 @@ void GameScene::update() {
         auto &drawables = _registry.get_components<component::drawable>();
         auto &types = _registry.get_components<component::type>();
 
-        // Render background first
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i])
                 continue;
@@ -396,7 +589,6 @@ void GameScene::update() {
             }
         }
         
-        // Render other entities
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
 
@@ -531,8 +723,26 @@ void GameScene::update() {
     void GameScene::render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
+        static std::unordered_map<uint32_t, float> spriteOffsets;
+        static std::unordered_map<uint32_t, float> lastFrameTime;
+        
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            uint32_t entityId = entity.value();
+            if (spriteOffsets.find(entityId) == spriteOffsets.end()) {
+                spriteOffsets[entityId] = 0.0f;
+                lastFrameTime[entityId] = 0.0f;
+            }
+            float currentTime = _raylib.getTime();
+            const float FRAME_DURATION = 0.3f;
+            const int NUM_FRAMES = 3;
+            if (currentTime - lastFrameTime[entityId] >= FRAME_DURATION) {
+                spriteOffsets[entityId] += draw.width;
+                if (spriteOffsets[entityId] >= draw.width * NUM_FRAMES) {
+                    spriteOffsets[entityId] = 0.0f;
+                }
+                lastFrameTime[entityId] = currentTime;
+            }
+            Rectangle sourceRec = {spriteOffsets[entityId], 0.0f, (float)draw.width, (float)draw.height};
             Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
             
@@ -621,7 +831,7 @@ void GameScene::update() {
     }
 
     void GameScene::render_network_obstacles() {
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obs;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> obs;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             obs = _game.getGameClient().obstacles;
@@ -630,8 +840,8 @@ void GameScene::update() {
         for (auto const &kv: obs) {
             float x = std::get<0>(kv.second);
             float y = std::get<1>(kv.second);
-            float w = std::get<2>(kv.second);
-            float h = std::get<3>(kv.second);
+            float w = std::get<3>(kv.second);
+            float h = std::get<4>(kv.second);
             _raylib.drawRectangle((int)(x - w / 2), (int)(y - h / 2), (int)w, (int)h, GRAY);
         }
     }
@@ -721,7 +931,7 @@ void GameScene::update() {
             globalScore = _game.getGameClient().globalScore;
             myClientId = _game.getGameClient().clientId;
         }
-        float t = std::clamp(globalScore / 50.0f, 0.0f, 1.0f);
+        float t = std::clamp(globalScore / 150.0f, 0.0f, 1.0f);
         float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
 
         bool upPressed = _raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP);
@@ -733,6 +943,8 @@ void GameScene::update() {
 
         switch (keyPressed) {
             case KEY_SPACE:
+                if (!_stopShoot)
+                    handle_shoot(SHOOT_COOLDOWN);
                 if (!_chat.isFocused())
                     handle_shoot(SHOOT_COOLDOWN);
                 break;
@@ -797,7 +1009,7 @@ void GameScene::update() {
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                 leftPressed = true;
 
-            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) && !_stopShoot) {
                 handle_shoot(SHOOT_COOLDOWN);
                 if (_game.isSoundEnabled()) {
                     _raylib.playSound(_shootSound);

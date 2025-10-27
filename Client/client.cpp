@@ -110,8 +110,11 @@ void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
             std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
             return;
         }
+        storeFullRegistry(fullRegistry, true);
         std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
-        game::serializer::deserialize_entities(*registry, fullRegistry);
+        if (registry) {
+            game::serializer::deserialize_entities(*registry, fullRegistry);
+        }
     }
 }
 
@@ -151,16 +154,38 @@ bool GameClient::hasConnectionFailed() const {
     return connectionFailed;
 }
 
-const std::string &GameClient::getClientName() const {
-    return clientName;
+void GameClient::storeFullRegistry(const nlohmann::json &registryJson, bool markPending) {
+    std::lock_guard<std::mutex> lock(registryMutex);
+    latestFullRegistry = registryJson;
+    if (markPending) {
+        hasPendingFullRegistry.store(true, std::memory_order_release);
+    }
 }
 
-std::vector<std::pair<std::string, std::string>> GameClient::consumeChatMessages() {
-    std::vector<std::pair<std::string, std::string>> messages;
-    std::lock_guard<std::mutex> g(stateMutex);
-    while (!_chatQueue.empty()) {
-        messages.emplace_back(std::move(_chatQueue.front()));
-        _chatQueue.pop_front();
+std::optional<nlohmann::json> GameClient::consumeFullRegistry() {
+    std::lock_guard<std::mutex> lock(registryMutex);
+    if (!hasPendingFullRegistry.load(std::memory_order_acquire)) {
+        return std::nullopt;
     }
-    return messages;
+    hasPendingFullRegistry.store(false, std::memory_order_release);
+    return latestFullRegistry;
+}
+
+void GameClient::fetchFullRegistryAsync() {
+    if (!tcpClient || !tcpClient->isConnected()) {
+        return;
+    }
+
+    bool expected = false;
+    if (!fullRegistryFetchInFlight.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+        return;
+    }
+
+    std::thread([this]() {
+        nlohmann::json fullRegistry = tcpClient->receiveJson();
+        if (!fullRegistry.is_null()) {
+            storeFullRegistry(fullRegistry, true);
+        }
+        fullRegistryFetchInFlight.store(false, std::memory_order_release);
+    }).detach();
 }
