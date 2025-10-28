@@ -101,7 +101,6 @@ struct ClientHelloMessage {
     MessageType type;
     uint32_t clientId;
     char clientName[32];
-    char difficulty[16];
 };
 
 /**
