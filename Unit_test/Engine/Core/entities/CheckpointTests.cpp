@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** R-type
 ** File description:
-** test_checkpoint.cpp
+** CheckpointTests.cpp
 */
 
 #include <gtest/gtest.h>
@@ -17,7 +17,6 @@ using namespace component;
 
 TEST(Checkpoint, optional_parameters) {
     registry reg;
-
     reg.register_component<position>();
     reg.register_component<previous_position>();
     reg.register_component<velocity>();
@@ -39,7 +38,6 @@ TEST(Checkpoint, optional_parameters) {
 
 TEST(Checkpoint, multiple_checkpoints_unique_entities) {
     registry reg;
-
     reg.register_component<position>();
     reg.register_component<previous_position>();
     reg.register_component<velocity>();
@@ -50,8 +48,8 @@ TEST(Checkpoint, multiple_checkpoints_unique_entities) {
     reg.register_component<model3D>();
     reg.register_component<hitbox_link>();
 
-    auto e1 = create_checkpoint(reg, 0,0,0,1,1,1,"img1","model1");
-    auto e2 = create_checkpoint(reg, 1,1,1,2,2,2,"img2","model2");
+    auto e1 = create_checkpoint(reg, 0, 0, 0, 1, 1, 1, "img1", "model1");
+    auto e2 = create_checkpoint(reg, 1, 1, 1, 2, 2, 2, "img2", "model2");
     EXPECT_NE(e1, e2);
     auto &positions = reg.get_components<position>();
     EXPECT_FLOAT_EQ(positions[static_cast<std::size_t>(e1)]->x, 0.f);
@@ -60,7 +58,6 @@ TEST(Checkpoint, multiple_checkpoints_unique_entities) {
 
 TEST(Checkpoint, creates_entity_with_all_components) {
     registry reg;
-
     reg.register_component<position>();
     reg.register_component<previous_position>();
     reg.register_component<velocity>();
@@ -93,7 +90,6 @@ TEST(Checkpoint, creates_entity_with_all_components) {
 
 TEST(Checkpoint, hitbox_position_sync) {
     registry reg;
-
     reg.register_component<position>();
     reg.register_component<previous_position>();
     reg.register_component<velocity>();

@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** R-Type
 ** File description:
-** HitboxTest.cpp
+** HitboxTests.cpp
 */
 
 #include <gtest/gtest.h>
@@ -30,12 +30,9 @@ TEST(Hitbox, sync_position_with_owner) {
     reg.emplace_component<component::collision_box>(owner, 20.f, 20.f);
 
     entity_t hit = create_hitbox_for(reg, owner);
-
     auto &positions = reg.get_components<component::position>();
-
     positions[static_cast<std::size_t>(owner)]->x = 50.f;
     positions[static_cast<std::size_t>(owner)]->y = 60.f;
-
     reg.run_systems();
 
     auto &hitPos = positions[static_cast<std::size_t>(hit)];
@@ -44,7 +41,7 @@ TEST(Hitbox, sync_position_with_owner) {
     EXPECT_EQ(hitPos->y, 60.f);
 }
 
-TEST(Hitbox, sync_size_with_owner_drawable) {
+TEST(Hitbox, sync_size_owner_drawable) {
     registry reg;
     register_all_hitbox_components(reg);
     setup_hitbox_sync_system(reg);
@@ -82,7 +79,7 @@ TEST(Hitbox, multiple_hitboxes_independent) {
     EXPECT_EQ(positions[static_cast<size_t>(hit2)]->z, 60.f);
 }
 
-TEST(Hitbox, created_without_owner_at_origin) {
+TEST(Hitbox, created_without_owner_origin) {
     registry reg;
     register_all_hitbox_components(reg);
     setup_hitbox_sync_system(reg);

@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** R-Type
 ** File description:
-** SoundTest.cpp
+** SoundTests.cpp
 */
 
 #include <gtest/gtest.h>
