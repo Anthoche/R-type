@@ -121,6 +121,7 @@ void Connexion::disconnectClient(uint32_t id) {
                 ++it;
             }
         }
+        clientNames.erase(id);
         socket.disconnectClient(id);
     } catch (const std::exception& e) {
         LOG_ERROR(std::format("Connexion::disconnectClient(): {}", e.what()));
@@ -161,6 +162,17 @@ void Connexion::broadcastJson(const nlohmann::json& j) {
     } catch (const std::exception& e) {
         LOG_ERROR(std::format("broadcastJson(): {}", e.what()));
     }
+}
+
+void Connexion::setClientName(uint32_t id, std::string name) {
+    clientNames[id] = std::move(name);
+}
+
+std::string Connexion::getClientName(uint32_t id) const {
+    auto it = clientNames.find(id);
+    if (it != clientNames.end())
+        return it->second;
+    return {};
 }
 
 size_t Connexion::getClientCount() const {

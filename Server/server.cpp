@@ -11,6 +11,7 @@
 #include <chrono>
 #include <thread>
 #include <cstring>
+#include <string>
 #include <optional>
 #include <format>
 #include "Logger.hpp"
@@ -53,6 +54,7 @@ void GameServer::handleClientHello(const std::vector<uint8_t> &data, const asio:
 
 	uint32_t clientId = nextClientId++;
 	connexion.addClient(clientEndpoint, clientId);
+	connexion.setClientName(clientId, std::string(msg->clientName));
 	uint16_t tcpPort = 5000 + clientId;
 	std::thread([this, clientId, tcpPort]() {
 		if (!connexion.acceptTcpClient(clientId, tcpPort))
@@ -62,7 +64,35 @@ void GameServer::handleClientHello(const std::vector<uint8_t> &data, const asio:
 	assignMsg.type = MessageType::ServerAssignId;
 	assignMsg.clientId = htonl(clientId);
 	connexion.sendTo(&assignMsg, sizeof(assignMsg), clientEndpoint);
+
+	for (const auto &[otherId, skin] : waitingPlayerSkins) {
+		PlayerSkinMessage skinMsg{};
+		skinMsg.type = MessageType::PlayerSkinUpdate;
+		skinMsg.clientId = htonl(otherId);
+		std::memset(skinMsg.skinFilename, 0, sizeof(skinMsg.skinFilename));
+		std::strncpy(skinMsg.skinFilename, skin.c_str(), sizeof(skinMsg.skinFilename) - 1);
+		connexion.sendTo(&skinMsg, sizeof(skinMsg), clientEndpoint);
+	}
 	LOG_INFO(std::format("Client connected: {}({}) [{}/{}]", msg->clientName, clientId, connexion.getClientCount(), maxPlayers));
+}
+
+void GameServer::handlePlayerSkinUpdate(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint&) {
+	if (data.size() < sizeof(PlayerSkinMessage)) return;
+	const PlayerSkinMessage *msg = reinterpret_cast<const PlayerSkinMessage*>(data.data());
+	uint32_t clientId = ntohl(msg->clientId);
+	std::string filename(msg->skinFilename);
+	if (filename.empty()) {
+		waitingPlayerSkins.erase(clientId);
+	} else {
+		waitingPlayerSkins[clientId] = filename;
+	}
+
+	PlayerSkinMessage broadcastMsg{};
+	broadcastMsg.type = MessageType::PlayerSkinUpdate;
+	broadcastMsg.clientId = htonl(clientId);
+	std::memset(broadcastMsg.skinFilename, 0, sizeof(broadcastMsg.skinFilename));
+	std::strncpy(broadcastMsg.skinFilename, filename.c_str(), sizeof(broadcastMsg.skinFilename) - 1);
+	connexion.broadcast(&broadcastMsg, sizeof(broadcastMsg));
 }
 
 void GameServer::broadcastGameStart() {
@@ -136,6 +166,22 @@ void GameServer::handleClientFetchRooms(const std::vector<uint8_t> &data, const 
 	sendMsg.jsonData[sizeof(sendMsg.jsonData) - 1] = '\0';
 	LOG_DEBUG("Sending JSON with available rooms");
 	connexion.sendTo(&sendMsg, sizeof(sendMsg), from);
+}
+
+void GameServer::handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from)
+{
+	if (data.size() < sizeof(MessageType)) return;
+	MessageType type = *reinterpret_cast<const MessageType*>(data.data());
+	if (type != MessageType::ClientInput) return;
+	if (data.size() < sizeof(ClientInputMessage)) return;
+	const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
+	uint32_t id = ntohl(msg->clientId);
+	InputCode code = static_cast<InputCode>(msg->inputCode);
+	bool pressed = msg->isPressed != 0;
+	(void)from;
+	std::cout << "[ServerBootstrap][Input] received event from client " << id
+			  << " code=" << inputCodeToString(code)
+			  << " pressed=" << pressed << std::endl;
 }
 
 void GameServer::processIncomingPacket(const Connexion::ReceivedPacket &packet) {

@@ -11,6 +11,7 @@ Game::Game(const std::string &serverIp, const std::string &serverPort, const std
     : _sceneHandler(*this),
       _client(*this, serverIp, static_cast<uint16_t>(std::stoi(serverPort)), clientName) {
     _status = GameStatus::WAITING_PLAYERS;
+    _selectedSkinPath = ASSETS_PATH "/sprites/player/r-typesheet42.png";
 }
 
 void Game::run() {

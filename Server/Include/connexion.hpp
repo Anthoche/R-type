@@ -18,6 +18,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -135,11 +136,23 @@ class Connexion {
         bool tryPopPacket(ReceivedPacket &packet);
         void broadcastToClients(const std::vector<uint32_t> &clientIds, const void* data, size_t size);
 
+        /**
+         * @brief Attach a human-readable name to a connected client.
+         */
+        void setClientName(uint32_t id, std::string name);
+
+        /**
+         * @brief Retrieve the stored name for a client.
+         * @return Stored name or empty string if unknown.
+         */
+        [[nodiscard]] std::string getClientName(uint32_t id) const;
+
     private:
         UDP_socket socket; ///< UDP socket instance for message transmission.
         std::unordered_map<std::string, uint32_t> clients; ///< Maps client addresses to their IDs.
         std::unordered_map<std::string, asio::ip::udp::endpoint> endpoints; ///< Maps client addresses to UDP endpoints.
         std::unordered_map<uint32_t, std::shared_ptr<TCP_socket>> tcpClients; ///< TCP connections for reliable messages.
+        std::unordered_map<uint32_t, std::string> clientNames; ///< Stored display names for clients.
         std::atomic<bool> listening{false};
         std::thread receiverThread;
         std::mutex queueMutex;

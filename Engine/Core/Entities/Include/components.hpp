@@ -109,6 +109,10 @@ namespace component {
         float rotation{0.f};
     };
 
+    struct pattern_element {
+        std::string pattern_name{};
+    };
+
     /**
      * @struct model3D
      * @brief Optional 3D model for the entity.
@@ -223,7 +227,8 @@ namespace component {
         PROJECTILE,
         IMAGE,
         RANDOM_ELEMENT,
-        PNG
+        PNG,
+        PATTERN_ELEMENT
     };
 
     struct type {
