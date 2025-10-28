@@ -15,6 +15,7 @@
 #include <optional>
 #include <format>
 #include "Logger.hpp"
+#include "WeaponDefinition.hpp"
 
 GameServer::GameServer(uint16_t port) : connexion(ioContext, port), roomManager(4) {
 	roomManager.addRoom(Room(connexion, 4, 2, "Rtype"));
@@ -122,11 +123,10 @@ void GameServer::handlePlayerWeaponUpdate(const std::vector<uint8_t>& data, cons
 	const PlayerWeaponMessage *msg = reinterpret_cast<const PlayerWeaponMessage*>(data.data());
 	uint32_t clientId = ntohl(msg->clientId);
 	std::string weaponId(msg->weaponId);
-	if (weaponId.empty()) {
-		waitingPlayerWeapons.erase(clientId);
-	} else {
-		waitingPlayerWeapons[clientId] = weaponId;
+	if (weaponId.empty() || !weapon::hasDefinition(weaponId)) {
+		weaponId = "basic_shot";
 	}
+	waitingPlayerWeapons[clientId] = weaponId;
 
 	PlayerWeaponMessage broadcastMsg{};
 	broadcastMsg.type = MessageType::PlayerWeaponUpdate;
@@ -136,7 +136,8 @@ void GameServer::handlePlayerWeaponUpdate(const std::vector<uint8_t>& data, cons
 	connexion.broadcast(&broadcastMsg, sizeof(broadcastMsg));
 
 	Connexion::ReceivedPacket packet{};
-	packet.data = data;
+	packet.data.resize(sizeof(broadcastMsg));
+	std::memcpy(packet.data.data(), &broadcastMsg, sizeof(broadcastMsg));
 	packet.endpoint = from;
 	routePacketToGame(packet, MessageType::PlayerWeaponUpdate);
 }

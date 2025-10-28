@@ -18,6 +18,7 @@
 
 #include <format>
 #include "Logger.hpp"
+#include "WeaponDefinition.hpp"
 
 namespace scene {
 	WaitingScene::WaitingScene(Game &game)
@@ -455,18 +456,12 @@ namespace scene {
 			}
 		};
 
-		const bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
-		const bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
-		const std::string defaultWeaponName =
-			isFrench ? "Tir standard" :
-			isItalian ? "Colpo standard" :
-			"Basic Shot";
-
 		const std::string defaultWeaponId = "basic_shot";
 		const std::filesystem::path defaultWeaponSprite = weaponDir / "guntmp.png";
+		const weapon::WeaponDefinition &basicDef = weapon::getDefinition(defaultWeaponId);
 
 		WeaponOption baseOption;
-		baseOption.name = defaultWeaponName;
+		baseOption.name = basicDef.displayName;
 		baseOption.id = defaultWeaponId;
 		if (std::filesystem::exists(defaultWeaponSprite, ec) &&
 			std::filesystem::is_regular_file(defaultWeaponSprite)) {
@@ -487,7 +482,10 @@ namespace scene {
 			WeaponOption option;
 			option.name = formatName(stem);
 			option.path = fullPath;
-			option.id = path.filename().string();
+			option.id = stem;
+			if (weapon::hasDefinition(option.id)) {
+				option.name = weapon::getDefinition(option.id).displayName;
+			}
 			hydrateTexture(option);
 			_weaponOptions.push_back(std::move(option));
 		}
@@ -726,12 +724,38 @@ namespace scene {
 
 		_raylib.drawTexturePro(texture, source, dest, {0.f, 0.f}, 0.f, WHITE);
 
-		if (!current.name.empty()) {
-			float labelSize = 14.f;
-			Vector2 textSize = _raylib.measureTextEx(_font, current.name.c_str(), labelSize, -0.5f);
-			Vector2 textPos = {_weaponPreviewCenter.x - textSize.x / 2.f, panel.y + panel.height + 6.f};
-			_raylib.drawTextEx(_font, current.name.c_str(), textPos, labelSize, -0.5f, Color{200, 225, 240, 255});
-		}
+		const weapon::WeaponDefinition &definition = weapon::getDefinition(!current.id.empty() ? current.id : "basic_shot");
+
+		std::string displayName = !current.name.empty() ? current.name : definition.displayName;
+		float labelSize = 14.f;
+		Vector2 textSize = _raylib.measureTextEx(_font, displayName.c_str(), labelSize, -0.5f);
+		Vector2 textPos = {_weaponPreviewCenter.x - textSize.x / 2.f, panel.y + panel.height + 6.f};
+		_raylib.drawTextEx(_font, displayName.c_str(), textPos, labelSize, -0.5f, Color{200, 225, 240, 255});
+
+		auto formatFloat = [](float value, int precision = 2) {
+			return std::format("{:.{}f}", value, precision);
+		};
+
+		std::string ammoLine = definition.infiniteAmmo
+			? "Ammo: INF"
+			: std::format("Ammo: {}", definition.ammoCapacity);
+		std::string rateLine = std::format("Cooldown: {}s", formatFloat(definition.fireCooldown, 2));
+		std::string dmgLine = std::format("Damage: {}", formatFloat(definition.damage, 1));
+
+		float detailsSize = 12.f;
+		Vector2 ammoSize = _raylib.measureTextEx(_font, ammoLine.c_str(), detailsSize, -0.5f);
+		Vector2 rateSize = _raylib.measureTextEx(_font, rateLine.c_str(), detailsSize, -0.5f);
+		Vector2 dmgSize = _raylib.measureTextEx(_font, dmgLine.c_str(), detailsSize, -0.5f);
+
+		float firstLineY = textPos.y + ammoSize.y + 4.f;
+		Vector2 ammoPos = {_weaponPreviewCenter.x - ammoSize.x / 2.f, firstLineY};
+		Vector2 ratePos = {_weaponPreviewCenter.x - rateSize.x / 2.f, ammoPos.y + rateSize.y + 2.f};
+		Vector2 dmgPos = {_weaponPreviewCenter.x - dmgSize.x / 2.f, ratePos.y + dmgSize.y + 2.f};
+
+		Color detailColor = Color{190, 215, 235, 255};
+		_raylib.drawTextEx(_font, ammoLine.c_str(), ammoPos, detailsSize, -0.5f, detailColor);
+		_raylib.drawTextEx(_font, rateLine.c_str(), ratePos, detailsSize, -0.5f, detailColor);
+		_raylib.drawTextEx(_font, dmgLine.c_str(), dmgPos, detailsSize, -0.5f, detailColor);
 	}
 
 	bool WaitingScene::canJoin() {

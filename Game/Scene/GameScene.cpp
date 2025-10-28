@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 #include "../../Engine/Utils/Include/serializer.hpp"
 #include <vector>
+#include "WeaponDefinition.hpp"
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -996,8 +997,10 @@ void GameScene::update() {
             globalScore = _game.getGameClient().globalScore;
             myClientId = _game.getGameClient().clientId;
         }
-        float t = std::clamp(globalScore / 150.0f, 0.0f, 1.0f);
-        float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
+        const auto &weaponDef = weapon::getDefinition(_game.getSelectedWeaponId());
+        float progress = std::clamp(globalScore / 150.0f, 0.0f, 1.0f);
+        float SHOOT_COOLDOWN = weaponDef.fireCooldown - progress * (weaponDef.fireCooldown - weaponDef.minCooldown);
+        SHOOT_COOLDOWN = std::clamp(SHOOT_COOLDOWN, weaponDef.minCooldown, weaponDef.fireCooldown);
 
         bool upPressed = _raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP);
         bool downPressed = _raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN);

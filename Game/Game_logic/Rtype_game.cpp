@@ -15,6 +15,7 @@
 #include <cmath>
 #include <string>
 #include <cctype>
+#include "WeaponDefinition.hpp"
 
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"
@@ -151,6 +152,12 @@ void ServerGame::setInitialClients(const std::vector<uint32_t> &clients) {
     for (auto id : initialClients) {
         if (_playerWeapons.find(id) == _playerWeapons.end()) {
             _playerWeapons[id] = "basic_shot";
+        }
+        const auto &definition = weapon::getDefinition(_playerWeapons[id]);
+        if (definition.infiniteAmmo) {
+            _playerAmmo.erase(id);
+        } else {
+            _playerAmmo[id] = definition.ammoCapacity;
         }
     }
 }
@@ -418,10 +425,18 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 uint32_t clientId = ntohl(msg->clientId);
                 std::string weaponId(msg->weaponId);
                 if (weaponId.empty()) {
-                    _playerWeapons.erase(clientId);
-                } else {
-                    _playerWeapons[clientId] = weaponId;
+                    weaponId = "basic_shot";
                 }
+                _playerWeapons[clientId] = weaponId;
+
+                const auto &definition = weapon::getDefinition(weaponId);
+                if (definition.infiniteAmmo) {
+                    _playerAmmo.erase(clientId);
+                } else {
+                    _playerAmmo[clientId] = definition.ammoCapacity;
+                }
+                _playerLastShot.erase(clientId);
+
                 broadcast_player_weapon(clientId, weaponId);
             }
             break;
@@ -443,20 +458,50 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                             return wIt->second;
                         return "basic_shot";
                     }();
+                    const auto &definition = weapon::getDefinition(weaponId);
+
+                    const auto now = std::chrono::steady_clock::now();
+                    const auto lastIt = _playerLastShot.find(clientId);
+                    float progress = std::clamp(totalScore / 150.f, 0.f, 1.f);
+                    float allowedCooldown = definition.fireCooldown - progress * (definition.fireCooldown - definition.minCooldown);
+                    allowedCooldown = std::clamp(allowedCooldown, definition.minCooldown, definition.fireCooldown);
+
+                    if (lastIt != _playerLastShot.end()) {
+                        float elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(now - lastIt->second).count();
+                        if (elapsed < allowedCooldown) {
+                            break;
+                        }
+                    }
+
+                    if (!definition.infiniteAmmo) {
+                        int &remaining = _playerAmmo[clientId];
+                        if (remaining <= 0) {
+                            break;
+                        }
+                        remaining--;
+                    }
+                    _playerLastShot[clientId] = now;
 
                     uint32_t projId = nextProjectileId++;
                     float projX = playerX + 20.f;
                     float projY = playerY;
                     float projZ = 0.f;
-                    float projVelX = 400.f;
+                    float projVelX = definition.projectileSpeed;
                     float projVelY = 0.f;
                     float projVelZ = 0.f;
 
-                    if (weaponId != "basic_shot") {
-                        LOG_DEBUG("[Server] Unknown weapon '" << weaponId << "' for client " << clientId << ", using default stats.");
-                    }
-                    
-                    projectiles[projId] = std::make_tuple(projX, projY, projZ, projVelX, projVelY, projVelZ, clientId);
+                    projectiles[projId] = ProjectileState{
+                        .x = projX,
+                        .y = projY,
+                        .z = projZ,
+                        .vx = projVelX,
+                        .vy = projVelY,
+                        .vz = projVelZ,
+                        .ownerId = clientId,
+                        .damage = definition.damage,
+                        .width = definition.projectileWidth,
+                        .height = definition.projectileHeight
+                    };
 
                     broadcast_projectile_spawn(projId, clientId, projX, projY, projZ, projVelX, projVelY, projVelZ);
 
