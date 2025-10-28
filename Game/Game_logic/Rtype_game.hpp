@@ -60,6 +60,7 @@ class ServerGame : public IServerGame {
         void broadcast_full_registry_to(uint32_t clientId);
 
         void setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins);
+        void setInitialPlayerWeapons(const std::unordered_map<uint32_t, std::string> &weapons);
 
     private:
         /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
@@ -124,6 +125,8 @@ class ServerGame : public IServerGame {
 
         /** @brief Cached skin filename per client. */
         std::unordered_map<uint32_t, std::string> _playerSkins;
+        /** @brief Cached weapon identifier per client. */
+        std::unordered_map<uint32_t, std::string> _playerWeapons;
 
         /** @brief Total cumulative score. */
         int totalScore = 0;
@@ -218,5 +221,7 @@ class ServerGame : public IServerGame {
 
         void broadcast_player_skin(uint32_t clientId, const std::string &filename);
         void send_player_skins_to(uint32_t clientId);
+        void broadcast_player_weapon(uint32_t clientId, const std::string &weaponId);
+        void send_player_weapons_to(uint32_t clientId);
         std::vector<uint32_t> collectRoomClients(bool includeDead = true) const;
 };

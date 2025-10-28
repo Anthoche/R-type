@@ -53,6 +53,7 @@ class GameClient {
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
         std::string pendingSkinSelection;
+        std::string pendingWeaponSelection;
         std::mutex registryMutex;
         nlohmann::json latestFullRegistry;
         std::atomic<bool> hasPendingFullRegistry{false};
@@ -113,6 +114,10 @@ class GameClient {
          * @brief Maps client IDs to their chosen skin filename.
          */
         std::unordered_map<uint32_t, std::string> playerSkins;
+        /**
+         * @brief Maps client IDs to their chosen weapon identifier.
+         */
+        std::unordered_map<uint32_t, std::string> playerWeapons;
         int32_t globalScore = 0;
 
         std::atomic<bool> bossDefeated{false};
@@ -247,11 +252,21 @@ class GameClient {
         void sendSkinSelection(const std::string &skinFilename);
 
         /**
+         * @brief Sends the currently selected weapon identifier to the server.
+         */
+        void sendWeaponSelection(const std::string &weaponId);
+
+        /**
          * @brief Handles a PlayerSkinUpdate message from the server.
          * @param buffer Raw message data.
          */
         void handlePlayerSkinUpdate(const std::vector<uint8_t> &buffer);
 
+        /**
+         * @brief Handles a PlayerWeaponUpdate message from the server.
+         * @param buffer Raw message data.
+         */
+        void handlePlayerWeaponUpdate(const std::vector<uint8_t> &buffer);
         /**
          * @brief Handles an ObstacleSpawn message.
          * @param buffer Raw message data.

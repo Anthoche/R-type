@@ -67,6 +67,10 @@ void ServerGame::setInitialPlayerSkins(const std::unordered_map<uint32_t, std::s
     _playerSkins = skins;
 }
 
+void ServerGame::setInitialPlayerWeapons(const std::unordered_map<uint32_t, std::string> &weapons) {
+    _playerWeapons = weapons;
+}
+
 
 void ServerGame::run(int roomId) {
     LOG("[Server] Starting game loop...");
@@ -144,6 +148,11 @@ void ServerGame::enqueuePacket(const std::vector<uint8_t> &data, const asio::ip:
 void ServerGame::setInitialClients(const std::vector<uint32_t> &clients) {
     std::lock_guard<std::mutex> lock(initialClientsMutex);
     initialClients = clients;
+    for (auto id : initialClients) {
+        if (_playerWeapons.find(id) == _playerWeapons.end()) {
+            _playerWeapons[id] = "basic_shot";
+        }
+    }
 }
 
 bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
@@ -370,6 +379,7 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 if (scene == SceneState::GAME) {
                     broadcast_full_registry_to(id);
                     send_player_skins_to(id);
+                    send_player_weapons_to(id);
                 }
             }
             break;
@@ -402,6 +412,20 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             }
             break;
         }
+        case MessageType::PlayerWeaponUpdate: {
+            if (data.size() >= sizeof(PlayerWeaponMessage)) {
+                const PlayerWeaponMessage *msg = reinterpret_cast<const PlayerWeaponMessage*>(data.data());
+                uint32_t clientId = ntohl(msg->clientId);
+                std::string weaponId(msg->weaponId);
+                if (weaponId.empty()) {
+                    _playerWeapons.erase(clientId);
+                } else {
+                    _playerWeapons[clientId] = weaponId;
+                }
+                broadcast_player_weapon(clientId, weaponId);
+            }
+            break;
+        }
         case MessageType::ClientShoot: {
             if (data.size() >= sizeof(ClientShootMessage)) {
                 const ClientShootMessage* msg = reinterpret_cast<const ClientShootMessage*>(data.data());
@@ -413,6 +437,12 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 if (it != playerPositions.end()) {
                     float playerX = it->second.first;
                     float playerY = it->second.second;
+                    const std::string weaponId = [&]() -> std::string {
+                        auto wIt = _playerWeapons.find(clientId);
+                        if (wIt != _playerWeapons.end() && !wIt->second.empty())
+                            return wIt->second;
+                        return "basic_shot";
+                    }();
 
                     uint32_t projId = nextProjectileId++;
                     float projX = playerX + 20.f;
@@ -421,6 +451,10 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     float projVelX = 400.f;
                     float projVelY = 0.f;
                     float projVelZ = 0.f;
+
+                    if (weaponId != "basic_shot") {
+                        LOG_DEBUG("[Server] Unknown weapon '" << weaponId << "' for client " << clientId << ", using default stats.");
+                    }
                     
                     projectiles[projId] = std::make_tuple(projX, projY, projZ, projVelX, projVelY, projVelZ, clientId);
 
@@ -683,6 +717,25 @@ void ServerGame::send_player_skins_to(uint32_t clientId) {
     }
     for (const auto &entry : _playerSkins) {
         broadcast_player_skin(entry.first, entry.second);
+    }
+}
+
+void ServerGame::broadcast_player_weapon(uint32_t clientId, const std::string &weaponId) {
+    PlayerWeaponMessage msg{};
+    msg.type = MessageType::PlayerWeaponUpdate;
+    msg.clientId = htonl(clientId);
+    std::memset(msg.weaponId, 0, sizeof(msg.weaponId));
+    std::strncpy(msg.weaponId, weaponId.c_str(), sizeof(msg.weaponId) - 1);
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::send_player_weapons_to(uint32_t clientId) {
+    (void)clientId;
+    if (_playerWeapons.empty()) {
+        return;
+    }
+    for (const auto &entry : _playerWeapons) {
+        broadcast_player_weapon(entry.first, entry.second);
     }
 }
 

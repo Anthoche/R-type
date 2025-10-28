@@ -389,7 +389,8 @@ namespace scene {
 		unloadWeaponTextures();
 		_weaponOptions.clear();
 
-		const std::string previouslySelected = _game.getSelectedWeaponPath();
+		const std::string previouslySelectedPath = _game.getSelectedWeaponPath();
+		const std::string previouslySelectedId = _game.getSelectedWeaponId();
 		const std::filesystem::path weaponDir{ASSETS_PATH "/sprites/weapons"};
 		std::error_code ec;
 
@@ -424,50 +425,116 @@ namespace scene {
 			return stem;
 		};
 
-		for (const auto &entry : files) {
-			const auto path = entry.path();
-			const std::string stem = path.stem().string();
-			const std::string fullPath = path.string();
-
-			WeaponOption option;
-			option.name = formatName(stem);
-			option.path = fullPath;
+		auto hydrateTexture = [this](WeaponOption &option) {
+			if (option.path.empty())
+				return;
 			option.texture = _raylib.loadTexture(option.path);
-			if (option.texture.id == 0) {
-				_weaponOptions.push_back(std::move(option));
-				continue;
-			}
-
-			option.source = {0.f, 0.f, static_cast<float>(option.texture.width), static_cast<float>(option.texture.height)};
+			if (option.texture.id == 0)
+				return;
+			option.source = {
+				0.f, 0.f,
+				static_cast<float>(option.texture.width),
+				static_cast<float>(option.texture.height)
+			};
 
 			Image image = LoadImage(option.path.c_str());
 			if (image.data != nullptr) {
 				Rectangle alpha = GetImageAlphaBorder(image, 0.05f);
 				if (alpha.width > 0.f && alpha.height > 0.f) {
 					option.source = alpha;
-					option.source.x = std::clamp(option.source.x, 0.f, static_cast<float>(option.texture.width) - option.source.width);
-					option.source.y = std::clamp(option.source.y, 0.f, static_cast<float>(option.texture.height) - option.source.height);
+					option.source.x = std::clamp(
+						option.source.x, 0.f,
+						static_cast<float>(option.texture.width) - option.source.width
+					);
+					option.source.y = std::clamp(
+						option.source.y, 0.f,
+						static_cast<float>(option.texture.height) - option.source.height
+					);
 				}
 				UnloadImage(image);
 			}
+		};
 
+		const bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+		const bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
+		const std::string defaultWeaponName =
+			isFrench ? "Tir standard" :
+			isItalian ? "Colpo standard" :
+			"Basic Shot";
+
+		const std::string defaultWeaponId = "basic_shot";
+		const std::filesystem::path defaultWeaponSprite = weaponDir / "guntmp.png";
+
+		WeaponOption baseOption;
+		baseOption.name = defaultWeaponName;
+		baseOption.id = defaultWeaponId;
+		if (std::filesystem::exists(defaultWeaponSprite, ec) &&
+			std::filesystem::is_regular_file(defaultWeaponSprite)) {
+			baseOption.path = defaultWeaponSprite.string();
+			hydrateTexture(baseOption);
+		}
+		_weaponOptions.push_back(baseOption);
+
+		for (const auto &entry : files) {
+			const auto path = entry.path();
+			const std::string stem = path.stem().string();
+			const std::string fullPath = path.string();
+
+			if (path == defaultWeaponSprite) {
+				continue;
+			}
+
+			WeaponOption option;
+			option.name = formatName(stem);
+			option.path = fullPath;
+			option.id = path.filename().string();
+			hydrateTexture(option);
 			_weaponOptions.push_back(std::move(option));
 		}
 
 		if (_weaponOptions.empty()) {
 			WeaponOption option;
 			option.name = "Default";
+			option.id = defaultWeaponId;
 			_weaponOptions.push_back(option);
 		}
 
+		if (_weaponOptions.size() > 1 && _weaponOptions.front().id != defaultWeaponId) {
+			_weaponOptions.front().id = defaultWeaponId;
+		}
+
 		_currentWeaponIndex = 0;
-		if (!_weaponOptions.empty() && !previouslySelected.empty()) {
+		auto matchById = [&](const std::string &id) {
+			if (id.empty())
+				return false;
 			for (std::size_t idx = 0; idx < _weaponOptions.size(); ++idx) {
-				if (_weaponOptions[idx].path == previouslySelected) {
+				if (_weaponOptions[idx].id == id) {
 					_currentWeaponIndex = idx;
-					break;
+					return true;
 				}
 			}
+			return false;
+		};
+		auto matchByPath = [&](const std::string &pathValue) {
+			if (pathValue.empty())
+				return false;
+			for (std::size_t idx = 0; idx < _weaponOptions.size(); ++idx) {
+				if (_weaponOptions[idx].path == pathValue) {
+					_currentWeaponIndex = idx;
+					return true;
+				}
+			}
+			return false;
+		};
+
+		if (!matchById(previouslySelectedId)) {
+			matchByPath(previouslySelectedPath);
+		}
+
+		if (_weaponOptions.empty()) {
+			_currentWeaponIndex = 0;
+		} else {
+			_currentWeaponIndex %= _weaponOptions.size();
 		}
 
 		selectWeapon(_currentWeaponIndex);
@@ -509,12 +576,17 @@ namespace scene {
 	void WaitingScene::selectWeapon(std::size_t index) {
 		if (_weaponOptions.empty()) {
 			_game.setSelectedWeaponPath("");
+			_game.setSelectedWeaponId("basic_shot");
+			_game.getGameClient().sendWeaponSelection("basic_shot");
 			return;
 		}
 
 		_currentWeaponIndex = index % _weaponOptions.size();
 		const auto &weapon = _weaponOptions[_currentWeaponIndex];
 		_game.setSelectedWeaponPath(weapon.path);
+		const std::string weaponId = !weapon.id.empty() ? weapon.id : "basic_shot";
+		_game.setSelectedWeaponId(weaponId);
+		_game.getGameClient().sendWeaponSelection(weaponId);
 	}
 
 	void WaitingScene::selectNextSkin() {

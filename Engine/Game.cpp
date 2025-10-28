@@ -13,6 +13,7 @@ Game::Game(const std::string &serverIp, const std::string &serverPort, const std
     _status = GameStatus::WAITING_PLAYERS;
     _selectedSkinPath = ASSETS_PATH "/sprites/player/r-typesheet42.png";
     _selectedWeaponPath.clear();
+    _selectedWeaponId = "basic_shot";
 }
 
 void Game::run() {

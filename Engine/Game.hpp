@@ -125,6 +125,18 @@ class Game {
 		 */
 		const std::string &getSelectedWeaponPath() const { return _selectedWeaponPath; }
 
+		/**
+		 * @brief Select the identifier used for the local player's weapon.
+		 * @param id Identifier associated with the weapon.
+		 */
+		void setSelectedWeaponId(const std::string &id) { _selectedWeaponId = id; }
+
+		/**
+		 * @brief Retrieve the identifier of the currently selected weapon.
+		 * @return Identifier string for the weapon.
+		 */
+		const std::string &getSelectedWeaponId() const { return _selectedWeaponId; }
+
 	private:
 		GameStatus _status; ///< Status of the game
 		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
@@ -134,4 +146,5 @@ class Game {
 		bool _soundEnabled = true; ///< Sound enabled/disabled flag
 		std::string _selectedSkinPath; ///< Sprite path picked on the waiting screen
 		std::string _selectedWeaponPath; ///< Weapon sprite path picked on the waiting screen
+		std::string _selectedWeaponId; ///< Identifier for the selected weapon
 };

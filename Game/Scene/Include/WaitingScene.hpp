@@ -74,6 +74,7 @@ class WaitingScene: public AScene {
         struct WeaponOption {
             std::string name;
             std::string path;
+            std::string id;
             Texture2D texture{};
             Rectangle source{0.f, 0.f, 0.f, 0.f};
         };
