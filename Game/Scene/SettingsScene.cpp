@@ -259,9 +259,7 @@ namespace scene {
 	void SettingsScene::cycleDifficulty() {
 		_currentLevelIndex = (_currentLevelIndex + 1) % _levels.size();
 		_values[0] = _levels[_currentLevelIndex];
-		updateButtonText("button_difficulty", _values[0]);
-		
-   		_game.setDifficulty(_levels[_currentLevelIndex]);
+		updateButtonText("button_difficulty", _values[0]);	
 	}
 
 	void SettingsScene::toggleLanguage() {

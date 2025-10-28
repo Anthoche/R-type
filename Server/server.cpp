@@ -42,30 +42,17 @@ void GameServer::run()
     }
     std::cout << "Tous les clients sont connectés. Le jeu commence !" << std::endl;
 
-    ServerGame game(connexion, _difficulty);
-    
+    ServerGame game(connexion);    
     game.run();
 }
 
-void GameServer::handleClientHello(const std::vector<uint8_t>& data,
-                                   const asio::ip::udp::endpoint& clientEndpoint)
+void GameServer::handleClientHello(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& clientEndpoint)
 {
     if (gameStarted) return;
     if (data.size() < sizeof(ClientHelloMessage)) return;
-
     const ClientHelloMessage* msg = reinterpret_cast<const ClientHelloMessage*>(data.data());
-
     uint32_t clientId = nextClientId++;
     connexion.addClient(clientEndpoint, clientId);
-
-    if (connexion.getClientCount() == 1) {
-        std::string clientDifficulty = msg->difficulty;
-        if (clientDifficulty.empty())
-            clientDifficulty = "Medium";
-        _difficulty = clientDifficulty;
-        std::cout << "[DEBUG] Server difficulty set by first client: " << _difficulty << std::endl;
-    }
-
     uint16_t tcpPort = 5000 + clientId;
     std::thread([this, clientId, tcpPort]() {
         if (!connexion.acceptTcpClient(clientId, tcpPort)) {
@@ -74,16 +61,13 @@ void GameServer::handleClientHello(const std::vector<uint8_t>& data,
             std::cout << "[INFO] TCP connection established for client " << clientId << std::endl;
         }
     }).detach();
-
     ServerAssignIdMessage assignMsg{};
     assignMsg.type = MessageType::ServerAssignId;
     assignMsg.clientId = htonl(clientId);
     connexion.sendTo(&assignMsg, sizeof(assignMsg), clientEndpoint);
-
     std::cout << "Client connecté : " << msg->clientName
               << " (ID: " << clientId << ")"
               << " [" << connexion.getClientCount() << "/4]" << std::endl;
-
     if (connexion.getClientCount() == 4) {
         gameStarted = true;
         broadcastGameStart();

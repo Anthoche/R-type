@@ -33,7 +33,7 @@ class ServerGame : public IServerGame {
          * @brief Constructs a ServerGame instance.
          * @param conn Reference to the Connexion handler for network communication.
          */
-        explicit ServerGame(Connexion &conn, const std::string &difficulty);
+        explicit ServerGame(Connexion &conn);
 
         /**
          * @brief Main server game loop.
@@ -56,9 +56,6 @@ class ServerGame : public IServerGame {
         void broadcast_full_registry_to(uint32_t clientId);
 
     private:
-        /** @brief Game difficulty setting ("Easy", "Medium", "Hard"). */
-        std::string _difficulty;
-
         /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 

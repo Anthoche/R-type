@@ -69,7 +69,6 @@ class Game {
 		 */
 		void setGameStatus(const GameStatus &status);
 
-
         /**
          * @enum Language
          * @brief Supported languages for the game.
@@ -79,7 +78,7 @@ class Game {
         /**
          * @brief Set the current language of the game.
          * Changes the active language, affecting displayed text and UI labels.
-         * @param lang The language to set (ENGLISH or FRENCH).
+         * @param lang The language to set (ENGLISH, FRENCH or ITALIAN).
          */
         void setLanguage(Language lang) { _language = lang; }
 
@@ -101,18 +100,6 @@ class Game {
 		 * @return True if sound is enabled, false otherwise.
 		 */
     	bool isSoundEnabled() const { return _soundEnabled; }
-    	
-		/**
-		 * @brief Set the current game difficulty.
-		 * @param difficulty The difficulty level to set (e.g., "Easy", "Medium", "Hard").
-		 */
-		void setDifficulty(const std::string &difficulty) { _difficulty = difficulty; }
-    	
-		/**
-		 * @brief Get the current game difficulty.
-		 * @return The current difficulty level as a string.
-		 */
-		const std::string &getDifficulty() const { return _difficulty; }
 
 	private:
 		GameStatus _status; ///< Status of the game
@@ -121,5 +108,4 @@ class Game {
 		std::thread _networkThread; ///< Thread for handling network communication
 		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
 		bool _soundEnabled = true; ///< Sound enabled/disabled flag
-	    std::string _difficulty; ///< Current game difficulty setting
 };

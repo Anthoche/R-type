@@ -35,8 +35,7 @@ static nlohmann::json load_json_from_file(const std::string &path) {
     return data;
 }
 
-ServerGame::ServerGame(Connexion &conn, const std::string &difficulty)
-    : connexion(conn), _difficulty(difficulty) {
+ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
     registry_server.register_component<component::position>();
     registry_server.register_component<component::previous_position>();
     registry_server.register_component<component::velocity>();
@@ -64,19 +63,7 @@ ServerGame::ServerGame(Connexion &conn, const std::string &difficulty)
 void ServerGame::run() {
     LOG("[Server] Starting game loop...");
     load_players(ASSETS_PATH "/Config_assets/Players/players.json");
-    
-    std::string levelPath;
-    if (_difficulty == "Easy")
-        levelPath = ASSETS_PATH "/Config_assets/Levels/easy.json";
-    else if (_difficulty == "Medium")
-        levelPath = ASSETS_PATH "/Config_assets/Levels/medium.json";
-    else
-        levelPath = ASSETS_PATH "/Config_assets/Levels/hard.json";
-
-    std::cout << "[DEBUG] Starting server with difficulty: " << _difficulty << std::endl;
-
-    load_level(levelPath);
-    //load_level(ASSETS_PATH "/Config_assets/Levels/hard.json");
+    load_level(ASSETS_PATH "/Config_assets/Levels/level.json");
     initialize_player_positions();
     index_existing_entities();
 

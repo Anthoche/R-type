@@ -37,24 +37,19 @@ void GameClient::run() {
 }
 
 void GameClient::sendHello() {
-    ClientHelloMessage msg{};
+    ClientHelloMessage msg;
     msg.type = MessageType::ClientHello;
     msg.clientId = htonl(0);
-
-    std::strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
-
-    std::string difficulty = _game.getDifficulty();
-    std::strncpy(msg.difficulty, difficulty.c_str(), sizeof(msg.difficulty) - 1);
-
+    strncpy(msg.clientName, clientName.c_str(), sizeof(msg.clientName) - 1);
+    msg.clientName[sizeof(msg.clientName) - 1] = '\0';
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
-    std::cout << "[DEBUG] Sent ClientHello with difficulty: " << difficulty << std::endl;
 }
 
 void GameClient::initTcpConnection() {
     if (clientId == 0) return;
 
     uint16_t tcpPort = 5000 + clientId;
-    tcpClient = std::make_unique<TCP_socket>(); // Mode client (constructeur par défaut)
+    tcpClient = std::make_unique<TCP_socket>();
 
     if (!tcpClient->connectToServer(serverIpStr, tcpPort)) {
         std::cerr << "[Client] Impossible de se connecter en TCP" << std::endl;

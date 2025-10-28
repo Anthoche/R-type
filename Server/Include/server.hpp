@@ -41,7 +41,6 @@ class GameServer {
     std::unordered_map<uint32_t, std::pair<float, float>> enemies; ///< Maps enemy IDs to positions
     float enemySpawnTimerSec = 0.f; ///< Timer for enemy spawning
     std::unordered_map<uint32_t, std::tuple<float, float, float, float>> obstacles; ///< Maps obstacle IDs to (x, y, width, height)
-    std::string _difficulty; ///< Game difficulty level
 
     public:
         /**
