@@ -275,26 +275,42 @@ void ServerGame::process_player_inputs(float dt) {
             switch (event.code) {
                 case InputCode::Up:
                     state.up = event.pressed;
+                    if (event.pressed) {
+                        state.lastDirX = 0;
+                        state.lastDirY = -1;
+                    }
                     break;
                 case InputCode::Down:
                     state.down = event.pressed;
+                    if (event.pressed) {
+                        state.lastDirX = 0;
+                        state.lastDirY = 1;
+                    }
                     break;
                 case InputCode::Left:
                     state.left = event.pressed;
+                    if (event.pressed) {
+                        state.lastDirX = -1;
+                        state.lastDirY = 0;
+                    }
                     break;
                 case InputCode::Right:
                     state.right = event.pressed;
+                    if (event.pressed) {
+                        state.lastDirX = 1;
+                        state.lastDirY = 0;
+                    }
                     break;
                 case InputCode::J:
                     state.j = event.pressed;
                     if (event.pressed) {
-                        handle_melee_attack(clientId, 10.f, 5);
+                        handle_melee_attack(clientId, 15.f, 10, 350.f, 450.f, state.lastDirX, state.lastDirY);
                     }
                     break;
                 case InputCode::K:
                     state.k = event.pressed;
                     if (event.pressed) {
-                        handle_melee_attack(clientId, 15.f, 15);
+                        handle_melee_attack(clientId, 25.f, 25, 650.f, 600.f, state.lastDirX, state.lastDirY);
                     }
                     break;
                 default:
@@ -316,6 +332,29 @@ void ServerGame::process_player_inputs(float dt) {
             if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles) &&
                 !is_position_blocked_platform(newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down))
                 pos.first = newX;
+        }
+
+        auto &knockback = playerKnockbackVelocity[clientId];
+        if (std::fabs(knockback) > 1.f) {
+            auto &pos = kv.second;
+            float knockDistance = knockback * dt;
+            float newX = pos.first + knockDistance;
+
+            if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles) &&
+                !is_position_blocked_platform(newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down)) {
+                pos.first = newX;
+            } else {
+                knockback = 0.f;
+            }
+
+            const float damping = 800.f;
+            if (knockback > 0.f) {
+                knockback = std::max(0.f, knockback - damping * dt);
+            } else {
+                knockback = std::min(0.f, knockback + damping * dt);
+            }
+        } else {
+            knockback = 0.f;
         }
     }
 }

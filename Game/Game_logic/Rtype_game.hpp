@@ -38,6 +38,7 @@ class ServerGame : public IServerGame {
         std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
 
         std::unordered_map<uint32_t, float> playerVelocities;
+        std::unordered_map<uint32_t, float> playerKnockbackVelocity;
 
         std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
 
@@ -56,6 +57,8 @@ class ServerGame : public IServerGame {
             bool right{false};
             bool j{false};
             bool k{false};
+            int lastDirX{1};
+            int lastDirY{0};
         };
 
         std::unordered_map<uint32_t, std::vector<InputEvent>> playerInputBuffers;
@@ -82,7 +85,7 @@ class ServerGame : public IServerGame {
         void apply_gravity(float dt);
         void check_death_zone();
         void check_win_condition();
-        void handle_melee_attack(uint32_t attackerId, float range, int damage);
+        void handle_melee_attack(uint32_t attackerId, float range, int damage, float baseKnockback, float knockbackScale, int dirX, int dirY);
 
         bool is_on_ground(float x, float y, float playerWidth, float playerHeight);
         float snap_to_platform_top(float x, float y, float playerWidth, float playerHeight);

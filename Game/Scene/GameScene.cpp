@@ -10,6 +10,8 @@
 #include <cmath>
 #include <tuple>
 #include <algorithm>
+#include <optional>
+#include <vector>
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -269,6 +271,9 @@ namespace game::scene {
             }
         }
         
+        std::vector<std::size_t> playerIndices;
+        playerIndices.reserve(types.size());
+
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
 
@@ -288,10 +293,17 @@ namespace game::scene {
                     render_powerup(entity, *positions[i], *drawables[i]);
                     break;
                 case component::entity_type::PLAYER:
-                    render_player(entity, *positions[i], *drawables[i]);
+                    playerIndices.push_back(i);
                     break;
                 default:
                     break;
+            }
+        }
+
+        for (std::size_t idx : playerIndices) {
+            if (idx < positions.size() && positions[idx] && idx < drawables.size() && drawables[idx]) {
+                ecs::entity_t entity = _registry.entity_from_index(idx);
+                render_player(entity, *positions[idx], *drawables[idx]);
             }
         }
     }
@@ -328,33 +340,25 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            uint32_t clientId = 0;
-            for (auto const &kv : _playerEntities) {
-                if (kv.second == entity) {
-                    clientId = kv.first;
-                    break;
+            auto &sprites = _registry.get_components<component::sprite>();
+            const component::sprite *spriteComp = nullptr;
+            if (entity.value() < sprites.size()) {
+                auto &spriteOpt = sprites[entity.value()];
+                if (spriteOpt.has_value()) {
+                    spriteComp = &spriteOpt.value();
                 }
             }
 
-            float spriteOffsetX = 0.0f;
-            float spriteOffsetY = 0.0f;
-            if (moovePlayer.find(clientId) != moovePlayer.end()) {
-                spriteOffsetX = moovePlayer[clientId];
-            }
+            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
+            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
 
-            Rectangle sourceRec = {spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)draw.width, (float)draw.height};
+            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
+            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
+
+            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
+            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
 
             Vector2 origin = {0.0f, 0.0f};
-
-            auto &sprites = _registry.get_components<component::sprite>();
-            float rotation = 0.0f;
-            float scale = 1.0f;
-            if (entity.value() < sprites.size() && sprites[entity.value()]) {
-                scale = sprites[entity.value()]->scale;
-                rotation = sprites[entity.value()]->rotation;
-            }
-
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             uint32_t idForColor = 0;
@@ -373,15 +377,24 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
-            Vector2 origin = {0.0f, 0.0f};
-            
             auto &sprites = _registry.get_components<component::sprite>();
-            float rotation = 0.0f;
-            if (entity.value() < sprites.size() && sprites[entity.value()]) {
-                rotation = sprites[entity.value()]->rotation;
+            const component::sprite *spriteComp = nullptr;
+            if (entity.value() < sprites.size()) {
+                auto &spriteOpt = sprites[entity.value()];
+                if (spriteOpt.has_value()) {
+                    spriteComp = &spriteOpt.value();
+                }
             }
+            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
+            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
+
+            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
+            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
+
+            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
+            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
+            Vector2 origin = {0.0f, 0.0f};
+
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GRAY);
@@ -392,15 +405,24 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
-            Vector2 origin = {0.0f, 0.0f};
-            
             auto &sprites = _registry.get_components<component::sprite>();
-            float rotation = 0.0f;
-            if (entity.value() < sprites.size() && sprites[entity.value()]) {
-                rotation = sprites[entity.value()]->rotation;
+            const component::sprite *spriteComp = nullptr;
+            if (entity.value() < sprites.size()) {
+                auto &spriteOpt = sprites[entity.value()];
+                if (spriteOpt.has_value()) {
+                    spriteComp = &spriteOpt.value();
+                }
             }
+            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
+            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
+
+            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
+            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
+
+            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
+            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
+            Vector2 origin = {0.0f, 0.0f};
+
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, BROWN);
@@ -411,15 +433,24 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
-            Vector2 origin = {0.0f, 0.0f};
-            
             auto &sprites = _registry.get_components<component::sprite>();
-            float rotation = 0.0f;
-            if (entity.value() < sprites.size() && sprites[entity.value()]) {
-                rotation = sprites[entity.value()]->rotation;
+            const component::sprite *spriteComp = nullptr;
+            if (entity.value() < sprites.size()) {
+                auto &spriteOpt = sprites[entity.value()];
+                if (spriteOpt.has_value()) {
+                    spriteComp = &spriteOpt.value();
+                }
             }
+            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
+            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
+
+            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
+            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
+
+            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
+            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
+            Vector2 origin = {0.0f, 0.0f};
+
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, PURPLE);
@@ -430,7 +461,7 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
             Rectangle destRec = {0.0f, 0.0f, (float)_width, (float)_height};
             Vector2 origin = {0.0f, 0.0f};
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, 0.0f, WHITE);
@@ -441,15 +472,24 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
-            Vector2 origin = {0.0f, 0.0f};
-            
             auto &sprites = _registry.get_components<component::sprite>();
-            float rotation = 0.0f;
-            if (entity.value() < sprites.size() && sprites[entity.value()]) {
-                rotation = sprites[entity.value()]->rotation;
+            const component::sprite *spriteComp = nullptr;
+            if (entity.value() < sprites.size()) {
+                auto &spriteOpt = sprites[entity.value()];
+                if (spriteOpt.has_value()) {
+                    spriteComp = &spriteOpt.value();
+                }
             }
+            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
+            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
+
+            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
+            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
+
+            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
+            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
+            Vector2 origin = {0.0f, 0.0f};
+
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GOLD);

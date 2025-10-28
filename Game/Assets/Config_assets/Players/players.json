@@ -21,7 +21,7 @@
       "width": 50.0,
       "height": 100.0,
       "depth": 0.0,
-      "image_path": "../Game/Assets/sprites/player/mecanneaux.png",
+      "image_path": "../Game/Assets/sprites/player/Cross.png",
       "model_path": "",
       "health": 100,
       "speed": 300.0,
