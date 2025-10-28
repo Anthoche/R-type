@@ -113,6 +113,18 @@ class Game {
 		 */
 		const std::string &getSelectedSkinPath() const { return _selectedSkinPath; }
 
+		/**
+		 * @brief Select the texture path used for the local player's weapon.
+		 * @param path Absolute path to the desired weapon sprite.
+		 */
+		void setSelectedWeaponPath(const std::string &path) { _selectedWeaponPath = path; }
+
+		/**
+		 * @brief Retrieve the currently selected player weapon texture path.
+		 * @return Absolute path to the sprite used for the local player's weapon.
+		 */
+		const std::string &getSelectedWeaponPath() const { return _selectedWeaponPath; }
+
 	private:
 		GameStatus _status; ///< Status of the game
 		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
@@ -121,4 +133,5 @@ class Game {
 		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
 		bool _soundEnabled = true; ///< Sound enabled/disabled flag
 		std::string _selectedSkinPath; ///< Sprite path picked on the waiting screen
+		std::string _selectedWeaponPath; ///< Weapon sprite path picked on the waiting screen
 };
