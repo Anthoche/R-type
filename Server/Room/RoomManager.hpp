@@ -11,6 +11,7 @@
 
 #include "Room.hpp"
 #include <map>
+#include <optional>
 
 class RoomManager {
 	private:
@@ -26,6 +27,7 @@ class RoomManager {
 		std::shared_ptr<Room> getRoom(int id);
 		std::map<int, std::shared_ptr<Room>> &getRooms();
 		bool roomExists(int id) const;
+		std::optional<int> findRoomIdByClient(uint32_t clientId) const;
 
 		void addRoom(Room const &room);
 		void addClientInRoom(uint32_t clientId, int roomId);

@@ -91,12 +91,8 @@ private:
 	*/
 	void broadcastGameStart();
 
-	/**
-	* @brief Handles client messages during gameplay (e.g., player input).
-	* @param data Raw message data.
-	* @param from Sender's UDP endpoint.
-	*/
-	void handle_client_message(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
+	void processIncomingPacket(const Connexion::ReceivedPacket &packet);
+	void routePacketToGame(const Connexion::ReceivedPacket &packet, MessageType type);
 
 	/**
 	* @brief Sleeps to maintain a fixed server tick rate.

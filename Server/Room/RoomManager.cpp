@@ -25,6 +25,14 @@ bool RoomManager::roomExists(int id) const {
 	return false;
 }
 
+std::optional<int> RoomManager::findRoomIdByClient(uint32_t clientId) const {
+	for (const auto &entry : _rooms) {
+		if (entry.second && entry.second->isClientInRoom(clientId))
+			return entry.first;
+	}
+	return std::nullopt;
+}
+
 std::shared_ptr<Room> RoomManager::getRoom(int id) {
 	return _rooms.at(id);
 }

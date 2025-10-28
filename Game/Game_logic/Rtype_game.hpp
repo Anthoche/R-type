@@ -14,6 +14,7 @@
 #include <string>
 #include <chrono>
 #include <mutex>
+#include <queue>
 #include <vector>
 
 /**
@@ -40,6 +41,8 @@ class ServerGame : public IServerGame {
          * @param roomId The id of the room to listen on
          */
         void run(int roomId) override;
+        void enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) override;
+        void setInitialClients(const std::vector<uint32_t> &clients) override;
 
         /**
          * @brief Loads player data from a JSON configuration file.
@@ -104,6 +107,9 @@ class ServerGame : public IServerGame {
 
         /** @brief Mutex for thread-safe access. */
         std::mutex mtx;
+        std::mutex packetMutex;
+        mutable std::mutex initialClientsMutex;
+        std::vector<uint32_t> initialClients;
 
         /** @brief Set of dead player IDs. */
         std::unordered_set<uint32_t> deadPlayers;
@@ -130,6 +136,11 @@ class ServerGame : public IServerGame {
          * @brief The id of the room to listen on
          */
         int _roomId;
+        struct PendingPacket {
+            std::vector<uint8_t> data;
+            asio::ip::udp::endpoint endpoint;
+        };
+        std::queue<PendingPacket> pendingPackets;
 
         void initialize_player_positions();
         void index_existing_entities();
@@ -184,4 +195,5 @@ class ServerGame : public IServerGame {
 
         bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
                                 const std::vector<ecs::entity_t> &obstacles);
+        std::vector<uint32_t> collectRoomClients(bool includeDead = true) const;
 };

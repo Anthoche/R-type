@@ -69,6 +69,10 @@ bool ServerGame::is_position_blocked(float testX, float testY, float playerWidth
 
 void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d)
 {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ObstacleSpawnMessage msg{};
     msg.type = MessageType::ObstacleSpawn;
     msg.obstacleId = htonl(obstacleId);
@@ -88,7 +92,7 @@ void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y,
     msg.size.heightBits = htonl(hb);
     msg.size.depthBits = htonl(db);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast obstacle spawn: ID=" << obstacleId
               << " pos=(" << x << "," << y << "," << z << ") size=(" << w << "," << h << "," << d << ")");
 }

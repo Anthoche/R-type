@@ -8,19 +8,61 @@
 #include "Include/connexion.hpp"
 #include "Logger.hpp"
 #include <asio.hpp>
+#include <chrono>
+#include <format>
+#include <thread>
 
 Connexion::Connexion(asio::io_context& io, uint16_t port) : socket(port) {}
 
-void Connexion::asyncReceive(std::function<void(const asio::error_code&, std::vector<uint8_t>, asio::ip::udp::endpoint)> handler) {
+Connexion::~Connexion() {
+    stopListening();
+}
+
+void Connexion::startListening() {
+    bool expected = false;
+    if (!listening.compare_exchange_strong(expected, true))
+        return;
+    receiverThread = std::thread(&Connexion::receiverLoop, this);
+}
+
+void Connexion::stopListening() {
+    bool wasListening = listening.exchange(false);
+    if (wasListening) {
+        queueCv.notify_all();
+        if (receiverThread.joinable())
+            receiverThread.join();
+    }
+}
+
+bool Connexion::waitForPacket(ReceivedPacket &packet, std::chrono::milliseconds timeout) {
+    std::unique_lock<std::mutex> lock(queueMutex);
+    if (!queueCv.wait_for(lock, timeout, [this]() {
+        return !packetQueue.empty() || !listening.load();
+    }))
+        return false;
+    if (packetQueue.empty())
+        return false;
+    packet = std::move(packetQueue.front());
+    packetQueue.pop();
+    return true;
+}
+
+bool Connexion::tryPopPacket(ReceivedPacket &packet) {
+    std::lock_guard<std::mutex> lock(queueMutex);
+    if (packetQueue.empty())
+        return false;
+    packet = std::move(packetQueue.front());
+    packetQueue.pop();
+    return true;
+}
+
+void Connexion::broadcastToClients(const std::vector<uint32_t> &clientIds, const void* data, size_t size) {
+    if (clientIds.empty())
+        return;
     try {
-        std::vector<uint8_t> data;
-        asio::ip::udp::endpoint clientEndpoint;
-        if (socket.try_receive(data, clientEndpoint)) {
-            asio::error_code ec; 
-            handler(ec, std::move(data), clientEndpoint);
-        }
+        socket.broadcastToClients(clientIds, data, size);
     } catch (const std::exception& e) {
-        LOG_ERROR(std::format("Connexion::asyncReceive(): {}", e.what()));
+        LOG_ERROR(std::format("Connexion::broadcastToClients(): {}", e.what()));
     }
 }
 
@@ -131,4 +173,24 @@ const std::unordered_map<std::string, uint32_t>& Connexion::getClients() const {
 
 const std::unordered_map<std::string, asio::ip::udp::endpoint>& Connexion::getEndpoints() const {
     return endpoints;
+}
+
+void Connexion::receiverLoop() {
+    while (listening.load()) {
+        try {
+            std::vector<uint8_t> data;
+            asio::ip::udp::endpoint endpoint;
+            if (socket.try_receive(data, endpoint) && !data.empty()) {
+                {
+                    std::lock_guard<std::mutex> lock(queueMutex);
+                    packetQueue.push(ReceivedPacket{std::move(data), endpoint});
+                }
+                queueCv.notify_one();
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR(std::format("Connexion::receiverLoop(): {}", e.what()));
+        }
+    }
 }

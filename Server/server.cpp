@@ -11,6 +11,8 @@
 #include <chrono>
 #include <thread>
 #include <cstring>
+#include <optional>
+#include <format>
 #include "Logger.hpp"
 
 GameServer::GameServer(uint16_t port) : connexion(ioContext, port), roomManager(4) {
@@ -31,48 +33,18 @@ void GameServer::run() {
 
 	signal(SIGINT, sigintHandler);
 	LOG_INFO("Server started. Now listening for connections...");
+	connexion.startListening();
 
-	// accept clients until game start
 	while (serverRunning) {
-		std::vector<uint8_t> data;
-		asio::ip::udp::endpoint clientEndpoint;
-
-		// Utilisation d'asyncReceive avec un handler synchrone
-		bool received = false;
-		connexion.asyncReceive([&](const asio::error_code &error, std::vector<uint8_t> receivedData, asio::ip::udp::endpoint sender) {
-			if (!error) {
-				data = std::move(receivedData);
-				clientEndpoint = sender;
-				received = true;
-			}
-		});
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
-		if (!received) {
+		Connexion::ReceivedPacket packet;
+		if (!connexion.waitForPacket(packet, std::chrono::milliseconds(5)))
 			continue;
-		}
-		if (data.size() < sizeof(MessageType))
-			continue;
-		MessageType type = *reinterpret_cast<MessageType *>(data.data());
-
-		switch (type) {
-			case MessageType::ClientHello:
-				handleClientHello(data, clientEndpoint);
-				break;
-			case MessageType::ClientRoomIdAsk:
-				assignClientToRoom(data, clientEndpoint);
-				break;
-			case MessageType::ClientFetchRooms:
-				handleClientFetchRooms(data, clientEndpoint);
-				break;
-			default:
-				break;
-		}
+		processIncomingPacket(packet);
+		while (connexion.tryPopPacket(packet))
+			processIncomingPacket(packet);
 	}
-	/*std::cout << "Tous les clients sont connectés. Le jeu commence !" << std::endl;
-	// Delegate to Game module
-	ServerGame game(connexion);
-	game.run(0);*/
+
+	connexion.stopListening();
 }
 
 void GameServer::handleClientHello(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &clientEndpoint) {
@@ -97,7 +69,10 @@ void GameServer::broadcastGameStart() {
 	GameStartMessage msg{};
 	msg.type = MessageType::GameStart;
 	msg.clientCount = htonl(4);
-	connexion.broadcast(&msg, sizeof(msg));
+	auto &rooms = roomManager.getRooms();
+	for (auto &entry : rooms) {
+		connexion.broadcastToRoom(*entry.second, &msg, sizeof(msg));
+	}
 	std::cout << "[DEBUG] Message GameStart envoyé à tous les clients." << std::endl;
 }
 
@@ -129,7 +104,7 @@ void GameServer::assignClientToRoom(const std::vector<uint8_t> &data, const asio
 
 		LOG_DEBUG("Room is considered ready. Sending room ready message to clients in room.");
 		roomManager.startRoom(roomId);
-		connexion.broadcast(&roomReadyMsg, sizeof(roomReadyMsg));
+		connexion.broadcastToRoom(*room, &roomReadyMsg, sizeof(roomReadyMsg));
 	}
 	LOG_INFO(std::format("Assigned client {} to room {}", msg->clientId, roomId));
 }
@@ -163,19 +138,85 @@ void GameServer::handleClientFetchRooms(const std::vector<uint8_t> &data, const 
 	connexion.sendTo(&sendMsg, sizeof(sendMsg), from);
 }
 
-void GameServer::handle_client_message(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
-	if (data.size() < sizeof(MessageType)) return;
-	MessageType type = *reinterpret_cast<const MessageType *>(data.data());
-	if (type != MessageType::ClientInput) return;
-	if (data.size() < sizeof(ClientInputMessage)) return;
-	const ClientInputMessage *msg = reinterpret_cast<const ClientInputMessage *>(data.data());
-	uint32_t id = ntohl(msg->clientId);
-	InputCode code = static_cast<InputCode>(msg->inputCode);
-	bool pressed = msg->isPressed != 0;
-	(void) from;
-	std::cout << "[ServerBootstrap][Input] received event from client " << id
-			<< " code=" << inputCodeToString(code)
-			<< " pressed=" << pressed << std::endl;
+void GameServer::processIncomingPacket(const Connexion::ReceivedPacket &packet) {
+	if (packet.data.size() < sizeof(MessageType))
+		return;
+	MessageType type = *reinterpret_cast<const MessageType *>(packet.data.data());
+
+	switch (type) {
+		case MessageType::ClientHello:
+			handleClientHello(packet.data, packet.endpoint);
+			break;
+		case MessageType::ClientRoomIdAsk:
+			assignClientToRoom(packet.data, packet.endpoint);
+			break;
+		case MessageType::ClientFetchRooms:
+			handleClientFetchRooms(packet.data, packet.endpoint);
+			break;
+		default:
+			routePacketToGame(packet, type);
+			break;
+	}
+}
+
+void GameServer::routePacketToGame(const Connexion::ReceivedPacket &packet, MessageType type) {
+	uint32_t clientId = 0;
+	bool hasClient = false;
+
+	switch (type) {
+		case MessageType::ClientInput:
+			if (packet.data.size() >= sizeof(ClientInputMessage)) {
+				const auto *msg = reinterpret_cast<const ClientInputMessage *>(packet.data.data());
+				clientId = ntohl(msg->clientId);
+				hasClient = true;
+			}
+			break;
+		case MessageType::SceneState:
+			if (packet.data.size() >= sizeof(SceneStateMessage)) {
+				const auto *msg = reinterpret_cast<const SceneStateMessage *>(packet.data.data());
+				clientId = ntohl(msg->clientId);
+				hasClient = true;
+			}
+			break;
+		case MessageType::ClientShoot:
+			if (packet.data.size() >= sizeof(ClientShootMessage)) {
+				const auto *msg = reinterpret_cast<const ClientShootMessage *>(packet.data.data());
+				clientId = ntohl(msg->clientId);
+				hasClient = true;
+			}
+			break;
+		case MessageType::InitialHealth:
+			if (packet.data.size() >= sizeof(InitialHealthMessage)) {
+				const auto *msg = reinterpret_cast<const InitialHealthMessage *>(packet.data.data());
+				clientId = ntohl(msg->clientId);
+				hasClient = true;
+			}
+			break;
+		default:
+			break;
+	}
+
+	if (!hasClient)
+		return;
+
+	auto roomId = roomManager.findRoomIdByClient(clientId);
+	if (!roomId.has_value()) {
+		LOG_DEBUG(std::format("Dropping message {} from client {}: client not assigned to a room.", static_cast<int>(type), clientId));
+		return;
+	}
+
+	auto room = roomManager.getRoom(roomId.value());
+	if (!room) {
+		LOG_WARN(std::format("routePacketToGame(): room {} not found while handling client {}", roomId.value(), clientId));
+		return;
+	}
+
+	auto game = room->getGame();
+	if (!game) {
+		LOG_WARN(std::format("routePacketToGame(): game instance missing for room {}", roomId.value()));
+		return;
+	}
+	game->enqueuePacket(packet.data, packet.endpoint);
 }
 
 void GameServer::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point &start, int tick_ms) {

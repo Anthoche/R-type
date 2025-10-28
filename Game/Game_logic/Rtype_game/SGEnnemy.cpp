@@ -262,6 +262,10 @@ void ServerGame::broadcast_enemy_positions() {
 }
 
 void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemySpawnMessage msg{};
     msg.type = MessageType::EnemySpawn;
     msg.enemyId = htonl(enemyId);
@@ -281,20 +285,28 @@ void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float
     msg.vel.vyBits = htonl(vyb);
     msg.vel.vzBits = htonl(vzb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast enemy spawn: ID=" << enemyId << " pos=(" << x << "," << y << "," << z << ")");
 }
 
 void ServerGame::broadcast_enemy_despawn(uint32_t enemyId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemyDespawnMessage msg{};
     msg.type = MessageType::EnemyDespawn;
     msg.enemyId = htonl(enemyId);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast enemy despawn: ID=" << enemyId);
 }
 
 void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, float z) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemyUpdateMessage msg{};
     msg.type = MessageType::EnemyUpdate;
     msg.enemyId = htonl(enemyId);
@@ -321,5 +333,5 @@ void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, floa
     msg.velXBits = htonl(vxb);
     msg.velYBits = htonl(vyb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }

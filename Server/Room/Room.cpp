@@ -100,5 +100,6 @@ void Room::setGameStatus(GameStatus status) {
 
 void Room::startGame(int roomId) {
 	_isGameServerStarted = true;
+	_game->setInitialClients(_clients);
 	_game->run(roomId);
 }
