@@ -165,15 +165,22 @@ namespace scene {
 
 	void SettingsScene::render() {
 		bool serverEndlessMode = _game.isEndlessModeEnabled();
+		size_t serverHealthHP = _game.getHealth();
+		size_t serverHealthIndex = _game.getHealthIndex();
+		if (serverHealthIndex != _currentLivesIndex) {
+			_currentLivesIndex = serverHealthIndex;			
+			if (_currentLivesIndex < _lives.size()) {
+				_values[1] = _lives[_currentLivesIndex];
+				updateButtonText("button_lives", _values[1]);
+			}
+		}
 		if (serverEndlessMode != _endlessMode) {
 			_endlessMode = serverEndlessMode;
-			
 			std::string newValue = _endlessMode ? 
 				(_currentLanguage == Game::Language::ENGLISH ? "On" :
 				_currentLanguage == Game::Language::FRENCH ? "Active" : "Attivo") :
 				(_currentLanguage == Game::Language::ENGLISH ? "Off" :
 				_currentLanguage == Game::Language::FRENCH ? "Desactive" : "Disattivo");
-			
 			_values[0] = newValue;
 			updateButtonText("button_endless", newValue);
 		}

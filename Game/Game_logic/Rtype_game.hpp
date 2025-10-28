@@ -188,6 +188,7 @@ class ServerGame : public IServerGame {
         void broadcast_player_health();
         void broadcast_global_score();
         void broadcast_endless_mode(bool isEndless);
+        void broadcast_global_health(int16_t health);
         void broadcast_individual_scores();
         void check_projectile_enemy_collisions();
 

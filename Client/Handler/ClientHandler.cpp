@@ -71,14 +71,12 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::EnemyProjectileDespawn:
             handleEnemyProjectileDespawn(buffer);
             break;
-        case MessageType::EndlessMode: {
-            if (buffer.size() >= sizeof(EndlessModeMessage)) {
-                const EndlessModeMessage* msg = reinterpret_cast<const EndlessModeMessage*>(buffer.data());
-                bool isEndless = msg->isEndless != 0;
-                _game.setEndlessMode(isEndless);
-            }
+        case MessageType::EndlessMode:
+            handleEndlessMode(buffer);
             break;
-        }
+        case MessageType::InitialHealth:
+            handleInitialHealth(buffer);
+            break;
         default:
             break;
     }
@@ -192,6 +190,23 @@ void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
     uint32_t id = ntohl(msg->obstacleId);
     std::lock_guard<std::mutex> g(stateMutex);
     obstacles.erase(id);
+}
+
+void GameClient::handleEndlessMode(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() >= sizeof(EndlessModeMessage)) {
+        const EndlessModeMessage* msg = reinterpret_cast<const EndlessModeMessage*>(buffer.data());
+        bool isEndless = msg->isEndless != 0;
+        _game.setEndlessMode(isEndless);
+    }
+}
+
+void GameClient::handleInitialHealth(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() >= sizeof(InitialHealthMessage)) {
+        const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(buffer.data());
+        uint32_t senderId = ntohl(msg->clientId);
+        size_t health = ntohs(msg->initialHealth);
+        _game.setHealth(health);
+    }
 }
 
 void GameClient::handleProjectileSpawn(const std::vector<uint8_t> &buffer) {

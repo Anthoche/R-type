@@ -392,18 +392,18 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(data.data());
                 uint32_t clientId = ntohl(msg->clientId);
                 int16_t initialHealth = ntohs(msg->initialHealth);
+
                 auto& healths = registry_server.get_components<component::health>();
                 auto& clientIds = registry_server.get_components<component::client_id>();
+                
                 for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
-                    if (clientIds[i] && clientIds[i]->id == clientId) {
-                        if (healths[i]) {
-                            healths[i]->current = initialHealth;
-                            healths[i]->max = initialHealth;
-                            LOG_DEBUG("[Server] Set initial health of client " << clientId << " to " << initialHealth);
-                        }
-                        break;
+                    if (clientIds[i] && healths[i]) {
+                        healths[i]->current = initialHealth;
+                        healths[i]->max = initialHealth;
                     }
                 }
+                
+                broadcast_global_health(initialHealth);
             }
             break;
         }
@@ -546,6 +546,16 @@ void ServerGame::broadcast_player_health() {
             connexion.broadcast(&msg, sizeof(msg));
         }
     }
+}
+
+void ServerGame::broadcast_global_health(int16_t health) {
+    InitialHealthMessage msg;
+    msg.type = MessageType::InitialHealth;
+    msg.clientId = 0;
+    msg.initialHealth = htons(health);
+    
+    connexion.broadcast(&msg, sizeof(msg));
+    LOG_DEBUG("[Server] Broadcasted global health: " << health);
 }
 
 void ServerGame::broadcast_endless_mode(bool isEndless) {

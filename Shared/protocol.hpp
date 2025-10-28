@@ -309,7 +309,7 @@ struct PlayerHealthMessage {
 struct InitialHealthMessage {
     MessageType type;
     uint32_t clientId;
-    int16_t initialHealth;
+    size_t initialHealth;
 };
 
 /**

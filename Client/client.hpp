@@ -319,4 +319,7 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer);
+
+        void handleInitialHealth(const std::vector<uint8_t> &buffer);
+        void handleEndlessMode(const std::vector<uint8_t> &buffer);
 };
