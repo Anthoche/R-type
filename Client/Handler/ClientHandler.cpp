@@ -71,6 +71,14 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::EnemyProjectileDespawn:
             handleEnemyProjectileDespawn(buffer);
             break;
+        case MessageType::EndlessMode: {
+            if (buffer.size() >= sizeof(EndlessModeMessage)) {
+                const EndlessModeMessage* msg = reinterpret_cast<const EndlessModeMessage*>(buffer.data());
+                bool isEndless = msg->isEndless != 0;
+                _game.setEndlessMode(isEndless);
+            }
+            break;
+        }
         default:
             break;
     }
@@ -355,6 +363,7 @@ void GameClient::handleBossDeath(const std::vector<uint8_t> &buffer) {
     uint32_t bossId = ntohl(msg.bossId);
     std::cout << "[Client] Boss defeated (id=" << bossId << "), requesting next level data..." << std::endl;
     bossDefeated = true;
+    _lastBoss = ntohl(msg._lastBoss);
     fetchFullRegistryAsync();
 }
 

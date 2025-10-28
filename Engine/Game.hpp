@@ -102,6 +102,10 @@ class Game {
 		 */
     	bool isSoundEnabled() const { return _soundEnabled; }
 
+		void setEndlessMode(bool endless) { _endlessMode = endless; }
+
+    	bool isEndlessModeEnabled() const { return _endlessMode; }
+
 	private:
 		GameStatus _status; ///< Status of the game
 		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
@@ -109,4 +113,5 @@ class Game {
 		std::thread _networkThread; ///< Thread for handling network communication
 		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
 		bool _soundEnabled = true; ///< Sound enabled/disabled flag
+		bool _endlessMode = false; 
 };

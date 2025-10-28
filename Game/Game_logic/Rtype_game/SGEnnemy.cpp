@@ -388,6 +388,7 @@ void ServerGame::broadcast_boss_death(uint32_t bossId) {
     BossDeathMessage msg{};
     msg.type = MessageType::BossDeath;
     msg.bossId = htonl(bossId);
+    msg._lastBoss = (currentLevel >= MAX_LEVELS && !_isEndless);
     
     connexion.broadcast(&msg, sizeof(msg));
     levelTransitionPending = true;

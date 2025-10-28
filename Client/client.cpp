@@ -137,6 +137,15 @@ void GameClient::sendHealth(int health) {
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
+void GameClient::sendEndlessMode(bool isEndless) {
+    EndlessModeMessage msg;
+    msg.type = MessageType::EndlessMode;
+    msg.clientId = htonl(clientId);
+    msg.isEndless = isEndless ? 1 : 0;
+    
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
 bool GameClient::hasConnectionFailed() const {
     return connectionFailed;
 }

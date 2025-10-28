@@ -104,6 +104,8 @@ class GameClient {
 
         std::atomic<bool> bossDefeated{false};
 
+        bool _lastBoss = false;
+
 
         /**
          * @brief Constructs a GameClient and connects to the server.
@@ -169,6 +171,8 @@ class GameClient {
          */
         void sendHealth(int lives);
         std::optional<nlohmann::json> consumeFullRegistry();
+
+        void sendEndlessMode(bool isEndless);
 
         /**
          * @brief Handles an incoming message from the server.

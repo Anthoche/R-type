@@ -81,15 +81,14 @@ class SettingsScene : public AScene {
 
         // --- Buttons and values ---
         std::vector<std::string> _buttons{
-            "1. Difficulty", "2. Lives", "3. Sound", "4. Language"
+            "1. Endless", "2. Lives", "3. Sound", "4. Language"
         };
         std::vector<std::string> _values{
-            "Medium", "3", "On", "English"
+            "Off", "3", "On", "English"
         };
 
         // --- Option data ---
-        std::vector<std::string> _levels{"Easy", "Medium", "Hard"};
-        std::size_t _currentLevelIndex{1};
+        bool _endlessMode = false;
 
         std::vector<std::string> _lives{"1", "2", "3", "4", "5", "6", "7"};
         std::size_t _currentLivesIndex{2};
@@ -126,14 +125,14 @@ class SettingsScene : public AScene {
         using ButtonCreator = void (SettingsScene::*)(Vector2 pos, std::size_t i);
 
         /**
-        * @brief Create the difficulty button.
-        */
-        void createDifficultyButton(Vector2 pos, std::size_t i);
-
-        /**
         * @brief Create the lives button.
         */
         void createLivesButton(Vector2 pos, std::size_t i);
+
+        /**
+         * @brief Create the endless mode button.
+         */
+        void createEndlessButton(Vector2 pos, std::size_t i);
 
         /**
         * @brief Create the sound toggle button.
@@ -173,9 +172,9 @@ class SettingsScene : public AScene {
         void cycleLives();
 
         /**
-        * @brief Cycle through available difficulty levels.
-        */
-        void cycleDifficulty();
+         * @brief Toggle endless mode on/off.
+         */
+        void toggleEndless();
 
         /**
         * @brief Toggle between English and French languages.

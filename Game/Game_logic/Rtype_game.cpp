@@ -70,7 +70,7 @@ void ServerGame::run() {
 
     const int tick_ms = 16;
     float dt = 0.016f;
-    _isEndless = true;
+    _isEndless = false; 
 
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
@@ -407,6 +407,22 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             }
             break;
         }
+        case MessageType::EndlessMode: {
+            if (data.size() >= sizeof(EndlessModeMessage)) {
+                const EndlessModeMessage* msg = reinterpret_cast<const EndlessModeMessage*>(data.data());
+                uint32_t clientId = ntohl(msg->clientId);
+                bool isEndless = msg->isEndless != 0;
+                if (playerPositions.empty() || currentLevel == 1) {
+                    _isEndless = isEndless;
+                    LOG_INFO("[Server] Endless mode set to: " << (isEndless ? "ON" : "OFF") 
+                             << " by client " << clientId);                    
+                    broadcast_endless_mode(_isEndless);
+                } else {
+                    LOG_INFO("[Server] Endless mode cannot be changed mid-game");
+                }
+            }
+            break;
+        }
         default:
             break;
     }
@@ -530,6 +546,15 @@ void ServerGame::broadcast_player_health() {
             connexion.broadcast(&msg, sizeof(msg));
         }
     }
+}
+
+void ServerGame::broadcast_endless_mode(bool isEndless) {
+    EndlessModeMessage msg;
+    msg.type = MessageType::EndlessMode;
+    msg.clientId = 0;
+    msg.isEndless = isEndless ? 1 : 0;
+    
+    connexion.broadcast(&msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_global_score() {
