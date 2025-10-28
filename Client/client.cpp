@@ -111,8 +111,11 @@ void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
             std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
             return;
         }
+        storeFullRegistry(fullRegistry, true);
         std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
-        game::serializer::deserialize_entities(*registry, fullRegistry);
+        if (registry) {
+            game::serializer::deserialize_entities(*registry, fullRegistry);
+        }
     }
 }
 
@@ -133,6 +136,19 @@ void GameClient::sendHealth(int health) {
     msg.clientId = htonl(clientId);
     msg.initialHealth = htons(static_cast<int16_t>(health));
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+void GameClient::sendChatMessage(const std::string &message) {
+    if (clientId == 0 || message.empty())
+        return;
+    ChatMessagePacket packet{};
+    packet.type = MessageType::ChatMessage;
+    packet.senderId = htonl(clientId);
+    std::memset(packet.senderName, 0, sizeof(packet.senderName));
+    std::memset(packet.message, 0, sizeof(packet.message));
+    std::strncpy(packet.senderName, clientName.c_str(), sizeof(packet.senderName) - 1);
+    std::strncpy(packet.message, message.c_str(), sizeof(packet.message) - 1);
+    socket.sendTo(&packet, sizeof(packet), serverEndpoint);
 }
 
 bool GameClient::hasConnectionFailed() const {
@@ -169,4 +185,54 @@ void GameClient::sendSkinSelection(const std::string &skinFilename) {
             pendingSkinSelection.clear();
         }
     }
+}
+
+void GameClient::storeFullRegistry(const nlohmann::json &registryJson, bool markPending) {
+    std::lock_guard<std::mutex> lock(registryMutex);
+    latestFullRegistry = registryJson;
+    if (markPending) {
+        hasPendingFullRegistry.store(true, std::memory_order_release);
+    }
+}
+
+std::optional<nlohmann::json> GameClient::consumeFullRegistry() {
+    std::lock_guard<std::mutex> lock(registryMutex);
+    if (!hasPendingFullRegistry.load(std::memory_order_acquire)) {
+        return std::nullopt;
+    }
+    hasPendingFullRegistry.store(false, std::memory_order_release);
+    return latestFullRegistry;
+}
+
+void GameClient::fetchFullRegistryAsync() {
+    if (!tcpClient || !tcpClient->isConnected()) {
+        return;
+    }
+
+    bool expected = false;
+    if (!fullRegistryFetchInFlight.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+        return;
+    }
+
+    std::thread([this]() {
+        nlohmann::json fullRegistry = tcpClient->receiveJson();
+        if (!fullRegistry.is_null()) {
+            storeFullRegistry(fullRegistry, true);
+        }
+        fullRegistryFetchInFlight.store(false, std::memory_order_release);
+    }).detach();
+}
+
+const std::string &GameClient::getClientName() const {
+    return clientName;
+}
+
+std::vector<std::pair<std::string, std::string>> GameClient::consumeChatMessages() {
+    std::vector<std::pair<std::string, std::string>> messages;
+    std::lock_guard<std::mutex> lock(stateMutex);
+    while (!_chatQueue.empty()) {
+        messages.emplace_back(std::move(_chatQueue.front()));
+        _chatQueue.pop_front();
+    }
+    return messages;
 }

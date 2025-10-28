@@ -58,6 +58,7 @@ void GameSetup::handleClientHello(const std::vector<uint8_t>& data, const asio::
     const ClientHelloMessage* msg = reinterpret_cast<const ClientHelloMessage*>(data.data());
     uint32_t clientId = nextClientId++;
     connexion.addClient(clientAddr, clientId);
+    connexion.setClientName(clientId, std::string(msg->clientName));
     ServerAssignIdMessage assignMsg;
     assignMsg.type = MessageType::ServerAssignId;
     assignMsg.clientId = htonl(clientId);

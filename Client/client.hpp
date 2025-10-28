@@ -21,6 +21,9 @@
 #include <unordered_map>
 #include <atomic>
 #include <utility>
+#include <optional>
+#include <nlohmann/json.hpp>
+#include <deque>
 
 class Game;
 
@@ -49,6 +52,17 @@ class GameClient {
         std::string serverIpStr; ///< Server IP address as a string.
         bool connectionFailed = false;
         std::string pendingSkinSelection;
+        std::mutex registryMutex;
+        nlohmann::json latestFullRegistry;
+        std::atomic<bool> hasPendingFullRegistry{false};
+        std::atomic<bool> fullRegistryFetchInFlight{false};
+
+        void storeFullRegistry(const nlohmann::json &registryJson, bool markPending);
+        void fetchFullRegistryAsync();
+        /**
+         * @brief Pending chat messages retrieved from the network thread.
+         */
+        std::deque<std::pair<std::string, std::string>> _chatQueue;
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         
@@ -65,7 +79,7 @@ class GameClient {
         /**
          * @brief Maps obstacle IDs to their (x, y, width, height) values.
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> obstacles;
 
         /**
          * @brief Maps projectiles IDs to their (x,y,width,height).
@@ -75,7 +89,7 @@ class GameClient {
         /**
          * @brief Maps enemy IDs to their (x,y,velX,velY).
          */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> enemies;
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> enemies;
 
         /**
          * @brief Maps player IDs to their current health values.
@@ -96,8 +110,10 @@ class GameClient {
          * @brief Maps client IDs to their chosen skin filename.
          */
         std::unordered_map<uint32_t, std::string> playerSkins;
-
         int32_t globalScore = 0;
+
+        std::atomic<bool> bossDefeated{false};
+
 
         /**
          * @brief Constructs a GameClient and connects to the server.
@@ -162,6 +178,18 @@ class GameClient {
          * @param lives Current number of lives.
          */
         void sendHealth(int lives);
+        std::optional<nlohmann::json> consumeFullRegistry();
+
+        /**
+         * @brief Sends a chat message to be relayed by the server.
+         */
+        void sendChatMessage(const std::string &message);
+
+        /**
+         * @brief Get the local client's display name.
+         * @return Constant reference to the client name.
+         */
+        const std::string &getClientName() const;
 
         /**
          * @brief Handles an incoming message from the server.
@@ -206,6 +234,8 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleObstacleSpawn(const std::vector<uint8_t> &buffer);
+
+        void handleObstacleUpdate(const std::vector<uint8_t> &buffer);
 
         /**
          * @brief Handles an ObstacleDespawn message.
@@ -261,6 +291,9 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleEnemySpawn(const std::vector<uint8_t> &buffer);
+
+    
+        void handleBossDeath(const std::vector<uint8_t> &buffer);
         /**
          * @brief Handles a player death message.
          * @param buffer Raw message data.
@@ -314,4 +347,15 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles a chat message broadcast from the server.
+         * @param buffer Raw message data.
+         */
+        void handleChatMessage(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Retrieve and clear pending chat messages accumulated from the network.
+         */
+        std::vector<std::pair<std::string, std::string>> consumeChatMessages();
 };

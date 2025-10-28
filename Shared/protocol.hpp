@@ -15,6 +15,7 @@ enum class MessageType : uint8_t {
     EnemyUpdate,              /**< Server updates an enemy's position */
     EnemyDespawn,             /**< Server removes an enemy */
     ObstacleSpawn,            /**< Server spawns a new obstacle */
+    ObstacleUpdate,
     ObstacleDespawn,          /**< Server removes an obstacle */
     ClientShoot,              /**< Client sends a shoot event */
     ProjectileSpawn,          /**< Server creates a projectile */
@@ -23,6 +24,7 @@ enum class MessageType : uint8_t {
     EnemyProjectileSpawn,     /**< Server spawns an enemy projectile */
     EnemyProjectileUpdate,    /**< Server updates an enemy projectile */
     EnemyProjectileDespawn,   /**< Server removes an enemy projectile */
+    BossDeath,
     EntityData,               /**< Server → Clients: entity ECS synchronization */
     PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
     SceneState,               /**< Client → Server: indicates current scene */
@@ -30,7 +32,8 @@ enum class MessageType : uint8_t {
     PlayerHealth,             /**< Server updates a player's health */
     InitialHealth,            /**< Client sends its initial health to the server */
     GlobalScore,              /**< Server updates the global score */
-    IndividualScore           /**< Server updates a player's individual score */
+    IndividualScore,          /**< Server updates a player's individual score */
+    ChatMessage               /**< Chat message exchanged between clients via server */
 };
 
 /**
@@ -96,6 +99,19 @@ struct Size3D {
 };
 
 /**
+ * @brief Chat message exchanged between clients (relayed by the server).
+ *
+ * Strings are zero-terminated and encoded in UTF-8. Buffers are fixed-size to
+ * keep the packet trivially serializable across platforms.
+ */
+struct ChatMessagePacket {
+    MessageType type;             ///< Always MessageType::ChatMessage
+    uint32_t senderId;            ///< Sender client ID (network byte order)
+    char senderName[32];          ///< Display name of the sender
+    char message[256];            ///< Chat message content
+};
+
+/**
  * @brief Message sent by client to introduce itself to the server.
  */
 struct ClientHelloMessage {
@@ -157,6 +173,8 @@ struct EnemySpawnMessage {
     uint32_t enemyId;
     Position3D pos;      ///< 3D position
     Velocity3D vel;      ///< 3D velocity
+    float width;
+    float height;
 };
 
 /**
@@ -178,6 +196,11 @@ struct EnemyDespawnMessage {
     uint32_t enemyId;
 };
 
+struct BossDeathMessage {
+    MessageType type;
+    uint32_t bossId;
+};
+
 /**
  * @brief Message sent by server to spawn a static obstacle (3D position and size).
  */
@@ -186,6 +209,14 @@ struct ObstacleSpawnMessage {
     uint32_t obstacleId;
     Position3D pos;      ///< 3D position
     Size3D size;         ///< 3D size
+    Velocity3D vel;
+};
+
+struct ObstacleUpdateMessage {
+    MessageType type;
+    uint32_t obstacleId;
+    Position3D pos;      ///< 3D position
+    Velocity3D vel;
 };
 
 /**

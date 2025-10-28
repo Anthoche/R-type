@@ -373,6 +373,10 @@ bool Raylib::isKeyReleased(int key) {
 	return IsKeyReleased(key);
 }
 
+int Raylib::getCharPressed() {
+	return GetCharPressed();
+}
+
 // Game controller input
 
 bool Raylib::isGamepadAvailable(int gamepad) {
