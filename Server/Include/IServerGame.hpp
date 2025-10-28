@@ -12,10 +12,14 @@
 #include "../../Engine/Utils/Include/serializer.hpp"
 #include "../../Engine/Core/Include/registry.hpp"
 #include "../../Engine/Utils/Include/entity_storage.hpp"
+#include <cstdint>
+#include <vector>
 
 class IServerGame {
     public:
         virtual ~IServerGame() = default;
 
-        virtual void run() = 0;
+        virtual void run(int roomId) = 0;
+        virtual void enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) = 0;
+        virtual void setInitialClients(const std::vector<uint32_t> &clients) = 0;
 };

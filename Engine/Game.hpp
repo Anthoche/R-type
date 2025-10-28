@@ -10,7 +10,7 @@
 #include <string>
 #include <thread>
 
-#include "GameStatus.hpp"
+#include "../Shared/GameStatus.hpp"
 #include "../Client/client.hpp"
 #include "../Game/Scene/Include/SceneHandler.hpp"
 
@@ -101,6 +101,18 @@ class Game {
 		 */
     	bool isSoundEnabled() const { return _soundEnabled; }
 
+		/**
+		 * @brief Select the texture path used for the local player's skin.
+		 * @param path Absolute path to the desired sprite.
+		 */
+		void setSelectedSkinPath(const std::string &path) { _selectedSkinPath = path; }
+
+		/**
+		 * @brief Retrieve the currently selected player skin texture path.
+		 * @return Absolute path to the sprite used for the local player.
+		 */
+		const std::string &getSelectedSkinPath() const { return _selectedSkinPath; }
+
 	private:
 		GameStatus _status; ///< Status of the game
 		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
@@ -108,4 +120,5 @@ class Game {
 		std::thread _networkThread; ///< Thread for handling network communication
 		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
 		bool _soundEnabled = true; ///< Sound enabled/disabled flag
+		std::string _selectedSkinPath; ///< Sprite path picked on the waiting screen
 };

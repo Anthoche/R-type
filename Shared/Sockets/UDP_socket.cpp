@@ -130,6 +130,40 @@ void UDP_socket::broadcast(const void* data, size_t size) {
     }
 }
 
+void UDP_socket::broadcastToClients(std::vector<uint32_t> const &roomClients, const void* data, size_t size) {
+    if (!isServerMode) {
+        std::cerr << "[WARN] broadcastToRoom() called on client-mode socket, ignoring." << std::endl;
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(clientsMutex);
+    asio::error_code ec;
+
+    for (auto &p : roomClients) {
+        for (const auto& [addrStr, clientId] : clients) {
+            if (p != clientId)
+                continue;
+
+            try {
+                auto pos = addrStr.find(':');
+                if (pos == std::string::npos) continue;
+
+                std::string ip = addrStr.substr(0, pos);
+                uint16_t port = static_cast<uint16_t>(std::stoi(addrStr.substr(pos + 1)));
+                auto addr = asio::ip::make_address(ip, ec);
+                if (ec) continue;
+
+                udp::endpoint ep(addr, port);
+                socket.send_to(asio::buffer(data, size), ep, 0, ec);
+                if (ec) throw std::runtime_error("UDP broadcast failed to " + addrStr + ": " + ec.message());
+
+            } catch (const std::exception& e) {
+                std::cerr << "[WARN] broadcast(): " << e.what() << std::endl;
+            }
+        }
+    }
+}
+
 void UDP_socket::addClient(const asio::ip::udp::endpoint& endpoint, uint32_t clientId) {
     if (!isServerMode) {
         std::cerr << "[WARN] addClient() called on client-mode socket, ignoring." << std::endl;

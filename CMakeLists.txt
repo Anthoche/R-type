@@ -72,7 +72,7 @@ target_link_libraries(shared_sockets PUBLIC
 )
 
 if(WIN32)
-    target_compile_definitions(shared_sockets PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
+    target_compile_definitions(shared_sockets PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX NOGDI NOUSER)
 endif()
 
 # -------------------------
@@ -88,6 +88,11 @@ target_include_directories(ecs PUBLIC
     ${ENGINE_ENTITIES_DIR}/Include
     ${SHARED_DIR}
 )
+
+if(WIN32)
+    # Reduce Windows header surface and avoid macro conflicts with raylib and STL
+    target_compile_definitions(ecs PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX NOGDI NOUSER)
+endif()
 
 # -------------------------
 # Game Logic library (auto-découverte COMPLÈTE)
@@ -128,6 +133,10 @@ target_link_libraries(game_logic PUBLIC
     ecs
     nlohmann_json::nlohmann_json
 )
+
+if(WIN32)
+    target_compile_definitions(game_logic PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX NOGDI NOUSER)
+endif()
 
 # Définir ASSETS_PATH pour game_logic
 target_compile_definitions(game_logic PUBLIC ASSETS_PATH="${CMAKE_BINARY_DIR}/assets")
@@ -196,7 +205,7 @@ target_link_libraries(r-type_client PRIVATE
 )
 
 if(WIN32)
-    target_compile_definitions(r-type_client PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
+    target_compile_definitions(r-type_client PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX NOGDI NOUSER)
 endif()
 
 # -------------------------
@@ -252,7 +261,7 @@ target_link_libraries(r-type_server PRIVATE
 )
 
 if(WIN32)
-    target_compile_definitions(r-type_server PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER)
+    target_compile_definitions(r-type_server PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX NOGDI NOUSER)
 endif()
 
 # -------------------------

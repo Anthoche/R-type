@@ -13,6 +13,8 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <string>
+#include <cctype>
 
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"
@@ -36,6 +38,7 @@ static nlohmann::json load_json_from_file(const std::string &path) {
 }
 
 ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
+    _roomId = -1;
     registry_server.register_component<component::position>();
     registry_server.register_component<component::previous_position>();
     registry_server.register_component<component::velocity>();
@@ -57,15 +60,37 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
     registry_server.register_component<component::hitbox_link>();
     registry_server.register_component<component::type>();
     registry_server.register_component<component::client_id>();
+    registry_server.register_component<component::pattern_element>();
+}
+
+void ServerGame::setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins) {
+    _playerSkins = skins;
 }
 
 
-void ServerGame::run() {
+void ServerGame::run(int roomId) {
     LOG("[Server] Starting game loop...");
+    _roomId = roomId;
     load_players(ASSETS_PATH "/Config_assets/Players/players.json");
-    load_level(ASSETS_PATH "/Config_assets/Levels/level.json");
+    load_level(ASSETS_PATH "/Config_assets/Levels/level_01.json");
     initialize_player_positions();
     index_existing_entities();
+
+    if (!_playerSkins.empty()) {
+        const std::string assetsPlayerDir = std::string(ASSETS_PATH) + "/sprites/player/";
+        auto &sprites = registry_server.get_components<component::sprite>();
+        auto &clientIds = registry_server.get_components<component::client_id>();
+        for (std::size_t i = 0; i < sprites.size() && i < clientIds.size(); ++i) {
+            if (!sprites[i] || !clientIds[i]) continue;
+            auto it = _playerSkins.find(clientIds[i]->id);
+            if (it != _playerSkins.end() && !it->second.empty()) {
+                sprites[i]->image_path = assetsPlayerDir + it->second;
+            }
+        }
+        for (const auto &entry : _playerSkins) {
+            broadcast_player_skin(entry.first, entry.second);
+        }
+    }
 
     const int tick_ms = 16;
     float dt = 0.016f;
@@ -78,6 +103,7 @@ void ServerGame::run() {
 
         update_projectiles_server_only(dt);
         update_enemies(dt);
+        update_obstacles(dt);
         update_enemy_projectiles_server_only(dt);
 
         check_enemy_projectile_player_collisions();
@@ -86,6 +112,7 @@ void ServerGame::run() {
         check_player_enemy_collisions();
 
         broadcast_projectile_positions();
+        broadcast_obstacle_positions();
         broadcast_enemy_positions();
         broadcast_enemy_projectile_positions();
 
@@ -94,8 +121,29 @@ void ServerGame::run() {
         broadcast_global_score();
         broadcast_individual_scores();
 
+        if (levelTransitionPending) {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                now - levelTransitionTime
+            ).count();
+            
+            if (elapsed >= LEVEL_TRANSITION_DELAY) {
+                load_next_level();
+                levelTransitionPending = false;
+            }
+        }
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
+}
+
+void ServerGame::enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
+    std::lock_guard<std::mutex> lock(packetMutex);
+    pendingPackets.push(PendingPacket{data, from});
+}
+
+void ServerGame::setInitialClients(const std::vector<uint32_t> &clients) {
+    std::lock_guard<std::mutex> lock(initialClientsMutex);
+    initialClients = clients;
 }
 
 bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
@@ -176,11 +224,112 @@ void ServerGame::index_existing_entities() {
         }
     }
 
+    auto &positions = registry_server.get_components<component::position>();
+    auto &velocities = registry_server.get_components<component::velocity>();
+    auto &drawables = registry_server.get_components<component::drawable>();
+    
+    for (auto enemy : _enemies) {
+        uint32_t id = static_cast<uint32_t>(enemy);
+        if (id >= positions.size() || !positions[id]) continue;
+        
+        float x = positions[id]->x;
+        float y = positions[id]->y;
+        float z = positions[id]->z;
+        float vx = 0, vy = 0, vz = 0;
+        float w = 0.0f, h = 0.0f;
+        
+        if (id < velocities.size() && velocities[id]) {
+            vx = velocities[id]->vx;
+            vy = velocities[id]->vy;
+            vz = velocities[id]->vz;
+        }
+        
+        if (id < drawables.size() && drawables[id]) {
+            w = drawables[id]->width;
+            h = drawables[id]->height;
+        }
+        
+        broadcast_enemy_spawn(id, x, y, z, vx, vy, vz, w, h);
+    }
+
+    for (auto obstacle : _obstacles) {
+        uint32_t id = static_cast<uint32_t>(obstacle);
+        if (id >= positions.size() || !positions[id]) continue;
+        
+        float x = positions[id]->x;
+        float y = positions[id]->y;
+        float z = positions[id]->z;
+        float w = 0.0f, h = 0.0f, d = 50.0f;
+        float vx = 0, vy = 0, vz = 0;
+        
+        if (id < drawables.size() && drawables[id]) {
+            w = drawables[id]->width;
+            h = drawables[id]->height;
+            d = drawables[id]->depth;
+        }
+
+        if (id < velocities.size() && velocities[id]) {
+            vx = velocities[id]->vx;
+            vy = velocities[id]->vy;
+            vz = velocities[id]->vz;
+        }
+        
+        broadcast_obstacle_spawn(id, x, y, z, w, h, d, vx, vy, vz);
+    }
+
     LOG_INFO("[Server] Indexed entities:");
     LOG_DEBUG("  - Enemies: " << _enemies.size());
     LOG_DEBUG("  - Obstacles: " << _obstacles.size());
 }
 
+void ServerGame::load_next_level() {
+    LOG_INFO("[Server] Loading next level...");
+    currentLevel++;
+    clear_level_entities();
+    std::string levelPath = ASSETS_PATH "/Config_assets/Levels/level_0" 
+                          + std::to_string(currentLevel) + ".json";
+    try {
+        load_level(levelPath);
+        index_existing_entities();
+        for (const auto& kv : connexion.getClients()) {
+            broadcast_full_registry_to(kv.second);
+        }
+        LOG_INFO("[Server] Level " << currentLevel << " loaded successfully!");
+    } catch (const std::exception &e) {
+        LOG_ERROR("[Server] Failed to load level " << currentLevel << ": " << e.what());
+        LOG_INFO("[Server] Game completed! No more levels.");
+    }
+}
+
+void ServerGame::clear_level_entities() {
+    auto &types = registry_server.get_components<component::type>();
+    std::vector<ecs::entity_t> entitiesToKill;    
+    for (std::size_t i = 0; i < types.size(); ++i) {
+        if (!types[i]) continue;
+        
+        ecs::entity_t entity = registry_server.entity_from_index(i);
+        
+        switch (types[i]->value) {
+            case component::entity_type::ENEMY:
+            case component::entity_type::OBSTACLE:
+            case component::entity_type::PROJECTILE:
+            case component::entity_type::POWERUP:
+            case component::entity_type::BACKGROUND:
+                entitiesToKill.push_back(entity);
+                break;
+            default:
+                break;
+        }
+    }    
+    for (auto entity : entitiesToKill) {
+        registry_server.kill_entity(entity);
+    }
+    _enemies.clear();
+    _obstacles.clear();
+    projectiles.clear();
+    enemyProjectiles.clear();
+    LOG_DEBUG("[Server] Cleared " << entitiesToKill.size() << " level entities");
+}
 
 void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from) {
     if (data.size() < sizeof(MessageType))
@@ -201,15 +350,8 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     case InputCode::Left:
                     case InputCode::Right:
                         playerInputBuffers[id].push_back({code, pressed});
-                        LOG_DEBUG("[Server][Input] queued event from client " << id
-                                  << " code=" << inputCodeToString(code)
-                                  << " pressed=" << pressed
-                                  << " buffered=" << playerInputBuffers[id].size());
                         break;
                     default:
-                        LOG_DEBUG("[Server][Input] ignored unknown code "
-                                  << static_cast<int>(msg->inputCode)
-                                  << " from client " << id);
                         break;
                 }
             }
@@ -227,6 +369,35 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 LOG_DEBUG("[Server] Client " << id << " switched to scene = " << static_cast<int>(scene));
                 if (scene == SceneState::GAME) {
                     broadcast_full_registry_to(id);
+                    send_player_skins_to(id);
+                }
+            }
+            break;
+        }
+        case MessageType::PlayerSkinUpdate: {
+            if (data.size() >= sizeof(PlayerSkinMessage)) {
+                const PlayerSkinMessage *msg = reinterpret_cast<const PlayerSkinMessage*>(data.data());
+                uint32_t clientId = ntohl(msg->clientId);
+                std::string filename(msg->skinFilename);
+                if (filename.empty()) {
+                    _playerSkins.erase(clientId);
+                } else {
+                    _playerSkins[clientId] = filename;
+                }
+                broadcast_player_skin(clientId, filename);
+
+                const std::string assetsPlayerDir = std::string(ASSETS_PATH) + "/sprites/player/";
+                auto &sprites = registry_server.get_components<component::sprite>();
+                auto &clientIds = registry_server.get_components<component::client_id>();
+                for (std::size_t i = 0; i < sprites.size() && i < clientIds.size(); ++i) {
+                    if (clientIds[i] && clientIds[i]->id == clientId && sprites[i]) {
+                        if (!filename.empty()) {
+                            sprites[i]->image_path = assetsPlayerDir + filename;
+                        } else {
+                            sprites[i]->image_path = assetsPlayerDir + "r-typesheet42.png";
+                        }
+                        break;
+                    }
                 }
             }
             break;
@@ -246,10 +417,10 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     uint32_t projId = nextProjectileId++;
                     float projX = playerX + 20.f;
                     float projY = playerY;
-                    float projZ = 0.f;  // Ajout de Z
+                    float projZ = 0.f;
                     float projVelX = 400.f;
                     float projVelY = 0.f;
-                    float projVelZ = 0.f;  // Ajout de Z
+                    float projVelZ = 0.f;
                     
                     projectiles[projId] = std::make_tuple(projX, projY, projZ, projVelX, projVelY, projVelZ, clientId);
 
@@ -280,22 +451,74 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             }
             break;
         }
+        case MessageType::ChatMessage: {
+            if (data.size() >= sizeof(ChatMessagePacket)) {
+                const ChatMessagePacket *msg = reinterpret_cast<const ChatMessagePacket *>(data.data());
+                uint32_t clientId = ntohl(msg->senderId);
+
+                auto messageEnd = std::find(std::begin(msg->message), std::end(msg->message), '\0');
+                std::string text(msg->message, static_cast<std::size_t>(messageEnd - std::begin(msg->message)));
+
+                auto trimWhitespace = [](std::string &str) {
+                    auto isSpace = [](unsigned char ch) { return std::isspace(ch) != 0; };
+                    str.erase(str.begin(), std::find_if_not(str.begin(), str.end(), isSpace));
+                    str.erase(std::find_if_not(str.rbegin(), str.rend(), isSpace).base(), str.end());
+                };
+
+                trimWhitespace(text);
+                for (char &ch : text) {
+                    if (ch == '\n' || ch == '\r')
+                        ch = ' ';
+                }
+                trimWhitespace(text);
+
+                if (text.empty())
+                    break;
+
+                std::string senderName = connexion.getClientName(clientId);
+                if (senderName.empty()) {
+                    auto senderEnd = std::find(std::begin(msg->senderName), std::end(msg->senderName), '\0');
+                    senderName.assign(msg->senderName, static_cast<std::size_t>(senderEnd - std::begin(msg->senderName)));
+                }
+                trimWhitespace(senderName);
+
+                ChatMessagePacket outgoing{};
+                outgoing.type = MessageType::ChatMessage;
+                outgoing.senderId = htonl(clientId);
+                std::memset(outgoing.senderName, 0, sizeof(outgoing.senderName));
+                std::memset(outgoing.message, 0, sizeof(outgoing.message));
+                if (!senderName.empty())
+                    std::strncpy(outgoing.senderName, senderName.c_str(), sizeof(outgoing.senderName) - 1);
+                std::strncpy(outgoing.message, text.c_str(), sizeof(outgoing.message) - 1);
+
+                connexion.broadcast(&outgoing, sizeof(outgoing));
+                LOG_DEBUG("[Server][Chat] " << (senderName.empty() ? "Player" : senderName) << ": " << text);
+            }
+            break;
+        }
         default:
             break;
     }
 }
 
 void ServerGame::process_pending_messages() {
-    int messagesProcessed = 0;
-    const int maxMessagesPerTick = 5;
-    while (messagesProcessed < maxMessagesPerTick) {
-        connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
-            if (ec)
-                return;
-            handle_client_message(data, endpoint);
-        });
-        messagesProcessed++;
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    std::queue<PendingPacket> localQueue;
+
+    {
+        std::lock_guard<std::mutex> lock(packetMutex);
+        while (!pendingPackets.empty()) {
+            localQueue.push(std::move(pendingPackets.front()));
+            pendingPackets.pop();
+        }
+    }
+
+    int processed = 0;
+    constexpr int maxMessagesPerTick = 32;
+    while (!localQueue.empty() && processed < maxMessagesPerTick) {
+        auto packet = std::move(localQueue.front());
+        localQueue.pop();
+        handle_client_message(packet.data, packet.endpoint);
+        processed++;
     }
 }
 
@@ -352,27 +575,25 @@ void ServerGame::process_player_inputs(float dt) {
             pos.first = newX;
         if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles))
             pos.second = newY;
-
-        LOG_DEBUG("[Server][Input] applied movement for client " << clientId
-                  << " dir=(" << inputX << "," << inputY << ")"
-                  << " newPos=(" << pos.first << "," << pos.second << ")");
     }
 }
 
 void ServerGame::broadcast_states_to_clients() {
-    for (const auto& kv : connexion.getClients()) {
-        uint32_t id = kv.second;
-        if (deadPlayers.find(id) != deadPlayers.end())
-            continue;
+    auto recipients = collectRoomClients(false);
+    if (recipients.empty())
+        return;
+
+    for (uint32_t id : recipients) {
         auto it = playerPositions.find(id);
-        if (it == playerPositions.end()) continue;
-        
+        if (it == playerPositions.end())
+            continue;
+
         StateUpdateMessage m;
         m.type = MessageType::StateUpdate;
         m.clientId = htonl(id);
         
         uint32_t xbits, ybits, zbits;
-        float z = 0.f;  // Valeur par défaut pour Z
+        float z = 0.f;
         std::memcpy(&xbits, &it->second.first, sizeof(float));
         std::memcpy(&ybits, &it->second.second, sizeof(float));
         std::memcpy(&zbits, &z, sizeof(float));
@@ -381,18 +602,26 @@ void ServerGame::broadcast_states_to_clients() {
         m.pos.yBits = htonl(ybits);
         m.pos.zBits = htonl(zbits);
         
-        connexion.broadcast(&m, sizeof(m));
+        connexion.broadcastToClients(recipients, &m, sizeof(m));
     }
 }
 
 void ServerGame::broadcast_obstacle_despawn(uint32_t obstacleId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ObstacleDespawnMessage m;
     m.type = MessageType::ObstacleDespawn;
     m.obstacleId = htonl(obstacleId);
-    connexion.broadcast(&m, sizeof(m));
+    connexion.broadcastToClients(recipients, &m, sizeof(m));
 }
 
 void ServerGame::broadcast_player_health() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     auto& healths = registry_server.get_components<component::health>();
     auto& clientIds = registry_server.get_components<component::client_id>();
     
@@ -404,19 +633,27 @@ void ServerGame::broadcast_player_health() {
             msg.currentHealth = htons(static_cast<int16_t>(healths[i]->current));
             msg.maxHealth = htons(static_cast<int16_t>(healths[i]->max));
             
-            connexion.broadcast(&msg, sizeof(msg));
+            connexion.broadcastToClients(recipients, &msg, sizeof(msg));
         }
     }
 }
 
 void ServerGame::broadcast_global_score() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     GlobalScoreMessage msg;
     msg.type = MessageType::GlobalScore;
     msg.totalScore = htonl(totalScore);
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_individual_scores() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     for (const auto& kv : playerIndividualScores) {
         uint32_t clientId = kv.first;
         int score = kv.second;
@@ -426,7 +663,26 @@ void ServerGame::broadcast_individual_scores() {
         msg.clientId = htonl(clientId);
         msg.score = htonl(score);
         
-        connexion.broadcast(&msg, sizeof(msg));
+        connexion.broadcastToClients(recipients, &msg, sizeof(msg));
+    }
+}
+
+void ServerGame::broadcast_player_skin(uint32_t clientId, const std::string &filename) {
+    PlayerSkinMessage msg{};
+    msg.type = MessageType::PlayerSkinUpdate;
+    msg.clientId = htonl(clientId);
+    std::memset(msg.skinFilename, 0, sizeof(msg.skinFilename));
+    std::strncpy(msg.skinFilename, filename.c_str(), sizeof(msg.skinFilename) - 1);
+    connexion.broadcast(&msg, sizeof(msg));
+}
+
+void ServerGame::send_player_skins_to(uint32_t clientId) {
+    (void)clientId;
+    if (_playerSkins.empty()) {
+        return;
+    }
+    for (const auto &entry : _playerSkins) {
+        broadcast_player_skin(entry.first, entry.second);
     }
 }
 
@@ -436,4 +692,24 @@ void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock
     if (elapsed_ms < tick_ms) {
         std::this_thread::sleep_for(std::chrono::milliseconds(tick_ms - elapsed_ms));
     }
+}
+
+std::vector<uint32_t> ServerGame::collectRoomClients(bool includeDead) const {
+    std::vector<uint32_t> ids;
+    ids.reserve(playerPositions.size());
+    for (const auto &kv : playerPositions) {
+        if (!includeDead && deadPlayers.find(kv.first) != deadPlayers.end())
+            continue;
+        ids.push_back(kv.first);
+    }
+    if (ids.empty()) {
+        std::lock_guard<std::mutex> lock(initialClientsMutex);
+        ids.reserve(initialClients.size());
+        for (auto id : initialClients) {
+            if (!includeDead && deadPlayers.find(id) != deadPlayers.end())
+                continue;
+            ids.push_back(id);
+        }
+    }
+    return ids;
 }
