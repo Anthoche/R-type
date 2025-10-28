@@ -8,6 +8,7 @@
 #include "../client.hpp"
 #include "../../Engine/Game.hpp"
 #include <asio.hpp>
+#include <cstring>
 #include <algorithm>
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
@@ -72,6 +73,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::EnemyProjectileDespawn:
             handleEnemyProjectileDespawn(buffer);
             break;
+        case MessageType::PlayerSkinUpdate:
+            handlePlayerSkinUpdate(buffer);
+            break;
         case MessageType::ChatMessage:
             handleChatMessage(buffer);
             break;
@@ -80,13 +84,20 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
     }
 }
 
-
 void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {
     if (buffer.size() < sizeof(ServerAssignIdMessage)) return;
     const ServerAssignIdMessage *msg = reinterpret_cast<const ServerAssignIdMessage *>(buffer.data());
     clientId = ntohl(msg->clientId);
     std::cout << "[Client] Reçu clientId=" << clientId << std::endl;
     initTcpConnection();
+    std::string pending;
+    {
+        std::lock_guard<std::mutex> g(stateMutex);
+        pending = pendingSkinSelection;
+    }
+    if (!pending.empty()) {
+        sendSkinSelection(pending);
+    }
 }
 
 void GameClient::handleGameStart(const std::vector<uint8_t> &buffer) {
@@ -112,6 +123,21 @@ void GameClient::handlePlayerUpdate(const std::vector<uint8_t> &buffer) {
     
     std::lock_guard<std::mutex> g(stateMutex);
     players[id] = {x, y, z};  // Adapter selon votre structure
+}
+
+void GameClient::handlePlayerSkinUpdate(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(PlayerSkinMessage)) return;
+    const PlayerSkinMessage *msg = reinterpret_cast<const PlayerSkinMessage *>(buffer.data());
+
+    uint32_t id = ntohl(msg->clientId);
+    std::string filename(msg->skinFilename);
+
+    std::lock_guard<std::mutex> g(stateMutex);
+    if (!filename.empty()) {
+        playerSkins[id] = filename;
+    } else {
+        playerSkins.erase(id);
+    }
 }
 
 void GameClient::handleObstacleSpawn(const std::vector<uint8_t> &buffer) {
