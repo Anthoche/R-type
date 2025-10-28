@@ -85,6 +85,7 @@ class WaitingScene: public AScene {
         void selectNextSkin();
         void selectPreviousSkin();
         void drawSkinPreview();
+        bool canJoin();
 };
 
 } // namespace scene

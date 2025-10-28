@@ -38,6 +38,7 @@ static nlohmann::json load_json_from_file(const std::string &path) {
 }
 
 ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
+    _roomId = -1;
     registry_server.register_component<component::position>();
     registry_server.register_component<component::previous_position>();
     registry_server.register_component<component::velocity>();
@@ -67,8 +68,9 @@ void ServerGame::setInitialPlayerSkins(const std::unordered_map<uint32_t, std::s
 }
 
 
-void ServerGame::run() {
+void ServerGame::run(int roomId) {
     LOG("[Server] Starting game loop...");
+    _roomId = roomId;
     load_players(ASSETS_PATH "/Config_assets/Players/players.json");
     load_level(ASSETS_PATH "/Config_assets/Levels/level_01.json");
     initialize_player_positions();
@@ -132,6 +134,16 @@ void ServerGame::run() {
         }
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
+}
+
+void ServerGame::enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
+    std::lock_guard<std::mutex> lock(packetMutex);
+    pendingPackets.push(PendingPacket{data, from});
+}
+
+void ServerGame::setInitialClients(const std::vector<uint32_t> &clients) {
+    std::lock_guard<std::mutex> lock(initialClientsMutex);
+    initialClients = clients;
 }
 
 bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
@@ -490,16 +502,23 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
 }
 
 void ServerGame::process_pending_messages() {
-    int messagesProcessed = 0;
-    const int maxMessagesPerTick = 5;
-    while (messagesProcessed < maxMessagesPerTick) {
-        connexion.asyncReceive([this](const asio::error_code& ec, std::vector<uint8_t> data, asio::ip::udp::endpoint endpoint) {
-            if (ec)
-                return;
-            handle_client_message(data, endpoint);
-        });
-        messagesProcessed++;
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    std::queue<PendingPacket> localQueue;
+
+    {
+        std::lock_guard<std::mutex> lock(packetMutex);
+        while (!pendingPackets.empty()) {
+            localQueue.push(std::move(pendingPackets.front()));
+            pendingPackets.pop();
+        }
+    }
+
+    int processed = 0;
+    constexpr int maxMessagesPerTick = 32;
+    while (!localQueue.empty() && processed < maxMessagesPerTick) {
+        auto packet = std::move(localQueue.front());
+        localQueue.pop();
+        handle_client_message(packet.data, packet.endpoint);
+        processed++;
     }
 }
 
@@ -560,13 +579,15 @@ void ServerGame::process_player_inputs(float dt) {
 }
 
 void ServerGame::broadcast_states_to_clients() {
-    for (const auto& kv : connexion.getClients()) {
-        uint32_t id = kv.second;
-        if (deadPlayers.find(id) != deadPlayers.end())
-            continue;
+    auto recipients = collectRoomClients(false);
+    if (recipients.empty())
+        return;
+
+    for (uint32_t id : recipients) {
         auto it = playerPositions.find(id);
-        if (it == playerPositions.end()) continue;
-        
+        if (it == playerPositions.end())
+            continue;
+
         StateUpdateMessage m;
         m.type = MessageType::StateUpdate;
         m.clientId = htonl(id);
@@ -581,18 +602,26 @@ void ServerGame::broadcast_states_to_clients() {
         m.pos.yBits = htonl(ybits);
         m.pos.zBits = htonl(zbits);
         
-        connexion.broadcast(&m, sizeof(m));
+        connexion.broadcastToClients(recipients, &m, sizeof(m));
     }
 }
 
 void ServerGame::broadcast_obstacle_despawn(uint32_t obstacleId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ObstacleDespawnMessage m;
     m.type = MessageType::ObstacleDespawn;
     m.obstacleId = htonl(obstacleId);
-    connexion.broadcast(&m, sizeof(m));
+    connexion.broadcastToClients(recipients, &m, sizeof(m));
 }
 
 void ServerGame::broadcast_player_health() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     auto& healths = registry_server.get_components<component::health>();
     auto& clientIds = registry_server.get_components<component::client_id>();
     
@@ -604,19 +633,27 @@ void ServerGame::broadcast_player_health() {
             msg.currentHealth = htons(static_cast<int16_t>(healths[i]->current));
             msg.maxHealth = htons(static_cast<int16_t>(healths[i]->max));
             
-            connexion.broadcast(&msg, sizeof(msg));
+            connexion.broadcastToClients(recipients, &msg, sizeof(msg));
         }
     }
 }
 
 void ServerGame::broadcast_global_score() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     GlobalScoreMessage msg;
     msg.type = MessageType::GlobalScore;
     msg.totalScore = htonl(totalScore);
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_individual_scores() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     for (const auto& kv : playerIndividualScores) {
         uint32_t clientId = kv.first;
         int score = kv.second;
@@ -626,7 +663,7 @@ void ServerGame::broadcast_individual_scores() {
         msg.clientId = htonl(clientId);
         msg.score = htonl(score);
         
-        connexion.broadcast(&msg, sizeof(msg));
+        connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     }
 }
 
@@ -655,4 +692,24 @@ void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock
     if (elapsed_ms < tick_ms) {
         std::this_thread::sleep_for(std::chrono::milliseconds(tick_ms - elapsed_ms));
     }
+}
+
+std::vector<uint32_t> ServerGame::collectRoomClients(bool includeDead) const {
+    std::vector<uint32_t> ids;
+    ids.reserve(playerPositions.size());
+    for (const auto &kv : playerPositions) {
+        if (!includeDead && deadPlayers.find(kv.first) != deadPlayers.end())
+            continue;
+        ids.push_back(kv.first);
+    }
+    if (ids.empty()) {
+        std::lock_guard<std::mutex> lock(initialClientsMutex);
+        ids.reserve(initialClients.size());
+        for (auto id : initialClients) {
+            if (!includeDead && deadPlayers.find(id) != deadPlayers.end())
+                continue;
+            ids.push_back(id);
+        }
+    }
+    return ids;
 }

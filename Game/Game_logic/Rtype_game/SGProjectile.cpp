@@ -122,6 +122,10 @@ void ServerGame::check_projectile_enemy_collisions() {
 }
 
 void ServerGame::broadcast_projectile_positions() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     for (const auto& kv : projectiles) {
         uint32_t id = kv.first;
         float x = std::get<0>(kv.second);
@@ -141,7 +145,7 @@ void ServerGame::broadcast_projectile_positions() {
         msg.pos.yBits = htonl(yb);
         msg.pos.zBits = htonl(zb);
 
-        connexion.broadcast(&msg, sizeof(msg));
+        connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     }
 }
 
@@ -173,6 +177,10 @@ void ServerGame::update_projectiles_server_only(float dt) {
 
 void ServerGame::broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId,
                                     float x, float y, float z, float vx, float vy, float vz) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ProjectileSpawnMessage msg;
     msg.type = MessageType::ProjectileSpawn;
     msg.projectileId = htonl(projId);
@@ -193,14 +201,18 @@ void ServerGame::broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId,
     msg.vel.vyBits = htonl(vyb);
     msg.vel.vzBits = htonl(vzb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_projectile_despawn(uint32_t projId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ProjectileDespawnMessage msg;
     msg.type = MessageType::ProjectileDespawn;
     msg.projectileId = htonl(projId);
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::check_projectile_collisions() {
@@ -359,6 +371,10 @@ void ServerGame::check_enemy_projectile_player_collisions() {
 
 void ServerGame::broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId,
                                                    float x, float y, float z, float vx, float vy, float vz) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemyProjectileSpawnMessage msg;
     msg.type = MessageType::EnemyProjectileSpawn;
     msg.projectileId = htonl(projId);
@@ -379,10 +395,14 @@ void ServerGame::broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t owne
     msg.vel.vyBits = htonl(vyb);
     msg.vel.vzBits = htonl(vzb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_enemy_projectile_positions() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     for (const auto& kv : enemyProjectiles) {
         uint32_t id = kv.first;
         float x = std::get<0>(kv.second);
@@ -402,13 +422,17 @@ void ServerGame::broadcast_enemy_projectile_positions() {
         msg.pos.yBits = htonl(yb);
         msg.pos.zBits = htonl(zb);
 
-        connexion.broadcast(&msg, sizeof(msg));
+        connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     }
 }
 
 void ServerGame::broadcast_enemy_projectile_despawn(uint32_t projId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemyProjectileDespawnMessage msg;
     msg.type = MessageType::EnemyProjectileDespawn;
     msg.projectileId = htonl(projId);
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }

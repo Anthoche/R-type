@@ -128,7 +128,7 @@ void UI::render() {
 
         Vector2 offset = {dynamic_pos[i]->offsetX, dynamic_pos[i]->offsetY};
         DynamicPosition dyna_pos = dynamic_pos[i]->position;
-        Vector2 pos = getRealPos(dyna_pos, offset, Vector2{drawables[i]->width, drawables[i]->height});
+        Vector2 pos = getRealPos(_raylib, dyna_pos, offset, Vector2{drawables[i]->width, drawables[i]->height}, _margin);
 
         switch (types[i]->value) {
             case component::entity_type::TEXT:
@@ -153,7 +153,7 @@ void UI::render() {
 					}
 					text[i]->content = std::format("Individual: {}", playerScore);
 				}
-                pos = getTextPos(dyna_pos, offset, text[i]->content);
+                pos = getTextPos(_raylib, dyna_pos, offset, _margin, text[i]->content, _font, _fontSize, _spacing);
                 _raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
                 break;
             case component::entity_type::IMAGE:
@@ -186,43 +186,6 @@ void UI::unload() {
 	_raylib.unloadFont(_font);
 	_raylib.unloadTexture(_fullHeart);
 	_raylib.unloadTexture(_emptyHeart);
-}
-
-Vector2 UI::getRealPos(DynamicPosition pos, Vector2 offset, Vector2 size) const {
-	Vector2 finalPos = {0.f, 0.f};
-	float bottomPosY = _raylib.getRenderHeight() - _margin.y - (size.y) / 2;
-	float centerPosX = getElementCenter(_raylib.getRenderWidth(), size.x);
-	float rightPosX = _raylib.getRenderWidth() - size.x - _margin.x;
-
-	switch (pos) {
-		case TOP_LEFT:
-			finalPos = {_margin.x, _margin.y};
-			break;
-		case TOP_CENTER:
-			finalPos = {centerPosX, _margin.y};
-			break;
-		case TOP_RIGHT:
-			finalPos = {rightPosX, _margin.y};
-			break;
-		case BOTTOM_LEFT:
-			finalPos = {_margin.x, bottomPosY};
-			break;
-		case BOTTOM_CENTER:
-			finalPos = {centerPosX, bottomPosY};
-			break;
-		case BOTTOM_RIGHT:
-			finalPos = {rightPosX, bottomPosY};
-			break;
-	}
-	finalPos.x += offset.x;
-	finalPos.y += offset.y;
-	return finalPos;
-}
-
-Vector2 UI::getTextPos(DynamicPosition pos, Vector2 offset, std::string const &content) const {
-	Vector2 textSize = _raylib.measureTextEx(_font, content, _fontSize, _spacing);
-
-	return getRealPos(pos, offset, textSize);
 }
 
 void UI::addScore(int points) { 

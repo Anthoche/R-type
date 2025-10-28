@@ -11,6 +11,7 @@
 #include "../Shared/Sockets/Include/UDP_socket.hpp"
 #include "../Shared/Sockets/Include/TCP_socket.hpp"
 #include "../Engine/Core/Include/registry.hpp"
+#include "serializer.hpp"
 #include <asio.hpp>
 #include <cstring>
 #include <iostream>
@@ -65,7 +66,9 @@ class GameClient {
         std::deque<std::pair<std::string, std::string>> _chatQueue;
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
-        
+        int roomId{-1};
+        std::map<int, game::serializer::RoomData> rooms;
+
         /**
          * @brief Mutex used to protect shared game state access.
          */
@@ -114,7 +117,6 @@ class GameClient {
 
         std::atomic<bool> bossDefeated{false};
 
-
         /**
          * @brief Constructs a GameClient and connects to the server.
          * @param game The game instance.
@@ -138,16 +140,20 @@ class GameClient {
         void run();
 
         /**
-         * @brief Main rendering and input loop (executed after game start).
-         *
-         * Handles user input, sends commands to the server, and updates visuals.
-         */
-        void runRenderLoop();
-
-        /**
          * @brief Sends a "hello" message to the server to initiate connection.
          */
         void sendHello();
+
+        /**
+         * Sends a room connect request to the server
+         * @param roomId The id of the room to join
+         */
+        void sendRoomAsk(uint32_t roomId);
+
+        /**
+         * @brief Sends a ClientFetchRooms request to the server in order to retrieve available rooms
+         */
+        void sendRoomsFetch();
 
         /**
          * @brief Initializes a TCP connection to the server.
@@ -206,6 +212,24 @@ class GameClient {
         void handleServerAssignId(const std::vector<uint8_t> &buffer);
 
         /**
+         * @brief Handles a ServerRoomAssignId message from the server
+         * @param buffer Raw Message data
+         */
+        void handleServerRoomAssign(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles a ServerSendRooms message from the server
+         * @param buffer Raw message data
+         */
+        void handleServerRooms(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles a RoomReady message, notifying players that room is ready to start
+         * @param buffer Raw message data.
+         */
+        void handleRoomReady(const std::vector<uint8_t> &buffer);
+
+        /**
          * @brief Handles a GameStart message, signaling the start of gameplay.
          * @param buffer Raw message data.
          */
@@ -227,7 +251,6 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handlePlayerSkinUpdate(const std::vector<uint8_t> &buffer);
-
 
         /**
          * @brief Handles an ObstacleSpawn message.
@@ -292,7 +315,6 @@ class GameClient {
          */
         void handleEnemySpawn(const std::vector<uint8_t> &buffer);
 
-    
         void handleBossDeath(const std::vector<uint8_t> &buffer);
         /**
          * @brief Handles a player death message.

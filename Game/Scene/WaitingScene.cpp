@@ -16,6 +16,9 @@
 #include <cctype>
 #include <vector>
 
+#include <format>
+#include "Logger.hpp"
+
 namespace scene {
 	WaitingScene::WaitingScene(Game &game)
 		: AScene(960, 540, "R-Type - Waiting..."), _game(game) {
@@ -227,9 +230,10 @@ namespace scene {
 			hoverable[i]->isHovered = false;
 
 			if (clickable[i]->id == "button_join") {
-				clickable[i]->enabled = (_game.getGameStatus() != GameStatus::FINISHED);
+				clickable[i]->enabled = canJoin();
 			}
 		}
+		LOG_DEBUG(std::format("GameStatus: {}", static_cast<int>(_game.getGameStatus())));
 	}
 
 	void WaitingScene::handleButtonClick(std::string const &id) {
@@ -443,5 +447,13 @@ namespace scene {
 			Vector2 textPos = {_previewCenter.x - textSize.x / 2.f, panel.y + panel.height + 12.f};
 			_raylib.drawTextEx(_font, skinName.c_str(), textPos, labelSize, -0.5f, Color{210, 235, 255, 255});
 		}
+	}
+
+	bool WaitingScene::canJoin() {
+		if (_game.getGameStatus() == GameStatus::FINISHED)
+			return false;
+		if (_game.getGameStatus() == GameStatus::WAITING_PLAYERS)
+			return false;
+		return true;
 	}
 } // namespace scene

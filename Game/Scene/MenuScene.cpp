@@ -190,16 +190,7 @@ namespace scene {
 
 	void MenuScene::handleButtonClick(std::string const &id) {
 		if (id == "button_play") {
-/* 			try {
-				_game.getGameClient().connect();
-			} catch (std::exception const &e) {
-				std::cerr << "Error: " << e.what() << std::endl;
-			}
-			if (!_game.getGameClient().isConnected()) {
-				_game.getSceneHandler().open("server_wait");
-				return;
-			} */
-			_game.getSceneHandler().open("waiting");
+			_game.getSceneHandler().open("room_select");
 		} else if (id == "button_settings") {
 			 _game.getSceneHandler().open("settings");
 		} else if (id == "button_quit") {
