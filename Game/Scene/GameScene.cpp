@@ -335,15 +335,18 @@ namespace game::scene {
                     break;
                 }
             }
+
             float spriteOffsetX = 0.0f;
+            float spriteOffsetY = 0.0f;
             if (moovePlayer.find(clientId) != moovePlayer.end()) {
                 spriteOffsetX = moovePlayer[clientId];
             }
-            float spriteOffsetY = 0.0f + (17.0f * (clientId % 4));
-            Rectangle sourceRec = {66.0f + spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
-            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)_width / 40.0f, (float)_height / 40.0f};
+
+            Rectangle sourceRec = {spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)draw.width, (float)draw.height};
+
             Vector2 origin = {0.0f, 0.0f};
-            
+
             auto &sprites = _registry.get_components<component::sprite>();
             float rotation = 0.0f;
             float scale = 1.0f;
@@ -351,6 +354,7 @@ namespace game::scene {
                 scale = sprites[entity.value()]->scale;
                 rotation = sprites[entity.value()]->rotation;
             }
+
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             uint32_t idForColor = 0;
@@ -518,37 +522,31 @@ namespace game::scene {
         }
         float t = std::clamp(globalScore / 50.0f, 0.0f, 1.0f);
         float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
-
         bool upPressed = _raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP);
         bool downPressed = _raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN);
         bool leftPressed = _raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT);
         bool rightPressed = _raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT);
+        bool jPressed = _raylib.isKeyDown(KEY_J);
+        bool kPressed = _raylib.isKeyDown(KEY_K);
 
         switch (_raylib.getKeyPressed()) {
-            case KEY_SPACE:
-                handle_shoot(SHOOT_COOLDOWN);
-                break;
             case KEY_F11:
                 toggleFullScreen();
                 break;
             default:
                 break;
         }
-
         if (_raylib.isGamepadAvailable(0)) {
             float leftStickX = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
             float leftStickY = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
-
             if (leftStickY < -0.2f)
                 upPressed = true;
             else if (leftStickY > 0.2f)
                 downPressed = true;
-
             if (leftStickX < -0.2f)
                 leftPressed = true;
             else if (leftStickX > 0.2f)
                 rightPressed = true;
-
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
                 downPressed = true;
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
@@ -557,24 +555,14 @@ namespace game::scene {
                 rightPressed = true;
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                 leftPressed = true;
-
-            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
-                handle_shoot(SHOOT_COOLDOWN);
-                if (_game.isSoundEnabled()) {
-                    _raylib.playSound(_shootSound);
-                }
-            }
         }
-
-        dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed);
-
+        dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed, jPressed, kPressed);  // MODIFIÉ
         float input_x = 0.f;
         float input_y = 0.f;
         if (leftPressed != rightPressed)
             input_x = leftPressed ? -1.f : 1.f;
         if (upPressed != downPressed)
             input_y = upPressed ? -1.f : 1.f;
-
         if (myClientId != 0) {
             if (input_y < 0.f)
                 moovePlayer[myClientId] = 33.0f;
@@ -583,21 +571,7 @@ namespace game::scene {
             else
                 moovePlayer[myClientId] = 0.0f;
         }
-
         handle_input(input_x, input_y);
-    }
-
-    void GameScene::handle_shoot(float cooldown) {
-        static float lastShotTime = 0.f;
-        
-        float currentTime = _raylib.getTime();
-        if (currentTime - lastShotTime >= cooldown) {
-            _game.getGameClient().sendShoot();
-            lastShotTime = currentTime;
-            if (_game.isSoundEnabled()) {
-                _raylib.playSound(_shootSound);
-            }
-        }
     }
 
     void GameScene::handle_input(float input_x, float input_y) {
@@ -639,7 +613,7 @@ namespace game::scene {
         }
     }
 
-    void GameScene::dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed) {
+    void GameScene::dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed, bool jPressed, bool kPressed) {
         auto sendIfChanged = [this](InputCode code, bool newState, bool &cachedState) {
             if (newState == cachedState)
                 return;
@@ -651,6 +625,8 @@ namespace game::scene {
         sendIfChanged(InputCode::Down, downPressed, _inputState.down);
         sendIfChanged(InputCode::Left, leftPressed, _inputState.left);
         sendIfChanged(InputCode::Right, rightPressed, _inputState.right);
+        sendIfChanged(InputCode::J, jPressed, _inputState.j);
+        sendIfChanged(InputCode::K, kPressed, _inputState.k);
     }
 
     void GameScene::setup_movement_system() {

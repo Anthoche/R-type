@@ -54,6 +54,8 @@ class ServerGame : public IServerGame {
             bool down{false};
             bool left{false};
             bool right{false};
+            bool j{false};
+            bool k{false};
         };
 
         std::unordered_map<uint32_t, std::vector<InputEvent>> playerInputBuffers;
@@ -80,6 +82,7 @@ class ServerGame : public IServerGame {
         void apply_gravity(float dt);
         void check_death_zone();
         void check_win_condition();
+        void handle_melee_attack(uint32_t attackerId, float range, int damage);
 
         bool is_on_ground(float x, float y, float playerWidth, float playerHeight);
         float snap_to_platform_top(float x, float y, float playerWidth, float playerHeight);

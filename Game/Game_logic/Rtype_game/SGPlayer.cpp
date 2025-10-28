@@ -40,3 +40,62 @@ void ServerGame::initialize_player_positions() {
         playerPositions[kv.second] = {300.f + (kv.second - 1) * 50.f, 300.f};
     }
 }
+
+void ServerGame::handle_melee_attack(uint32_t attackerId, float range, int damage) {
+    // Trouver la position de l'attaquant
+    auto attackerPosIt = playerPositions.find(attackerId);
+    if (attackerPosIt == playerPositions.end()) {
+        return;
+    }
+
+    float attackerX = attackerPosIt->second.first;
+    float attackerY = attackerPosIt->second.second;
+
+    LOG_DEBUG("[Server] Player " << attackerId << " performs melee attack (range=" << range << ", damage=" << damage << ")");
+
+    // Vérifier tous les autres joueurs
+    for (auto &kv : playerPositions) {
+        uint32_t targetId = kv.first;
+        
+        // Ignorer l'attaquant lui-même et les joueurs déjà morts
+        if (targetId == attackerId || deadPlayers.find(targetId) != deadPlayers.end()) {
+            continue;
+        }
+
+        float targetX = kv.second.first;
+        float targetY = kv.second.second;
+
+        // Calculer la distance entre l'attaquant et la cible
+        float dx = targetX - attackerX;
+        float dy = targetY - attackerY;
+        float distance = std::sqrt(dx * dx + dy * dy);
+
+        // Si la cible est dans la portée, infliger des dégâts
+        if (distance <= range) {
+            LOG_INFO("[Server] Player " << attackerId << " hits player " << targetId 
+                     << " at distance " << distance << "px for " << damage << " damage");
+
+            // Trouver et réduire les HP du joueur ciblé
+            auto& healths = registry_server.get_components<component::health>();
+            auto& clientIds = registry_server.get_components<component::client_id>();
+
+            for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+                if (clientIds[i] && clientIds[i]->id == targetId && healths[i]) {
+                    healths[i]->current = std::max(0, healths[i]->current - damage);
+                    
+                    LOG_DEBUG("[Server] Player " << targetId << " health: " 
+                             << healths[i]->current << "/" << healths[i]->max);
+
+                    // Vérifier si le joueur est mort
+                    if (healths[i]->current <= 0) {
+                        LOG_INFO("[Server] Player " << targetId << " was killed by player " << attackerId);
+                        deadPlayers.insert(targetId);
+                        broadcast_player_death(targetId);
+                    }
+                    
+                    break;
+                }
+            }
+        }
+    }
+}

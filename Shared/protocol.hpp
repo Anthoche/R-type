@@ -40,6 +40,8 @@ enum class InputCode : uint8_t {
     Down = 1,
     Left = 2,
     Right = 3,
+    J = 4,
+    K = 5,
     Unknown = 255
 };
 
@@ -53,6 +55,10 @@ inline const char* inputCodeToString(InputCode code) {
             return "Left";
         case InputCode::Right:
             return "Right";
+        case InputCode::J:
+            return "J";
+        case InputCode::K:
+            return "K";
         default:
             return "Unknown";
     }

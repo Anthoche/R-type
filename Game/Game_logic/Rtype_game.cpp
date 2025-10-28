@@ -193,6 +193,8 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     case InputCode::Down:
                     case InputCode::Left:
                     case InputCode::Right:
+                    case InputCode::J:
+                    case InputCode::K:
                         playerInputBuffers[id].push_back({code, pressed});
                         break;
                     default:
@@ -282,6 +284,18 @@ void ServerGame::process_player_inputs(float dt) {
                     break;
                 case InputCode::Right:
                     state.right = event.pressed;
+                    break;
+                case InputCode::J:
+                    state.j = event.pressed;
+                    if (event.pressed) {
+                        handle_melee_attack(clientId, 10.f, 5);
+                    }
+                    break;
+                case InputCode::K:
+                    state.k = event.pressed;
+                    if (event.pressed) {
+                        handle_melee_attack(clientId, 15.f, 15);
+                    }
                     break;
                 default:
                     break;
@@ -412,7 +426,7 @@ float ServerGame::snap_to_platform_top(float x, float y, float playerWidth, floa
 }
 
 void ServerGame::check_death_zone() {
-    constexpr float deathX = 1080.f; // Changed from Y to X
+    constexpr float deathY = 1180.f;
     
     for (auto &kv : playerPositions) {
         uint32_t clientId = kv.first;
@@ -420,8 +434,8 @@ void ServerGame::check_death_zone() {
             continue;
 
         auto &pos = kv.second;
-        if (pos.first > deathX) { // Check X instead of Y
-            LOG_INFO("[Server] Player " << clientId << " went past X=" << deathX << " and died");
+        if (pos.second > deathY || pos.first < -150 || pos.first > 2070) {
+            LOG_INFO("[Server] Player " << clientId << " went past X=" << deathY << " and died");
             deadPlayers.insert(clientId);
             broadcast_player_death(clientId);
             

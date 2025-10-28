@@ -31,8 +31,6 @@ namespace game::scene {
 
         void onClose() override;
 
-        void handle_shoot(float cooldown);
-
         void handle_input(float input_x, float input_y);
 
         ecs::registry &get_registry() { return _registry; }
@@ -51,6 +49,8 @@ namespace game::scene {
             bool down{false};
             bool left{false};
             bool right{false};
+            bool j{false};
+            bool k{false};
         };
 
         void update();
@@ -105,7 +105,7 @@ namespace game::scene {
         void render_win_screen();
 
         Color get_color_for_id(uint32_t id);
-        void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed);
+        void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed, bool jPressed, bool kPressed);
         InputState _inputState;
     };
 } // namespace game::scene
