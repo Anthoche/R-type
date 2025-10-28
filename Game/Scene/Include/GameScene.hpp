@@ -262,10 +262,19 @@ namespace game::scene {
          */
         void draw_ecs_layers();
 
-        // --- Indexation des entités ---
+        /**
+         * @brief Extract enemy sprite paths from the registry to the enemy sprite map.
+         */
+        void extract_enemy_sprite_paths();
+
+        /**
+        * @brief Index existing entities in the registry for quick access.
+        */
         void index_existing_entities();
 
-        // --- Rendu générique ---
+        /**
+        * @brief Render all entities in the scene.
+        */
         void render_entities();
         void render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
         void render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
@@ -276,7 +285,9 @@ namespace game::scene {
         void render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
         void load_music();
 
-        // --- Rendu des entités réseau ---
+        /**
+        * @brief Render obstacles received from the network.
+        */
         void render_network_obstacles();
         void render_network_enemies();
         void render_network_projectiles();
@@ -284,8 +295,11 @@ namespace game::scene {
         void render_death_screen();
         void render_win_screen();
 
-
-        // --- Utilitaires ---
+        /**
+        * @brief Get a unique color for a given client ID.
+        * @param id The client ID.
+        * @return A unique Color associated with the client ID.
+        */
         Color get_color_for_id(uint32_t id);
         void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed);
         InputState _inputState;

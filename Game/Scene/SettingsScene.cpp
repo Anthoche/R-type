@@ -232,6 +232,7 @@ namespace scene {
 		else if (id == "button_difficulty") cycleDifficulty();
 		else if (id == "button_language") toggleLanguage();
 	}
+	
 	void SettingsScene::toggleSound() {
 		_values[2] =
 			(_values[2] == "On" || _values[2] == "Active" || _values[2] == "Attivo")
@@ -258,7 +259,7 @@ namespace scene {
 	void SettingsScene::cycleDifficulty() {
 		_currentLevelIndex = (_currentLevelIndex + 1) % _levels.size();
 		_values[0] = _levels[_currentLevelIndex];
-		updateButtonText("button_difficulty", _values[0]);
+		updateButtonText("button_difficulty", _values[0]);	
 	}
 
 	void SettingsScene::toggleLanguage() {

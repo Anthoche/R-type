@@ -69,7 +69,6 @@ class Game {
 		 */
 		void setGameStatus(const GameStatus &status);
 
-
         /**
          * @enum Language
          * @brief Supported languages for the game.
@@ -79,7 +78,7 @@ class Game {
         /**
          * @brief Set the current language of the game.
          * Changes the active language, affecting displayed text and UI labels.
-         * @param lang The language to set (ENGLISH or FRENCH).
+         * @param lang The language to set (ENGLISH, FRENCH or ITALIAN).
          */
         void setLanguage(Language lang) { _language = lang; }
 

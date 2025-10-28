@@ -70,7 +70,7 @@ void GameClient::initTcpConnection() {
     if (clientId == 0) return;
 
     uint16_t tcpPort = 5000 + clientId;
-    tcpClient = std::make_unique<TCP_socket>(); // Mode client (constructeur par défaut)
+    tcpClient = std::make_unique<TCP_socket>();
 
     if (!tcpClient->connectToServer(serverIpStr, tcpPort)) {
         LOG_ERROR("Client: Impossible de se connecter en TCP");
