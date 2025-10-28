@@ -215,6 +215,8 @@ add_executable(r-type_server
     ${SERVER_DIR}/main.cpp
     ${SERVER_DIR}/server.cpp
     ${SERVER_DIR}/connexion.cpp
+    ${SERVER_DIR}/Room/Room.cpp
+    ${SERVER_DIR}/Room/RoomManager.cpp
     ${ENGINE_UTILS_DIR}/entity_parser.cpp
     ${ENGINE_UTILS_DIR}/entity_storage.cpp
     ${ENGINE_UTILS_DIR}/serializer.cpp
@@ -244,6 +246,7 @@ add_executable(r-type_server
 
 target_include_directories(r-type_server PRIVATE
     ${SERVER_DIR}/Include
+    ${SERVER_DIR}/Room
     ${ENGINE_CORE_DIR}/Include
     ${ENGINE_ENTITIES_DIR}/Include
     ${ENGINE_UTILS_DIR}/Include
