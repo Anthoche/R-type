@@ -375,7 +375,7 @@ class GameClient {
 
         void handleInitialHealth(const std::vector<uint8_t> &buffer);
         void handleEndlessMode(const std::vector<uint8_t> &buffer);
-};
+        
         /**
          * @brief Handles a chat message broadcast from the server.
          * @param buffer Raw message data.
