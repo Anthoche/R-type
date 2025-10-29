@@ -85,6 +85,11 @@ class GameClient {
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> enemies;
 
         /**
+         * @brief Maps elements IDs to their (x,y,velX,velY).
+         */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> elements;
+
+        /**
          * @brief Maps player IDs to their current health values.
          */
         std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> playerHealth;
@@ -322,4 +327,22 @@ class GameClient {
 
         void handleInitialHealth(const std::vector<uint8_t> &buffer);
         void handleEndlessMode(const std::vector<uint8_t> &buffer);
+
+         /**
+         * @brief Handles an element despwan message.
+         * @param buffer Raw message data.
+         */
+        void handleElementDespawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an element update message.
+         * @param buffer Raw message data.
+         */
+        void handleElementUpdate(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an Element spwan message.
+         * @param buffer Raw message data.
+         */
+        void handleElementSpawn(const std::vector<uint8_t> &buffer);
 };

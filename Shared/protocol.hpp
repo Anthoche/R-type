@@ -25,6 +25,9 @@ enum class MessageType : uint8_t {
     EnemyProjectileUpdate,    /**< Server updates an enemy projectile */
     EnemyProjectileDespawn,   /**< Server removes an enemy projectile */
     BossDeath,
+    ElementSpawn,
+    ElementUpdate,
+    ElementDespawn,
     EndlessMode,
     EntityData,               /**< Server → Clients: entity ECS synchronization */
     SceneState,               /**< Client → Server: indicates current scene */
@@ -152,6 +155,28 @@ struct EnemySpawnMessage {
     Velocity3D vel;      ///< 3D velocity
     float width;
     float height;
+};
+
+struct ElementSpawnMessage {
+    MessageType type;
+    uint32_t elementId;
+    Position3D pos;      ///< 3D position
+    Velocity3D vel;      ///< 3D velocity
+    float width;
+    float height;
+};
+
+struct ElementDespawnMessage {
+    MessageType type;
+    uint32_t elementId;
+};
+
+struct ElementUpdateMessage {
+    MessageType type;
+    uint32_t elementId;
+    Position3D pos;      ///< 3D position
+    uint32_t velXBits;        // Vélocité X (float bits)
+    uint32_t velYBits;        // Vélocité Y (float bits)
 };
 
 /**

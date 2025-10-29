@@ -74,6 +74,7 @@ namespace game::scene {
         _player = ecs::entity_t{0};
         _obstacles.clear();
         _enemys.clear();
+        _elements.clear();
         _playerEntities.clear();
 
         auto &types = _registry.get_components<component::type>();
@@ -98,7 +99,9 @@ namespace game::scene {
                 case component::entity_type::ENEMY:
                     _enemys.push_back(entity);
                     break;
-
+                case component::entity_type::RANDOM_ELEMENT:
+                    _elements.push_back(entity);
+                    break;
                 case component::entity_type::OBSTACLE:
                     _obstacles.push_back(entity);
                     break;
@@ -111,6 +114,7 @@ namespace game::scene {
         std::cout << "[DEBUG] Indexed entities: "
                 << "Players=" << _playerEntities.size()
                 << ", Enemies=" << _enemys.size()
+                << ", Elements=" << _elements.size()
                 << ", Obstacles=" << _obstacles.size() << std::endl;
     }
 
@@ -381,6 +385,86 @@ void GameScene::update() {
         }
     }
 
+       std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> netElements;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netElements = _game.getGameClient().elements;
+    }
+
+    if (!netElements.empty() && _elementMap.empty()) {
+        std::cout << "[DEBUG] Received " << netElements.size() << " elements from network" << std::endl;
+    }
+
+    for (auto it = _elementMap.begin(); it != _elementMap.end(); ) {
+        uint32_t serverId = it->first;
+        
+        if (netElements.find(serverId) == netElements.end()) {
+            ecs::entity_t clientEntity = it->second;
+            std::cout << "[DEBUG] Removing element serverId=" << serverId << std::endl;
+            _registry.kill_entity(clientEntity);
+            _elements.erase(
+                std::remove(_elements.begin(), _elements.end(), clientEntity),
+                _elements.end()
+            );
+            it = _elementMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto const &kv : netElements) {
+        uint32_t serverId = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        float vz = std::get<5>(kv.second);
+        float width = std::get<6>(kv.second);
+        float height = std::get<7>(kv.second);
+        
+        auto it = _elementMap.find(serverId);
+        
+        if (it == _elementMap.end()) {
+            std::string spritePath = "../Game/Assets/sprites/eazz.png";
+
+            auto spriteIt = _elementSpriteMap.find(serverId);
+            if (spriteIt != _elementSpriteMap.end()) {
+                spritePath = spriteIt->second;
+            }
+            
+            ecs::entity_t newElement = game::entities::create_random_element(
+                _registry, x, y, z, spritePath, width, height, "powerup", 0.0f
+            );
+            
+            _elementMap.emplace(serverId, newElement);
+            _elements.push_back(newElement);
+                
+            if (newElement.value() < positions.size() && positions[newElement.value()]) {
+                positions[newElement.value()]->x = x;
+                positions[newElement.value()]->y = y;
+                positions[newElement.value()]->z = z;
+            }
+            if (newElement.value() < velocities.size() && velocities[newElement.value()]) {
+                velocities[newElement.value()]->vx = vx;
+                velocities[newElement.value()]->vy = vy;
+                velocities[newElement.value()]->vz = vz;
+            }
+        } else {
+            ecs::entity_t clientElement = it->second;
+            if (clientElement.value() < positions.size() && positions[clientElement.value()]) {
+                positions[clientElement.value()]->x = x;
+                positions[clientElement.value()]->y = y;
+                positions[clientElement.value()]->z = z;
+            }
+            if (clientElement.value() < velocities.size() && velocities[clientElement.value()]) {
+                velocities[clientElement.value()]->vx = vx;
+                velocities[clientElement.value()]->vy = vy;
+                velocities[clientElement.value()]->vz = vz;
+            }
+        }
+    }
+
     _registry.run_systems();
 }
 
@@ -396,7 +480,7 @@ void GameScene::update() {
                 case component::entity_type::ENEMY:
                 case component::entity_type::OBSTACLE:
                 case component::entity_type::PROJECTILE:
-                case component::entity_type::POWERUP:
+                case component::entity_type::RANDOM_ELEMENT:
                 case component::entity_type::BACKGROUND:
                 case component::entity_type::PLAYER:
                     toKill.push_back(_registry.entity_from_index(i));
@@ -417,8 +501,10 @@ void GameScene::update() {
 
         _enemyMap.clear();
         _obstacleMap.clear();
+        _elementMap.clear();
         _enemys.clear();
         _obstacles.clear();
+        _elements.clear();
         _playerEntities.clear();
         moovePlayer.clear();
         _player = ecs::entity_t{0};
@@ -447,6 +533,7 @@ void GameScene::update() {
     void GameScene::buildSpriteMapsFromRegistry(const nlohmann::json &registryJson) {
         _enemySpriteMap.clear();
         _obstacleSpriteMap.clear();
+        _elementSpriteMap.clear();
 
         if (registryJson.is_null())
             return;
@@ -478,6 +565,10 @@ void GameScene::update() {
                 case component::entity_type::OBSTACLE:
                     if (!imagePath.empty())
                         _obstacleSpriteMap[serverEntityId] = imagePath;
+                    break;
+                case component::entity_type::RANDOM_ELEMENT:
+                    if (!imagePath.empty())
+                        _elementSpriteMap[serverEntityId] = imagePath;
                     break;
                 default:
                     break;
@@ -594,7 +685,7 @@ void GameScene::update() {
                 case component::entity_type::ENEMY:
                     render_enemy(entity, *positions[i], *drawables[i]);
                     break;
-                case component::entity_type::POWERUP:
+                case component::entity_type::RANDOM_ELEMENT:
                     render_powerup(entity, *positions[i], *drawables[i]);
                     break;
                 case component::entity_type::PROJECTILE:
@@ -786,6 +877,7 @@ void GameScene::update() {
     }
 
     void GameScene::render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
+        
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
@@ -800,7 +892,14 @@ void GameScene::update() {
             }
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
-            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GOLD);
+            std::cout << "[WARNING] Element has NO texture, drawing fallback rectangle" << std::endl;
+            _raylib.drawRectangle(
+                (int)(pos.x - draw.width / 2), 
+                (int)(pos.y - draw.height / 2), 
+                (int)draw.width, 
+                (int)draw.height, 
+                GOLD
+            );            
         }
     }
 

@@ -230,6 +230,9 @@ namespace game::scene {
         std::unordered_map<uint32_t, ecs::entity_t> _obstacleMap;  // Map serverId -> client entity
         std::unordered_map<uint32_t, std::string> _obstacleSpriteMap;  // Map serverId -> sprite path
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
+        std::vector<ecs::entity_t> _elements; ///< List of active random element entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _elementMap; ///< Map: network element ID -> ECS entity.
+        std::unordered_map<uint32_t, std::string> _elementSpriteMap;  // Map serverId -> sprite path
         std::unordered_map<uint32_t, ecs::entity_t> _enemyMap; ///< Map: network enemy ID -> ECS entity.
         std::unordered_map<uint32_t, std::string> _enemySpriteMap; ///< Map: network enemy ID -> sprite path.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.

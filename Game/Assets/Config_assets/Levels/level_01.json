@@ -121,9 +121,8 @@
       {"x": 5200.0, "y": 500.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0}
     ],
     "random_elements": [
-      {"x": 1400.0, "y": 450.0, "width": 32.0, "height": 32.0, "image_path": "assets/items/powerup.png", "sound_path": "assets/sfx/powerup.wav", "volume": 0.8, "type": "powerup"},
-      {"x": 2300.0, "y": 450.0, "width": 32.0, "height": 32.0, "image_path": "assets/items/health.png", "sound_path": "assets/sfx/health.wav", "volume": 0.8, "type": "health"},
-      {"x": 3600.0, "y": 450.0, "width": 32.0, "height": 32.0, "image_path": "assets/items/shield.png", "sound_path": "assets/sfx/shield.wav", "volume": 0.8, "type": "shield"}
+      {"x": 1000.0, "y": 650.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0},
+      {"x": 1500.0, "y": 650.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0}
     ]
   }
 }
