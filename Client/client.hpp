@@ -64,40 +64,13 @@ class GameClient {
          * @param markPending If true, marks the registry as pending for consumption by the game thread.
          */
 
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> projectiles;
-
-        /**
-         * @brief Maps enemy IDs to their (x,y,velX,velY).
-         */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> enemies;
-
-        /**
-         * @brief Maps elements IDs to their (x,y,velX,velY).
-         */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> elements;
-
-        /**
-         * @brief Maps player IDs to their current health values.
-         */
-        std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> playerHealth;
-
-        /**
-         * @brief Maps player IDs to their individual scores.
-         */
-        std::unordered_map<uint32_t, uint32_t> playerIndividualScores;
-
-        /**
-         * @brief Maps enemy projectile IDs to their (x,y,velX,velY,ownerId).
-         */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
-
         void storeFullRegistry(const nlohmann::json &registryJson, bool markPending);
 
         /**
          * @brief Requests the full game registry from the server asynchronously.
          */
         void fetchFullRegistryAsync();
-
+        
         std::deque<std::pair<std::string, std::string>> _chatQueue; ///< Queue of chat messages waiting to be processed.
         std::mutex roomsMutex; ///< Protects access to the rooms list.
         std::condition_variable roomsCv; ///< Notifies waiting threads when rooms data is updated.
@@ -121,6 +94,11 @@ class GameClient {
         int32_t globalScore = 0; ///< The shared team score for all players.
         std::atomic<bool> bossDefeated{false}; ///< Thread-safe flag indicating if the boss has been defeated.
         bool _lastBoss = false; ///< Flag indicating if the current boss is the final boss of the game.
+
+        /**
+         * @brief Maps elements IDs to their (x,y,velX,velY).
+         */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> elements;
 
         /**
          * @brief Waits for the rooms list to be updated by the server.
