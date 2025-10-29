@@ -152,7 +152,8 @@ void ServerGame::enqueuePacket(const std::vector<uint8_t> &data, const asio::ip:
 void ServerGame::setInitialClients(const std::map<uint32_t, bool> &clients) {
     std::lock_guard<std::mutex> lock(initialClientsMutex);
     initialClients = clients;
-    for (auto id : initialClients) {
+    for (const auto &entry : initialClients) {
+        auto id = entry.first;
         if (_playerWeapons.find(id) == _playerWeapons.end()) {
             _playerWeapons[id] = "basic_shot";
         }

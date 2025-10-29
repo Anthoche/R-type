@@ -131,14 +131,6 @@ public:
 		 */
 		const std::string &getSelectedWeaponId() const { return _selectedWeaponId; }
 
-	private:
-		GameStatus _status; ///< Status of the game
-		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
-		GameClient _client; ///< Network client handling server communication
-		std::thread _networkThread; ///< Thread for handling network communication
-		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
-		bool _soundEnabled = true; ///< Sound enabled/disabled flag
-    
     void setEndlessMode(bool endless) { _endlessMode = endless; }
   
     bool isEndlessModeEnabled() const { return _endlessMode; }
