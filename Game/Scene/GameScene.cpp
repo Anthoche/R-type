@@ -548,7 +548,7 @@ void GameScene::update() {
             float currentTime = _raylib.getTime();
             float timeSinceVictory = currentTime - _victoryStartTime;
             
-            if (timeSinceVictory >= 6.0f) {
+            if (timeSinceVictory >= 6.0f && !_lastBoss) {
                 _isWin = false;
                 _stopShoot = false;
                 _victorySoundPlayed = false;

@@ -376,7 +376,6 @@ void GameClient::handleBossDeath(const std::vector<uint8_t> &buffer) {
     BossDeathMessage msg;
     std::memcpy(&msg, buffer.data(), sizeof(BossDeathMessage));
     uint32_t bossId = ntohl(msg.bossId);
-    std::cout << "[Client] Boss defeated (id=" << bossId << "), requesting next level data..." << std::endl;
     bossDefeated = true;
     _lastBoss = ntohl(msg._lastBoss);
     fetchFullRegistryAsync();
