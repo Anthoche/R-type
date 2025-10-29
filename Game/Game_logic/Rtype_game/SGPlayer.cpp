@@ -38,8 +38,8 @@ void ServerGame::broadcast_player_death(uint32_t clientId) {
 void ServerGame::initialize_player_positions() {
     LOG_DEBUG("Initializing player positions...");
     for (const auto& kv : connexion.getClients()) {
-        float spawnX = 300.f + (kv.second - 1) * 50.f;
-        float spawnY = 300.f;
+        float spawnX = 300.f + (kv.second - 1) * 100.f;
+        float spawnY = 100.f;
         playerPositions[kv.second] = {spawnX, spawnY};
         playerSpawnPositions[kv.second] = {spawnX, spawnY};
         ensure_player_tracking(kv.second);
