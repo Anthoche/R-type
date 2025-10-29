@@ -117,10 +117,6 @@ message(STATUS "Game include directories: ${GAME_INCLUDE_DIRS}")
 
 add_library(game_logic STATIC ${GAME_ALL_SOURCES})
 
-target_sources(game_logic PRIVATE
-    ${SHARED_DIR}/WeaponDefinition.cpp
-)
-
 target_include_directories(game_logic PUBLIC
     ${GAME_DIR}
     ${GAME_INCLUDE_DIRS}

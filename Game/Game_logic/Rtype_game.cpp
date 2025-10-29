@@ -15,7 +15,6 @@
 #include <cmath>
 #include <string>
 #include <cctype>
-#include "WeaponDefinition.hpp"
 
 #define RESET_COLOR   "\033[0m"
 #define RED_COLOR     "\033[31m"
@@ -66,10 +65,6 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
 
 void ServerGame::setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins) {
     _playerSkins = skins;
-}
-
-void ServerGame::setInitialPlayerWeapons(const std::unordered_map<uint32_t, std::string> &weapons) {
-    _playerWeapons = weapons;
 }
 
 
@@ -152,17 +147,6 @@ void ServerGame::enqueuePacket(const std::vector<uint8_t> &data, const asio::ip:
 void ServerGame::setInitialClients(const std::map<uint32_t, bool> &clients) {
     std::lock_guard<std::mutex> lock(initialClientsMutex);
     initialClients = clients;
-    for (auto id : initialClients) {
-        if (_playerWeapons.find(id) == _playerWeapons.end()) {
-            _playerWeapons[id] = "basic_shot";
-        }
-        const auto &definition = weapon::getDefinition(_playerWeapons[id]);
-        if (definition.infiniteAmmo) {
-            _playerAmmo.erase(id);
-        } else {
-            _playerAmmo[id] = definition.ammoCapacity;
-        }
-    }
 }
 
 bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
@@ -406,7 +390,6 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 if (scene == SceneState::GAME) {
                     broadcast_full_registry_to(id);
                     send_player_skins_to(id);
-                    send_player_weapons_to(id);
                 }
             }
             break;
@@ -439,29 +422,6 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
             }
             break;
         }
-        case MessageType::PlayerWeaponUpdate: {
-            if (data.size() >= sizeof(PlayerWeaponMessage)) {
-                const PlayerWeaponMessage *msg = reinterpret_cast<const PlayerWeaponMessage*>(data.data());
-                uint32_t clientId = ntohl(msg->clientId);
-                std::string weaponId(msg->weaponId);
-                if (weaponId.empty()) {
-                    weaponId = "basic_shot";
-                }
-                _playerWeapons[clientId] = weaponId;
-
-                const auto &definition = weapon::getDefinition(weaponId);
-                if (definition.infiniteAmmo) {
-                    _playerAmmo.erase(clientId);
-                } else {
-                    _playerAmmo[clientId] = definition.ammoCapacity;
-                }
-                _playerBurstState.erase(clientId);
-                _playerLastShot.erase(clientId);
-
-                broadcast_player_weapon(clientId, weaponId);
-            }
-            break;
-        }
         case MessageType::ClientShoot: {
             if (data.size() >= sizeof(ClientShootMessage)) {
                 const ClientShootMessage* msg = reinterpret_cast<const ClientShootMessage*>(data.data());
@@ -473,95 +433,16 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 if (it != playerPositions.end()) {
                     float playerX = it->second.first;
                     float playerY = it->second.second;
-                    const std::string weaponId = [&]() -> std::string {
-                        auto wIt = _playerWeapons.find(clientId);
-                        if (wIt != _playerWeapons.end() && !wIt->second.empty())
-                            return wIt->second;
-                        return "basic_shot";
-                    }();
-                    const auto &definition = weapon::getDefinition(weaponId);
-                    const bool usesBurst = (definition.burstDuration > 0.f && definition.burstCooldown > 0.f);
-                    BurstState *burstStatePtr = nullptr;
-                    if (usesBurst) {
-                        burstStatePtr = &_playerBurstState[clientId];
-                    } else {
-                        _playerBurstState.erase(clientId);
-                    }
-
-                    const auto now = std::chrono::steady_clock::now();
-                    if (burstStatePtr != nullptr) {
-                        auto &burstState = *burstStatePtr;
-                        if (burstState.inBurst) {
-                            float burstElapsed = std::chrono::duration_cast<std::chrono::duration<float>>(now - burstState.burstStart).count();
-                            if (burstElapsed >= definition.burstDuration) {
-                                burstState.inBurst = false;
-                                burstState.lastBurstEnd = now;
-                            }
-                        }
-                        if (!burstState.inBurst) {
-                            if (burstState.lastBurstEnd != std::chrono::steady_clock::time_point{}) {
-                                float cooldownElapsed = std::chrono::duration_cast<std::chrono::duration<float>>(now - burstState.lastBurstEnd).count();
-                                if (cooldownElapsed < definition.burstCooldown) {
-                                    break;
-                                }
-                            }
-                            burstState.inBurst = true;
-                            burstState.burstStart = now;
-                            if (!definition.infiniteAmmo) {
-                                _playerAmmo[clientId] = definition.ammoCapacity;
-                            }
-                        }
-                    }
-
-                    const auto lastIt = _playerLastShot.find(clientId);
-                    float progress = std::clamp(totalScore / 150.f, 0.f, 1.f);
-                    float allowedCooldown = definition.fireCooldown - progress * (definition.fireCooldown - definition.minCooldown);
-                    allowedCooldown = std::clamp(allowedCooldown, definition.minCooldown, definition.fireCooldown);
-
-                    if (lastIt != _playerLastShot.end()) {
-                        float elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(now - lastIt->second).count();
-                        if (elapsed < allowedCooldown) {
-                            break;
-                        }
-                    }
-
-                    if (!definition.infiniteAmmo) {
-                        int &remaining = _playerAmmo[clientId];
-                        if (remaining <= 0) {
-                            if (burstStatePtr != nullptr) {
-                                burstStatePtr->inBurst = false;
-                                burstStatePtr->lastBurstEnd = now;
-                            }
-                            break;
-                        }
-                        remaining--;
-                        if (burstStatePtr != nullptr && remaining <= 0) {
-                            burstStatePtr->inBurst = false;
-                            burstStatePtr->lastBurstEnd = now;
-                        }
-                    }
-                    _playerLastShot[clientId] = now;
 
                     uint32_t projId = nextProjectileId++;
                     float projX = playerX + 20.f;
                     float projY = playerY;
                     float projZ = 0.f;
-                    float projVelX = definition.projectileSpeed;
+                    float projVelX = 400.f;
                     float projVelY = 0.f;
                     float projVelZ = 0.f;
-
-                    projectiles[projId] = ProjectileState{
-                        .x = projX,
-                        .y = projY,
-                        .z = projZ,
-                        .vx = projVelX,
-                        .vy = projVelY,
-                        .vz = projVelZ,
-                        .ownerId = clientId,
-                        .damage = definition.damage,
-                        .width = definition.projectileWidth,
-                        .height = definition.projectileHeight
-                    };
+                    
+                    projectiles[projId] = std::make_tuple(projX, projY, projZ, projVelX, projVelY, projVelZ, clientId);
 
                     broadcast_projectile_spawn(projId, clientId, projX, projY, projZ, projVelX, projVelY, projVelZ);
 
@@ -857,25 +738,6 @@ void ServerGame::send_player_skins_to(uint32_t clientId) {
     }
     for (const auto &entry : _playerSkins) {
         broadcast_player_skin(entry.first, entry.second);
-    }
-}
-
-void ServerGame::broadcast_player_weapon(uint32_t clientId, const std::string &weaponId) {
-    PlayerWeaponMessage msg{};
-    msg.type = MessageType::PlayerWeaponUpdate;
-    msg.clientId = htonl(clientId);
-    std::memset(msg.weaponId, 0, sizeof(msg.weaponId));
-    std::strncpy(msg.weaponId, weaponId.c_str(), sizeof(msg.weaponId) - 1);
-    connexion.broadcast(&msg, sizeof(msg));
-}
-
-void ServerGame::send_player_weapons_to(uint32_t clientId) {
-    (void)clientId;
-    if (_playerWeapons.empty()) {
-        return;
-    }
-    for (const auto &entry : _playerWeapons) {
-        broadcast_player_weapon(entry.first, entry.second);
     }
 }
 

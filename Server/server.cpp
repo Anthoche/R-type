@@ -15,7 +15,6 @@
 #include <optional>
 #include <format>
 #include "Logger.hpp"
-#include "WeaponDefinition.hpp"
 
 GameServer::GameServer(uint16_t port) : connexion(ioContext, port), roomManager(4) {
 	roomManager.addRoom(Room(connexion, 4, 2, "Rtype"));
@@ -74,27 +73,10 @@ void GameServer::handleClientHello(const std::vector<uint8_t> &data, const asio:
 		std::strncpy(skinMsg.skinFilename, skin.c_str(), sizeof(skinMsg.skinFilename) - 1);
 		connexion.sendTo(&skinMsg, sizeof(skinMsg), clientEndpoint);
 	}
-	for (const auto &[otherId, weapon] : waitingPlayerWeapons) {
-		PlayerWeaponMessage weaponMsg{};
-		weaponMsg.type = MessageType::PlayerWeaponUpdate;
-		weaponMsg.clientId = htonl(otherId);
-		std::memset(weaponMsg.weaponId, 0, sizeof(weaponMsg.weaponId));
-		std::strncpy(weaponMsg.weaponId, weapon.c_str(), sizeof(weaponMsg.weaponId) - 1);
-		connexion.sendTo(&weaponMsg, sizeof(weaponMsg), clientEndpoint);
-	}
-
-	waitingPlayerWeapons[clientId] = "basic_shot";
-	PlayerWeaponMessage baseMsg{};
-	baseMsg.type = MessageType::PlayerWeaponUpdate;
-	baseMsg.clientId = htonl(clientId);
-	std::memset(baseMsg.weaponId, 0, sizeof(baseMsg.weaponId));
-	std::strncpy(baseMsg.weaponId, waitingPlayerWeapons[clientId].c_str(), sizeof(baseMsg.weaponId) - 1);
-	connexion.broadcast(&baseMsg, sizeof(baseMsg));
-
 	LOG_INFO(std::format("Client connected: {}({}) [{}/{}]", msg->clientName, clientId, connexion.getClientCount(), maxPlayers));
 }
 
-void GameServer::handlePlayerSkinUpdate(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from) {
+void GameServer::handlePlayerSkinUpdate(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &) {
 	if (data.size() < sizeof(PlayerSkinMessage)) return;
 	const PlayerSkinMessage *msg = reinterpret_cast<const PlayerSkinMessage *>(data.data());
 	uint32_t clientId = ntohl(msg->clientId);
@@ -111,35 +93,6 @@ void GameServer::handlePlayerSkinUpdate(const std::vector<uint8_t>& data, const 
 	std::memset(broadcastMsg.skinFilename, 0, sizeof(broadcastMsg.skinFilename));
 	std::strncpy(broadcastMsg.skinFilename, filename.c_str(), sizeof(broadcastMsg.skinFilename) - 1);
 	connexion.broadcast(&broadcastMsg, sizeof(broadcastMsg));
-
-	Connexion::ReceivedPacket packet{};
-	packet.data = data;
-	packet.endpoint = from;
-	routePacketToGame(packet, MessageType::PlayerSkinUpdate);
-}
-
-void GameServer::handlePlayerWeaponUpdate(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from) {
-	if (data.size() < sizeof(PlayerWeaponMessage)) return;
-	const PlayerWeaponMessage *msg = reinterpret_cast<const PlayerWeaponMessage*>(data.data());
-	uint32_t clientId = ntohl(msg->clientId);
-	std::string weaponId(msg->weaponId);
-	if (weaponId.empty() || !weapon::hasDefinition(weaponId)) {
-		weaponId = "basic_shot";
-	}
-	waitingPlayerWeapons[clientId] = weaponId;
-
-	PlayerWeaponMessage broadcastMsg{};
-	broadcastMsg.type = MessageType::PlayerWeaponUpdate;
-	broadcastMsg.clientId = htonl(clientId);
-	std::memset(broadcastMsg.weaponId, 0, sizeof(broadcastMsg.weaponId));
-	std::strncpy(broadcastMsg.weaponId, weaponId.c_str(), sizeof(broadcastMsg.weaponId) - 1);
-	connexion.broadcast(&broadcastMsg, sizeof(broadcastMsg));
-
-	Connexion::ReceivedPacket packet{};
-	packet.data.resize(sizeof(broadcastMsg));
-	std::memcpy(packet.data.data(), &broadcastMsg, sizeof(broadcastMsg));
-	packet.endpoint = from;
-	routePacketToGame(packet, MessageType::PlayerWeaponUpdate);
 }
 
 void GameServer::broadcastGameStart(uint32_t roomId) {
@@ -271,11 +224,6 @@ void GameServer::processIncomingPacket(const Connexion::ReceivedPacket &packet) 
 		case MessageType::ClientFetchRooms:
 			handleClientFetchRooms(packet.data, packet.endpoint);
 			break;
-		case MessageType::PlayerSkinUpdate:
-			handlePlayerSkinUpdate(packet.data, packet.endpoint);
-			break;
-		case MessageType::PlayerWeaponUpdate:
-			handlePlayerWeaponUpdate(packet.data, packet.endpoint);
 		case MessageType::ClientConfirmStart:
 			handleClientConfirmStart(packet.data, packet.endpoint);
 			break;
@@ -310,20 +258,6 @@ void GameServer::routePacketToGame(const Connexion::ReceivedPacket &packet, Mess
 		case MessageType::ClientShoot:
 			if (packet.data.size() >= sizeof(ClientShootMessage)) {
 				const auto *msg = reinterpret_cast<const ClientShootMessage *>(packet.data.data());
-				clientId = ntohl(msg->clientId);
-				hasClient = true;
-			}
-			break;
-		case MessageType::PlayerSkinUpdate:
-			if (packet.data.size() >= sizeof(PlayerSkinMessage)) {
-				const auto *msg = reinterpret_cast<const PlayerSkinMessage *>(packet.data.data());
-				clientId = ntohl(msg->clientId);
-				hasClient = true;
-			}
-			break;
-		case MessageType::PlayerWeaponUpdate:
-			if (packet.data.size() >= sizeof(PlayerWeaponMessage)) {
-				const auto *msg = reinterpret_cast<const PlayerWeaponMessage *>(packet.data.data());
 				clientId = ntohl(msg->clientId);
 				hasClient = true;
 			}

@@ -15,23 +15,12 @@
 #include <filesystem>
 #include <cctype>
 #include <vector>
-#include <format>
-#include "Logger.hpp"
-#include "WeaponDefinition.hpp"
 
 namespace scene {
 	WaitingScene::WaitingScene(Game &game)
 		: AScene(960, 540, "R-Type - Waiting..."), _game(game) {
 		_previewCenter = {static_cast<float>(_width) / 2.f, static_cast<float>(_height) / 2.f + 45.f};
 		_previewBounds = {240.f, 150.f};
-		_weaponPreviewCenter = {
-			_previewCenter.x,
-			_previewCenter.y + (_previewBounds.y * 0.5f) + (_weaponPreviewBounds.y * 0.5f) + 78.f
-		};
-		float maxWeaponCenterY = static_cast<float>(_height) - (_weaponPreviewBounds.y * 0.5f) - 36.f;
-		if (_weaponPreviewCenter.y > maxWeaponCenterY) {
-			_weaponPreviewCenter.y = maxWeaponCenterY;
-		}
 	}
 
 	void WaitingScene::render() {
@@ -39,7 +28,6 @@ namespace scene {
 		_raylib.clearBackground(Color{6, 16, 28, 255});
 
 		drawSkinPreview();
-		drawWeaponPreview();
 
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &positions = _registry.get_components<component::position>();
@@ -135,7 +123,6 @@ namespace scene {
 		_registry.register_component<component::type>();
 
 		loadSkinOptions();
-		loadWeaponOptions();
 
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
 		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
@@ -225,30 +212,11 @@ namespace scene {
 									 arrowButtonSize, arrowButtonSize,
 									 secondaryColor, arrowTextColor, 30);
 
-		float weaponArrowButtonSize = 32.f;
-		float weaponArrowSpacing = 18.f;
-		Vector2 weaponPrevPos = {
-			_weaponPreviewCenter.x - (_weaponPreviewBounds.x / 2.f) - weaponArrowSpacing - weaponArrowButtonSize,
-			_weaponPreviewCenter.y - weaponArrowButtonSize / 2.f
-		};
-		Vector2 weaponNextPos = {
-			_weaponPreviewCenter.x + (_weaponPreviewBounds.x / 2.f) + weaponArrowSpacing,
-			_weaponPreviewCenter.y - weaponArrowButtonSize / 2.f
-		};
-
-		game::entities::create_button(_registry, "button_weapon_prev", "<",
-									  weaponPrevPos.x, weaponPrevPos.y, 0.f,
-									  weaponArrowButtonSize, weaponArrowButtonSize,
-									  secondaryColor, arrowTextColor, 24);
-		game::entities::create_button(_registry, "button_weapon_next", ">",
-									  weaponNextPos.x, weaponNextPos.y, 0.f,
-									  weaponArrowButtonSize, weaponArrowButtonSize,
-									  secondaryColor, arrowTextColor, 24);
+		selectSkin(_currentSkinIndex);
 	}
 
 	void WaitingScene::onClose() {
 		unloadSkinTextures();
-		unloadWeaponTextures();
 		_raylib.unloadFont(_font);
 	}
 
@@ -279,10 +247,6 @@ namespace scene {
 			selectPreviousSkin();
 		} else if (id == "button_skin_next") {
 			selectNextSkin();
-		} else if (id == "button_weapon_prev") {
-			selectPreviousWeapon();
-		} else if (id == "button_weapon_next") {
-			selectNextWeapon();
 		}
 	}
 
@@ -390,172 +354,11 @@ namespace scene {
         selectSkin(_currentSkinIndex);
     }
 
-	void WaitingScene::loadWeaponOptions() {
-		unloadWeaponTextures();
-		_weaponOptions.clear();
-
-		const std::string previouslySelectedPath = _game.getSelectedWeaponPath();
-		const std::string previouslySelectedId = _game.getSelectedWeaponId();
-		const std::filesystem::path weaponDir{ASSETS_PATH "/sprites/weapons"};
-		std::error_code ec;
-
-		std::vector<std::filesystem::directory_entry> files;
-		if (std::filesystem::exists(weaponDir, ec)) {
-			for (const auto &entry : std::filesystem::directory_iterator(weaponDir, ec)) {
-				if (!entry.is_regular_file())
-					continue;
-				std::string ext = entry.path().extension().string();
-				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				});
-				if (ext != ".png")
-					continue;
-				files.push_back(entry);
-			}
-		}
-
-		std::sort(files.begin(), files.end(), [](const auto &lhs, const auto &rhs) {
-			return lhs.path().filename().string() < rhs.path().filename().string();
-		});
-
-		auto formatName = [](std::string stem) {
-			if (stem.empty())
-				return std::string("Unnamed");
-			for (auto &ch : stem) {
-				if (ch == '_' || ch == '-')
-					ch = ' ';
-			}
-			if (!stem.empty())
-				stem[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(stem[0])));
-			return stem;
-		};
-
-		auto hydrateTexture = [this](WeaponOption &option) {
-			if (option.path.empty())
-				return;
-			option.texture = _raylib.loadTexture(option.path);
-			if (option.texture.id == 0)
-				return;
-			option.source = {
-				0.f, 0.f,
-				static_cast<float>(option.texture.width),
-				static_cast<float>(option.texture.height)
-			};
-
-			Image image = LoadImage(option.path.c_str());
-			if (image.data != nullptr) {
-				Rectangle alpha = GetImageAlphaBorder(image, 0.05f);
-				if (alpha.width > 0.f && alpha.height > 0.f) {
-					option.source = alpha;
-					option.source.x = std::clamp(
-						option.source.x, 0.f,
-						static_cast<float>(option.texture.width) - option.source.width
-					);
-					option.source.y = std::clamp(
-						option.source.y, 0.f,
-						static_cast<float>(option.texture.height) - option.source.height
-					);
-				}
-				UnloadImage(image);
-			}
-		};
-
-		const std::string defaultWeaponId = "basic_shot";
-		const std::filesystem::path defaultWeaponSprite = weaponDir / "guntmp.png";
-		const weapon::WeaponDefinition &basicDef = weapon::getDefinition(defaultWeaponId);
-
-		WeaponOption baseOption;
-		baseOption.name = basicDef.displayName;
-		baseOption.id = defaultWeaponId;
-		if (std::filesystem::exists(defaultWeaponSprite, ec) &&
-			std::filesystem::is_regular_file(defaultWeaponSprite)) {
-			baseOption.path = defaultWeaponSprite.string();
-			hydrateTexture(baseOption);
-		}
-		_weaponOptions.push_back(baseOption);
-
-		for (const auto &entry : files) {
-			const auto path = entry.path();
-			const std::string stem = path.stem().string();
-			const std::string fullPath = path.string();
-
-			if (path == defaultWeaponSprite) {
-				continue;
-			}
-
-			WeaponOption option;
-			option.name = formatName(stem);
-			option.path = fullPath;
-			option.id = stem;
-			if (weapon::hasDefinition(option.id)) {
-				option.name = weapon::getDefinition(option.id).displayName;
-			}
-			hydrateTexture(option);
-			_weaponOptions.push_back(std::move(option));
-		}
-
-		if (_weaponOptions.empty()) {
-			WeaponOption option;
-			option.name = "Default";
-			option.id = defaultWeaponId;
-			_weaponOptions.push_back(option);
-		}
-
-		if (_weaponOptions.size() > 1 && _weaponOptions.front().id != defaultWeaponId) {
-			_weaponOptions.front().id = defaultWeaponId;
-		}
-
-		_currentWeaponIndex = 0;
-		auto matchById = [&](const std::string &id) {
-			if (id.empty())
-				return false;
-			for (std::size_t idx = 0; idx < _weaponOptions.size(); ++idx) {
-				if (_weaponOptions[idx].id == id) {
-					_currentWeaponIndex = idx;
-					return true;
-				}
-			}
-			return false;
-		};
-		auto matchByPath = [&](const std::string &pathValue) {
-			if (pathValue.empty())
-				return false;
-			for (std::size_t idx = 0; idx < _weaponOptions.size(); ++idx) {
-				if (_weaponOptions[idx].path == pathValue) {
-					_currentWeaponIndex = idx;
-					return true;
-				}
-			}
-			return false;
-		};
-
-		if (!matchById(previouslySelectedId)) {
-			matchByPath(previouslySelectedPath);
-		}
-
-		if (_weaponOptions.empty()) {
-			_currentWeaponIndex = 0;
-		} else {
-			_currentWeaponIndex %= _weaponOptions.size();
-		}
-
-		selectWeapon(_currentWeaponIndex);
-	}
-
 	void WaitingScene::unloadSkinTextures() {
 		for (auto &skin : _skinOptions) {
 			if (skin.texture.id != 0) {
 				_raylib.unloadTexture(skin.texture);
 				skin.texture = {};
-			}
-		}
-	}
-
-	void WaitingScene::unloadWeaponTextures() {
-		for (auto &weapon : _weaponOptions) {
-			if (weapon.texture.id != 0) {
-				_raylib.unloadTexture(weapon.texture);
-				weapon.texture = {};
 			}
 		}
 	}
@@ -566,30 +369,14 @@ namespace scene {
 		}
 
 		_currentSkinIndex = index % _skinOptions.size();
-		const auto &skin = _skinOptions[_currentSkinIndex];
-		if (!skin.path.empty()) {
-			_game.setSelectedSkinPath(skin.path);
-			if (!skin.filename.empty()) {
-				_game.getGameClient().sendSkinSelection(skin.filename);
-			}
+	const auto &skin = _skinOptions[_currentSkinIndex];
+	if (!skin.path.empty()) {
+		_game.setSelectedSkinPath(skin.path);
+		if (!skin.filename.empty()) {
+			_game.getGameClient().sendSkinSelection(skin.filename);
 		}
 	}
-
-	void WaitingScene::selectWeapon(std::size_t index) {
-		if (_weaponOptions.empty()) {
-			_game.setSelectedWeaponPath("");
-			_game.setSelectedWeaponId("basic_shot");
-			_game.getGameClient().sendWeaponSelection("basic_shot");
-			return;
-		}
-
-		_currentWeaponIndex = index % _weaponOptions.size();
-		const auto &weapon = _weaponOptions[_currentWeaponIndex];
-		_game.setSelectedWeaponPath(weapon.path);
-		const std::string weaponId = !weapon.id.empty() ? weapon.id : "basic_shot";
-		_game.setSelectedWeaponId(weaponId);
-		_game.getGameClient().sendWeaponSelection(weaponId);
-	}
+}
 
 	void WaitingScene::selectNextSkin() {
 		if (_skinOptions.empty()) return;
@@ -601,18 +388,6 @@ namespace scene {
 		if (_skinOptions.empty()) return;
 		std::size_t prev = (_currentSkinIndex + _skinOptions.size() - 1) % _skinOptions.size();
 		selectSkin(prev);
-	}
-
-	void WaitingScene::selectNextWeapon() {
-		if (_weaponOptions.empty()) return;
-		std::size_t next = (_currentWeaponIndex + 1) % _weaponOptions.size();
-		selectWeapon(next);
-	}
-
-	void WaitingScene::selectPreviousWeapon() {
-		if (_weaponOptions.empty()) return;
-		std::size_t prev = (_currentWeaponIndex + _weaponOptions.size() - 1) % _weaponOptions.size();
-		selectWeapon(prev);
 	}
 
 	void WaitingScene::drawSkinPreview() {
@@ -674,92 +449,6 @@ namespace scene {
 			Vector2 textPos = {_previewCenter.x - textSize.x / 2.f, panel.y + panel.height + 12.f};
 			_raylib.drawTextEx(_font, skinName.c_str(), textPos, labelSize, -0.5f, Color{210, 235, 255, 255});
 		}
-	}
-
-	void WaitingScene::drawWeaponPreview() {
-		Rectangle panel = {
-			_weaponPreviewCenter.x - (_weaponPreviewBounds.x / 2.f) - 14.f,
-			_weaponPreviewCenter.y - (_weaponPreviewBounds.y / 2.f) - 14.f,
-			_weaponPreviewBounds.x + 28.f,
-			_weaponPreviewBounds.y + 28.f
-		};
-		_raylib.drawRectangleRounded(panel, 0.16f, 10, Color{14, 34, 56, 255});
-
-		Rectangle inner = {
-			_weaponPreviewCenter.x - (_weaponPreviewBounds.x / 2.f) - 4.f,
-			_weaponPreviewCenter.y - (_weaponPreviewBounds.y / 2.f) - 4.f,
-			_weaponPreviewBounds.x + 8.f,
-			_weaponPreviewBounds.y + 8.f
-		};
-		_raylib.drawRectangleRounded(inner, 0.12f, 10, Color{8, 20, 34, 255});
-
-		if (_weaponOptions.empty() || _weaponOptions[_currentWeaponIndex].texture.id == 0) {
-			std::string fallback =
-				(_game.getLanguage() == Game::Language::FRENCH) ? "Arme indisponible" :
-				(_game.getLanguage() == Game::Language::ITALIAN) ? "Arma non disponibile" :
-				"Weapon unavailable";
-			Vector2 textSize = _raylib.measureTextEx(_font, fallback.c_str(), 13.f, -0.5f);
-			Vector2 textPos = {_weaponPreviewCenter.x - textSize.x / 2.f, _weaponPreviewCenter.y - textSize.y / 2.f};
-			_raylib.drawTextEx(_font, fallback.c_str(), textPos, 13.f, -0.5f, Color{170, 190, 210, 255});
-			return;
-		}
-
-		WeaponOption &current = _weaponOptions[_currentWeaponIndex];
-		Texture2D &texture = current.texture;
-
-		Rectangle source = current.source;
-		if (source.width <= 0.f || source.height <= 0.f) {
-			source = {0.f, 0.f, static_cast<float>(texture.width), static_cast<float>(texture.height)};
-		}
-
-		float scale = 1.f;
-		if (source.width > 0.f && source.height > 0.f) {
-			float fitW = _weaponPreviewBounds.x / source.width;
-			float fitH = _weaponPreviewBounds.y / source.height;
-			scale = std::min(fitW, fitH) * 0.95f;
-		}
-
-		Rectangle dest = {
-			_weaponPreviewCenter.x - (source.width * scale) / 2.f,
-			_weaponPreviewCenter.y - (source.height * scale) / 2.f,
-			source.width * scale,
-			source.height * scale
-		};
-
-		_raylib.drawTexturePro(texture, source, dest, {0.f, 0.f}, 0.f, WHITE);
-
-		const weapon::WeaponDefinition &definition = weapon::getDefinition(!current.id.empty() ? current.id : "basic_shot");
-
-		std::string displayName = !current.name.empty() ? current.name : definition.displayName;
-		float labelSize = 14.f;
-		Vector2 textSize = _raylib.measureTextEx(_font, displayName.c_str(), labelSize, -0.5f);
-		Vector2 textPos = {_weaponPreviewCenter.x - textSize.x / 2.f, panel.y + panel.height + 6.f};
-		_raylib.drawTextEx(_font, displayName.c_str(), textPos, labelSize, -0.5f, Color{200, 225, 240, 255});
-
-		auto formatFloat = [](float value, int precision = 2) {
-			return std::format("{:.{}f}", value, precision);
-		};
-
-		std::string ammoLine = definition.infiniteAmmo
-			? "Ammo: INF"
-			: std::format("Ammo: {}", definition.ammoCapacity);
-		std::string rateLine = std::format("Cooldown: {}s", formatFloat(definition.fireCooldown, 2));
-		std::string dmgLine = std::format("Damage: {}", formatFloat(definition.damage, 1));
-
-		float detailsSize = 12.f;
-		Vector2 ammoSize = _raylib.measureTextEx(_font, ammoLine.c_str(), detailsSize, -0.5f);
-		Vector2 rateSize = _raylib.measureTextEx(_font, rateLine.c_str(), detailsSize, -0.5f);
-		Vector2 dmgSize = _raylib.measureTextEx(_font, dmgLine.c_str(), detailsSize, -0.5f);
-
-		float firstLineY = textPos.y + ammoSize.y + 4.f;
-		Vector2 ammoPos = {_weaponPreviewCenter.x - ammoSize.x / 2.f, firstLineY};
-		Vector2 ratePos = {_weaponPreviewCenter.x - rateSize.x / 2.f, ammoPos.y + rateSize.y + 2.f};
-		Vector2 dmgPos = {_weaponPreviewCenter.x - dmgSize.x / 2.f, ratePos.y + dmgSize.y + 2.f};
-
-		Color detailColor = Color{190, 215, 235, 255};
-		_raylib.drawTextEx(_font, ammoLine.c_str(), ammoPos, detailsSize, -0.5f, detailColor);
-		_raylib.drawTextEx(_font, rateLine.c_str(), ratePos, detailsSize, -0.5f, detailColor);
-		_raylib.drawTextEx(_font, dmgLine.c_str(), dmgPos, detailsSize, -0.5f, detailColor);
 	}
 
 	bool WaitingScene::canJoin() {
