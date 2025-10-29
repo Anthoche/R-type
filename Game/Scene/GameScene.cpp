@@ -494,6 +494,13 @@ void GameScene::update() {
             ecs::entity_t newElement = game::entities::create_random_element(
                 _registry, x, y, z, spritePath, width, height, "powerup", 0.0f
             );
+
+            auto texIt = _entityTextures.find(newElement.value());
+            if (texIt != _entityTextures.end()) {
+                std::cout << "[DEBUG] Clearing old texture for entity " << newElement.value() << std::endl;
+                _raylib.unloadTexture(texIt->second);
+                _entityTextures.erase(texIt);
+            }
             
             _elementMap.emplace(serverId, newElement);
             _elements.push_back(newElement);
@@ -955,7 +962,6 @@ void GameScene::update() {
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
-            std::cout << "[DEBUUUUUUG] Drawing powerup with texture: " << sprites[entity.value()]->image_path << std::endl;
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             std::cout << "[WARNING] Element has NO texture, drawing fallback rectangle" << std::endl;
