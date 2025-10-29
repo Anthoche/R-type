@@ -253,7 +253,7 @@ void GameClient::handleObstacleUpdate(const std::vector<uint8_t> &buffer) {
         float existingDepth = std::get<5>(it->second);
         obstacles[id] = std::make_tuple(x, y, z, existingWidth, existingHeight, existingDepth, vx, vy, vz);
     } else {
-        std::cerr << "[WARNING] Received update for unknown obstacle: " << id << std::endl;
+        //std::cerr << "[WARNING] Received update for unknown obstacle: " << id << std::endl;
     }
 }
 

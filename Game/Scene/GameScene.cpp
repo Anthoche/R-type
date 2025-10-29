@@ -484,7 +484,7 @@ void GameScene::update() {
         auto it = _elementMap.find(serverId);
         
         if (it == _elementMap.end()) {
-            std::string spritePath = "../Game/Assets/sprites/eazz.png";
+            std::string spritePath = "";
 
             auto spriteIt = _elementSpriteMap.find(serverId);
             if (spriteIt != _elementSpriteMap.end()) {
@@ -955,6 +955,7 @@ void GameScene::update() {
             if (entity.value() < sprites.size() && sprites[entity.value()]) {
                 rotation = sprites[entity.value()]->rotation;
             }
+            std::cout << "[DEBUUUUUUG] Drawing powerup with texture: " << sprites[entity.value()]->image_path << std::endl;
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             std::cout << "[WARNING] Element has NO texture, drawing fallback rectangle" << std::endl;

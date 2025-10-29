@@ -233,7 +233,7 @@ namespace scene {
 				clickable[i]->enabled = canJoin();
 			}
 		}
-		LOG_DEBUG(std::format("GameStatus: {}", static_cast<int>(_game.getGameStatus())));
+		//LOG_DEBUG(std::format("GameStatus: {}", static_cast<int>(_game.getGameStatus())));
 	}
 
 	void WaitingScene::handleButtonClick(std::string const &id) {
