@@ -2,211 +2,116 @@
 ** EPITECH PROJECT, 2025
 ** R-Type
 ** File description:
-** test_background.cpp
+** BackgroundTests.cpp
 */
 
 #include <gtest/gtest.h>
 #include "background.hpp"
+#include "registry.hpp"
 #include "components.hpp"
-#include "registry.hpp" 
 
 using namespace ecs;
 using namespace game::entities;
+using namespace component;
 
-TEST(Background, has_position_component) {
-    registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, 100.0f, 200.0f, 800.0f, 600.0f);
-    
-    auto &positions = reg.get_components<component::position>();
-    auto &pos = positions[static_cast<std::size_t>(bg)];
-    
-    EXPECT_TRUE(pos.has_value());
-    EXPECT_EQ(pos->x, 100.0f);
-    EXPECT_EQ(pos->y, 200.0f);
+static void register_all_background_components(registry &reg)
+{
+    reg.register_component<position>();
+    reg.register_component<drawable>();
+    reg.register_component<type>();
+    reg.register_component<sprite>();
+    reg.register_component<model3D>();
 }
 
-TEST(Background, has_drawable_component) {
+TEST(Background, creates_basic_components)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, 0.0f, 0.0f, 1920.0f, 1080.0f);
-    
-    auto &drawables = reg.get_components<component::drawable>();
-    auto &drw = drawables[static_cast<std::size_t>(bg)];
-    
-    EXPECT_TRUE(drw.has_value());
-    EXPECT_EQ(drw->width, 1920.0f);
-    EXPECT_EQ(drw->height, 1080.0f);
+    register_all_background_components(reg);
+
+    auto bg = create_background(reg, 0.f, 0.f);
+    auto &positions = reg.get_components<position>();
+    auto &drawables = reg.get_components<drawable>();
+    auto &types = reg.get_components<type>();
+
+    EXPECT_TRUE(positions[static_cast<size_t>(bg)].has_value());
+    EXPECT_TRUE(drawables[static_cast<size_t>(bg)].has_value());
+    EXPECT_TRUE(types[static_cast<size_t>(bg)].has_value());
+    EXPECT_EQ(types[static_cast<size_t>(bg)]->value, entity_type::BACKGROUND);
+    EXPECT_FLOAT_EQ(drawables[static_cast<size_t>(bg)]->width, 800.f);
+    EXPECT_FLOAT_EQ(drawables[static_cast<size_t>(bg)]->height, 600.f);
+    EXPECT_FLOAT_EQ(drawables[static_cast<size_t>(bg)]->depth, 1.f);
 }
 
-TEST(Background, has_type_component) {
+TEST(Background, sets_position_correctly)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, 0.0f, 0.0f, 800.0f, 600.0f);
-    
-    auto &types = reg.get_components<component::type>();
-    auto &type_comp = types[static_cast<std::size_t>(bg)];
-    
-    EXPECT_TRUE(type_comp.has_value());
-    EXPECT_EQ(type_comp->value, component::entity_type::BACKGROUND);
+    register_all_background_components(reg);
+
+    auto bg = create_background(reg, 10.f, 20.f, 30.f);
+    auto &positions = reg.get_components<position>();
+
+    ASSERT_TRUE(positions[static_cast<size_t>(bg)].has_value());
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(bg)]->x, 10.f);
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(bg)]->y, 20.f);
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(bg)]->z, 30.f);
 }
 
-TEST(Background, no_sprite_when_empty_path) {
+TEST(Background, optional_sprite_model_added)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, 0.0f, 0.0f, 800.0f, 600.0f, "");
-    
-    auto &sprites = reg.get_components<component::sprite>();
-    auto &spr = sprites[static_cast<std::size_t>(bg)];
-    
-    EXPECT_FALSE(spr.has_value());
+    register_all_background_components(reg);
+
+    auto bg = create_background(reg, 0.f, 0.f, 0.f, 800.f, 600.f, 1.f,
+        "background.png", "skybox.obj", 2.f);
+    auto &sprites = reg.get_components<sprite>();
+    auto &models = reg.get_components<model3D>();
+
+    ASSERT_TRUE(sprites[static_cast<size_t>(bg)].has_value());
+    ASSERT_TRUE(models[static_cast<size_t>(bg)].has_value());
+
+    EXPECT_EQ(sprites[static_cast<size_t>(bg)]->image_path, "background.png");
+    EXPECT_EQ(models[static_cast<size_t>(bg)]->model_path, "skybox.obj");
+    EXPECT_FLOAT_EQ(sprites[static_cast<size_t>(bg)]->scale, 2.f);
+    EXPECT_FLOAT_EQ(models[static_cast<size_t>(bg)]->scale, 2.f);
 }
 
-TEST(Background, has_sprite_with_image_path) {
+TEST(Background, empty_paths_skip_components)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, 0.0f, 0.0f, 800.0f, 600.0f, 
-                                    "assets/background.png");
-    
-    auto &sprites = reg.get_components<component::sprite>();
-    auto &spr = sprites[static_cast<std::size_t>(bg)];
-    
-    EXPECT_TRUE(spr.has_value());
-    EXPECT_STREQ(spr->image_path.c_str(), "assets/background.png");
+    register_all_background_components(reg);
+
+    auto bg = create_background(reg, 0.f, 0.f, 0.f, 100.f, 100.f, 1.f, "", "");
+    auto &sprites = reg.get_components<sprite>();
+    auto &models = reg.get_components<model3D>();
+
+    EXPECT_FALSE(sprites[static_cast<size_t>(bg)].has_value());
+    EXPECT_FALSE(models[static_cast<size_t>(bg)].has_value());
 }
 
-TEST(Background, sprite_scale_default) {
+TEST(Background, multiple_entities_unique)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, 0.0f, 0.0f, 800.0f, 600.0f, 
-                                    "bg.png");
-    
-    auto &sprites = reg.get_components<component::sprite>();
-    auto &spr = sprites[static_cast<std::size_t>(bg)];
-    
-    EXPECT_TRUE(spr.has_value());
-    EXPECT_EQ(spr->scale, 1.0f);
+    register_all_background_components(reg);
+
+    auto b1 = create_background(reg, 0.f, 0.f);
+    auto b2 = create_background(reg, 100.f, 100.f);
+    EXPECT_NE(b1, b2);
+
+    auto &positions = reg.get_components<position>();
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(b1)]->x, 0.f);
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(b2)]->x, 100.f);
 }
 
-TEST(Background, sprite_scale_custom) {
+TEST(Background, scale_applied_to_sprite_model)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, 0.0f, 0.0f, 800.0f, 600.0f, 
-                                    "bg.png", 2.5f);
-    
-    auto &sprites = reg.get_components<component::sprite>();
-    auto &spr = sprites[static_cast<std::size_t>(bg)];
-    
-    EXPECT_TRUE(spr.has_value());
-    EXPECT_EQ(spr->scale, 2.5f);
-}
+    register_all_background_components(reg);
 
-TEST(Background, negative_position) {
-    registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, -50.0f, -100.0f, 800.0f, 600.0f);
-    
-    auto &positions = reg.get_components<component::position>();
-    auto &pos = positions[static_cast<std::size_t>(bg)];
-    
-    EXPECT_TRUE(pos.has_value());
-    EXPECT_EQ(pos->x, -50.0f);
-    EXPECT_EQ(pos->y, -100.0f);
-}
+    auto bg = create_background(reg, 0.f, 0.f, 0.f, 800.f, 600.f, 1.f,
+        "layer.png", "sky.obj", 3.5f);
+    auto &sprites = reg.get_components<sprite>();
+    auto &models = reg.get_components<model3D>();
 
-TEST(Background, zero_dimensions) {
-    registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg = create_background(reg, 0.0f, 0.0f, 0.0f, 0.0f);
-    
-    auto &drawables = reg.get_components<component::drawable>();
-    auto &drw = drawables[static_cast<std::size_t>(bg)];
-    
-    EXPECT_TRUE(drw.has_value());
-    EXPECT_EQ(drw->width, 0.0f);
-    EXPECT_EQ(drw->height, 0.0f);
-}
-
-TEST(Background, multiple_backgrounds) {
-    registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg1 = create_background(reg, 0.0f, 0.0f, 800.0f, 600.0f, "bg1.png");
-    entity_t bg2 = create_background(reg, 100.0f, 0.0f, 800.0f, 600.0f, "bg2.png");
-    
-    EXPECT_NE(static_cast<std::size_t>(bg1), static_cast<std::size_t>(bg2));
-    
-    auto &positions = reg.get_components<component::position>();
-    auto &pos1 = positions[static_cast<std::size_t>(bg1)];
-    auto &pos2 = positions[static_cast<std::size_t>(bg2)];
-    
-    EXPECT_TRUE(pos1.has_value() && pos2.has_value());
-    EXPECT_EQ(pos1->x, 0.0f);
-    EXPECT_EQ(pos2->x, 100.0f);
-}
-
-TEST(Background, all_components_independent) {
-    registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::sprite>();
-    
-    entity_t bg1 = create_background(reg, 0.0f, 0.0f, 400.0f, 300.0f, "a.png", 1.0f);
-    entity_t bg2 = create_background(reg, 50.0f, 50.0f, 800.0f, 600.0f, "b.png", 2.0f);
-    
-    auto &positions = reg.get_components<component::position>();
-    auto &drawables = reg.get_components<component::drawable>();
-    auto &sprites = reg.get_components<component::sprite>();
-    
-    auto &pos1 = positions[static_cast<std::size_t>(bg1)];
-    auto &pos2 = positions[static_cast<std::size_t>(bg2)];
-    auto &drw1 = drawables[static_cast<std::size_t>(bg1)];
-    auto &drw2 = drawables[static_cast<std::size_t>(bg2)];
-    auto &spr1 = sprites[static_cast<std::size_t>(bg1)];
-    auto &spr2 = sprites[static_cast<std::size_t>(bg2)];
-    
-    EXPECT_NE(pos1->x, pos2->x);
-    EXPECT_NE(drw1->width, drw2->width);
-    EXPECT_STRNE(spr1->image_path.c_str(), spr2->image_path.c_str());
-    EXPECT_NE(spr1->scale, spr2->scale);
+    EXPECT_FLOAT_EQ(sprites[static_cast<size_t>(bg)]->scale, 3.5f);
+    EXPECT_FLOAT_EQ(models[static_cast<size_t>(bg)]->scale, 3.5f);
 }

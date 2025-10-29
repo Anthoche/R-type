@@ -49,7 +49,7 @@ void ServerGame::update_enemies(float dt) {
         auto pattern_comp = get_component_ptr<component::pattern_element>(registry_server, entity);
         if (pattern_comp && !pattern_comp->pattern_name.empty()) {
             pattern = pattern_comp->pattern_name;
-        }        
+        }
 
         if (pattern == "straight") update_enemy_straight(id, dt);
         else if (pattern == "zigzag") update_enemy_zigzag(id, dt);
@@ -208,7 +208,7 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt, float rapidfire) {
     
     if (!initialized[id]) {
         float cooldown = 10.0f / rapidfire;
-        float randomOffset = (static_cast<float>(rand() % 1000) / 1000.0f) * cooldown;        
+        float randomOffset = (static_cast<float>(rand() % 1000) / 1000.0f) * cooldown;
         lastShootTime[id] = currentTime - std::chrono::milliseconds(
             static_cast<int>(randomOffset * 1000)
         );
@@ -219,13 +219,13 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt, float rapidfire) {
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
         currentTime - lastShootTime[id]
     ).count();
-    
+
     if (elapsed >= shootCooldowns[id]) {
         float enemyWidth = 30.f;
         auto cbox = get_component_ptr<component::collision_box>(registry_server, entity);
         if (cbox) {
             enemyWidth = cbox->width;
-        }        
+        }
         float shootX = pos->x - (enemyWidth / 2.0f);
         shoot_enemy_projectile(id, shootX, pos->y, -200.f, 0.f);
         lastShootTime[id] = currentTime;
@@ -258,7 +258,7 @@ void ServerGame::check_player_enemy_collisions() {
     auto now = std::chrono::high_resolution_clock::now();
     
     auto &collision_boxes = registry_server.get_components<component::collision_box>();
-    
+
     for (const auto& playerKv : playerPositions) {
         uint32_t playerId = playerKv.first;
         
@@ -284,7 +284,7 @@ void ServerGame::check_player_enemy_collisions() {
                 enemyWidth = collision_boxes[eid]->width;
                 enemyHeight = collision_boxes[eid]->height;
             }
-            
+
             float enemyX = epos->x;
             float enemyY = epos->y;
             
@@ -349,6 +349,9 @@ void ServerGame::broadcast_enemy_positions() {
 }
 
 void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz, float width, float height) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
     EnemySpawnMessage msg{};
     msg.type = MessageType::EnemySpawn;
     msg.enemyId = htonl(enemyId);
@@ -372,16 +375,20 @@ void ServerGame::broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float
     msg.width = htonl(w);
     msg.height = htonl(h);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast enemy spawn: ID=" << enemyId << " pos=(" << x << "," << y << "," << z << ")");
 }
 
 void ServerGame::broadcast_enemy_despawn(uint32_t enemyId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemyDespawnMessage msg{};
     msg.type = MessageType::EnemyDespawn;
     msg.enemyId = htonl(enemyId);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast enemy despawn: ID=" << enemyId);
 }
 
@@ -397,6 +404,10 @@ void ServerGame::broadcast_boss_death(uint32_t bossId) {
 }
 
 void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, float z) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemyUpdateMessage msg{};
     msg.type = MessageType::EnemyUpdate;
     msg.enemyId = htonl(enemyId);
@@ -423,5 +434,5 @@ void ServerGame::broadcast_enemy_update(uint32_t enemyId, float x, float y, floa
     msg.velXBits = htonl(vxb);
     msg.velYBits = htonl(vyb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }

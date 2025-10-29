@@ -14,6 +14,7 @@
 #include <string>
 #include <chrono>
 #include <mutex>
+#include <queue>
 #include <vector>
 
 /**
@@ -37,8 +38,11 @@ class ServerGame : public IServerGame {
 
         /**
          * @brief Main server game loop.
+         * @param roomId The id of the room to listen on
          */
-        void run() override;
+        void run(int roomId) override;
+        void enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) override;
+        void setInitialClients(const std::vector<uint32_t> &clients) override;
 
         /**
          * @brief Loads player data from a JSON configuration file.
@@ -54,6 +58,8 @@ class ServerGame : public IServerGame {
          * @brief Sends the complete game registry state to a specific client.
          */
         void broadcast_full_registry_to(uint32_t clientId);
+
+        void setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins);
 
     private:
 
@@ -107,6 +113,9 @@ class ServerGame : public IServerGame {
 
         /** @brief Mutex for thread-safe access. */
         std::mutex mtx;
+        std::mutex packetMutex;
+        mutable std::mutex initialClientsMutex;
+        std::vector<uint32_t> initialClients;
 
         /** @brief Set of dead player IDs. */
         std::unordered_set<uint32_t> deadPlayers;
@@ -116,6 +125,9 @@ class ServerGame : public IServerGame {
 
         /** @brief Individual scores per player. */
         std::unordered_map<uint32_t, int> playerIndividualScores;
+
+        /** @brief Cached skin filename per client. */
+        std::unordered_map<uint32_t, std::string> _playerSkins;
 
         /** @brief Total cumulative score. */
         int totalScore = 0;
@@ -129,12 +141,20 @@ class ServerGame : public IServerGame {
         /** @brief Cached references for enemies. */
         std::vector<ecs::entity_t> _enemies;
 
-         int currentLevel = 1;
+        int currentLevel = 1;
         bool levelTransitionPending = false;
         std::chrono::steady_clock::time_point levelTransitionTime;
         const float LEVEL_TRANSITION_DELAY = 6.0f;
 
-
+        /**
+         * @brief The id of the room to listen on
+         */
+        int _roomId;
+        struct PendingPacket {
+            std::vector<uint8_t> data;
+            asio::ip::udp::endpoint endpoint;
+        };
+        std::queue<PendingPacket> pendingPackets;
 
         void initialize_player_positions();
         void index_existing_entities();
@@ -201,4 +221,8 @@ class ServerGame : public IServerGame {
 
         bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
                                 const std::vector<ecs::entity_t> &obstacles);
+
+        void broadcast_player_skin(uint32_t clientId, const std::string &filename);
+        void send_player_skins_to(uint32_t clientId);
+        std::vector<uint32_t> collectRoomClients(bool includeDead = true) const;
 };
