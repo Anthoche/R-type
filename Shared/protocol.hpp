@@ -15,13 +15,16 @@
  */
 enum class MessageType : uint8_t {
     ClientHello,              /**< Client greeting the server */
-	ClientRoomIdAsk, /**< Client asking for a connexion to a specific room */
-	ClientRoomCreate, /**< Client create a new room */
-	ServerRoomAssignId, /**< Assign room to client */
-	ClientFetchRooms, /**< Fetch room list actions for client */
-	ServerSendRooms, /**< Send rooms to client */
-	ServerSetRoomReady, /**< Sends a message that notifies the client that the room is ready */
+    ClientRoomIdAsk, /**< Client asking for a connexion to a specific room */
+    ClientRoomCreate, /**< Client create a new room */
+    ServerRoomAssignId, /**< Assign room to client */
+    ClientConfirmStart, /**< Confirmation message from the client to confirm the game start */
+    ClientFetchRooms, /**< Fetch room list actions for client */
+    ServerSendRooms, /**< Send rooms to client */
+    ServerSetClientConfirmed, /**< Confirmation message from the server to set a client as ready to start */
+    ServerSetRoomReady, /**< Sends a message that notifies the client that the room is ready */
     ServerAssignId,           /**< Server assigns an ID to the client */
+	  ClientLeaveRoom, /**< Notifies the server that client leaves the room*/
     GameStart,                /**< Server notifies clients that the game is starting */
     ClientInput,              /**< Client sends input for the current frame */
     StateUpdate,              /**< Server sends updated state for a client */
@@ -44,14 +47,15 @@ enum class MessageType : uint8_t {
     ElementDespawn,
     EndlessMode,
     EntityData,               /**< Server → Clients: entity ECS synchronization */
+    PlayerWeaponUpdate,       /**< Client ↔ Server: selected player weapon */
+    PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
     SceneState,               /**< Client → Server: indicates current scene */
     PlayerDeath,              /**< Server notifies clients that a player has died */
     PlayerHealth,             /**< Server updates a player's health */
     InitialHealth,            /**< Client sends its initial health to the server */
     GlobalScore,              /**< Server updates the global score */
     IndividualScore,          /**< Server updates a player's individual score */
-	ChatMessage,
-  	PlayerSkinUpdate          /**< Client ↔ Server: selected player skin */
+	  ChatMessage,              /**< Chat message exchanged between clients via server */
 };
 
 /**
@@ -148,6 +152,15 @@ struct PlayerSkinMessage {
 };
 
 /**
+ * @brief Message exchanged by client/server to synchronize selected weapons.
+ */
+struct PlayerWeaponMessage {
+    MessageType type;
+    uint32_t clientId;
+    char weaponId[32];
+};
+
+/**
  * @brief Message sent by server to notify the start of the game.
  */
 struct GameStartMessage {
@@ -161,6 +174,15 @@ struct GameStartMessage {
  */
 struct RoomReadyMessage {
 	MessageType type;
+	uint32_t roomId;
+};
+
+/**
+ * @brief Sends a confirmation message from the client to confirm the game start
+ */
+struct ClientConfirmStartMessage {
+	MessageType type;
+	uint32_t clientId;
 	uint32_t roomId;
 };
 
@@ -184,6 +206,15 @@ struct ServerRoomAssignIdMessage {
  * @brief Message sent by client to ask the server to enter a room
  */
 struct ClientRoomIdAskMessage {
+	MessageType type;
+	uint32_t clientId;
+	uint32_t roomId;
+};
+
+/**
+ * @brief Message sent by client that notifies the server that the player leaves the room
+ */
+struct ClientLeaveRoomMessage {
 	MessageType type;
 	uint32_t clientId;
 	uint32_t roomId;

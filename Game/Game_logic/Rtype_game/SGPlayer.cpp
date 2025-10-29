@@ -43,7 +43,8 @@ void ServerGame::initialize_player_positions() {
     std::vector<uint32_t> clients;
     {
         std::lock_guard<std::mutex> lock(initialClientsMutex);
-        clients = initialClients;
+        for (auto client : initialClients)
+            clients.push_back(client.first);
     }
 
     if (clients.empty()) {

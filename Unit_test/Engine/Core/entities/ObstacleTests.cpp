@@ -40,7 +40,7 @@ TEST(Obstacle, creates_all_components) {
     auto &drawables = reg.get_components<drawable>();
     auto &sprites = reg.get_components<sprite>();
     auto &models = reg.get_components<model3D>();
-    auto &hitboxes = reg.get_components<hitbox_link>();
+    auto &collisions = reg.get_components<collision_box>();
 
     EXPECT_TRUE(positions[static_cast<size_t>(obs)].has_value());
     EXPECT_TRUE(velocities[static_cast<size_t>(obs)].has_value());
@@ -49,21 +49,15 @@ TEST(Obstacle, creates_all_components) {
     EXPECT_TRUE(drawables[static_cast<size_t>(obs)].has_value());
     EXPECT_TRUE(sprites[static_cast<size_t>(obs)].has_value());
     EXPECT_TRUE(models[static_cast<size_t>(obs)].has_value());
+    EXPECT_TRUE(collisions[static_cast<size_t>(obs)].has_value());
     EXPECT_FLOAT_EQ(positions[static_cast<size_t>(obs)]->x, 10.f);
     EXPECT_FLOAT_EQ(positions[static_cast<size_t>(obs)]->y, 20.f);
     EXPECT_FLOAT_EQ(positions[static_cast<size_t>(obs)]->z, 30.f);
     EXPECT_EQ(healths[static_cast<size_t>(obs)]->current, 9999);
     EXPECT_EQ(healths[static_cast<size_t>(obs)]->max, 9999);
     EXPECT_EQ(types[static_cast<size_t>(obs)]->value, entity_type::OBSTACLE);
-
-    bool hitbox_found = false;
-    for (size_t i = 0; i < hitboxes.size(); ++i) {
-        if (hitboxes[i] && hitboxes[i]->owner == obs) {
-            hitbox_found = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(hitbox_found);
+    EXPECT_FLOAT_EQ(collisions[static_cast<size_t>(obs)]->width, 0.f);
+    EXPECT_FLOAT_EQ(collisions[static_cast<size_t>(obs)]->height, 0.f);
 }
 
 TEST(Obstacle, optional_image_model) {

@@ -18,17 +18,20 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
             handleServerAssignId(buffer);
             break;
         case MessageType::ServerRoomAssignId:
-			handleServerRoomAssign(buffer);
-			break;
-		case MessageType::ServerSendRooms:
-			handleServerRooms(buffer);
-			break;
+          handleServerRoomAssign(buffer);
+          break;
+        case MessageType::ServerSendRooms:
+          handleServerRooms(buffer);
+          break;
         case MessageType::ServerSetRoomReady:
             handleRoomReady(buffer);
             break;
         case MessageType::GameStart:
             handleGameStart(buffer);
             break;
+        case MessageType::ServerSetClientConfirmed:
+          LOG_DEBUG("Received ServerSetClientConfirmed message");
+          break;
         case MessageType::StateUpdate:
             handlePlayerUpdate(buffer);
             break;
@@ -90,11 +93,14 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
             handleInitialHealth(buffer);
             break;
         case MessageType::PlayerSkinUpdate:
-			handlePlayerSkinUpdate(buffer);
-			break;
-		case MessageType::ChatMessage:
-			handleChatMessage(buffer);
-			break;
+          handlePlayerSkinUpdate(buffer);
+          break;
+        case MessageType::PlayerWeaponUpdate:
+          handlePlayerWeaponUpdate(buffer);
+          break;
+        case MessageType::ChatMessage:
+          handleChatMessage(buffer);
+          break;
         case MessageType::ElementSpawn:
             handleElementSpawn(buffer);
             break;
@@ -115,13 +121,18 @@ void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {
     clientId = ntohl(msg->clientId);
     std::cout << "[Client] Reçu clientId=" << clientId << std::endl;
     initTcpConnection();
-    std::string pending;
+    std::string pendingSkin;
+    std::string pendingWeapon;
     {
         std::lock_guard<std::mutex> g(stateMutex);
-        pending = pendingSkinSelection;
+        pendingSkin = pendingSkinSelection;
+        pendingWeapon = pendingWeaponSelection;
     }
-    if (!pending.empty()) {
-        sendSkinSelection(pending);
+    if (!pendingSkin.empty()) {
+        sendSkinSelection(pendingSkin);
+    }
+    if (!pendingWeapon.empty()) {
+        sendWeaponSelection(pendingWeapon);
     }
 }
 
@@ -137,8 +148,18 @@ void GameClient::handleServerRooms(const std::vector<uint8_t> &buffer) {
 	const ServerSendRoomsMessage *msg = reinterpret_cast<const ServerSendRoomsMessage *>(buffer.data());
 	LOG_INFO("Server sent rooms");
 	LOG_DEBUG(std::format("Received JSON:\n{}\n", msg->jsonData));
-	nlohmann::json json = nlohmann::json::parse(msg->jsonData);
-	rooms = game::serializer::deserialize_rooms(json);
+	try {
+		nlohmann::json json = nlohmann::json::parse(msg->jsonData);
+		auto parsedRooms = game::serializer::deserialize_rooms(json);
+		{
+			std::lock_guard<std::mutex> lock(roomsMutex);
+			rooms = std::move(parsedRooms);
+			roomsUpdated = true;
+		}
+		roomsCv.notify_all();
+	} catch (const std::exception &e) {
+		LOG_ERROR(std::format("Failed to deserialize rooms JSON: {}", e.what()));
+	}
 }
 
 void GameClient::handleRoomReady(const std::vector<uint8_t> &buffer) {
@@ -187,6 +208,21 @@ void GameClient::handlePlayerSkinUpdate(const std::vector<uint8_t> &buffer) {
         playerSkins[id] = filename;
     } else {
         playerSkins.erase(id);
+    }
+}
+
+void GameClient::handlePlayerWeaponUpdate(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(PlayerWeaponMessage)) return;
+    const PlayerWeaponMessage *msg = reinterpret_cast<const PlayerWeaponMessage *>(buffer.data());
+
+    uint32_t id = ntohl(msg->clientId);
+    std::string weaponId(msg->weaponId);
+
+    std::lock_guard<std::mutex> g(stateMutex);
+    if (!weaponId.empty()) {
+        playerWeapons[id] = weaponId;
+    } else {
+        playerWeapons.erase(id);
     }
 }
 

@@ -8,14 +8,15 @@
 
 #pragma once
 
-#include "../../Engine/Rendering/scene/Include/AScene.hpp"
-#include "../Game.hpp"
-#include "../../Shared/protocol.hpp"
-#include "../../Engine/Core/Entities/Include/components.hpp"
 #include <unordered_map>
-#include "UI.hpp"
 #include <nlohmann/json_fwd.hpp>
+#include "UI.hpp"
+#include "../Game.hpp"
 #include "ChatSystem.hpp"
+#include "../../Engine/Rendering/scene/Include/AScene.hpp"
+#include "../../Engine/Core/Entities/Include/components.hpp"
+#include "../../Shared/protocol.hpp"
+#include "../../Shared/WeaponDefinition.hpp"
 
 namespace game::scene {
     /**
@@ -71,7 +72,7 @@ namespace game::scene {
          * @brief handle shoot input.
          * @param cooldown Cooldown for shoot
          */
-        void handle_shoot(float cooldown);
+        void handle_shoot(const weapon::WeaponDefinition &weaponDef, float cooldown);
 
         /**
          * @brief Handle player input.
@@ -247,6 +248,14 @@ namespace game::scene {
         float _stopShoot = false;
         bool _hasLevelData = false;
         bool _levelReloadPending = false;
+        struct WeaponUsageState {
+            float lastShotTime{0.f};
+            float burstStartTime{0.f};
+            float lastBurstEndTime{-1.f};
+            int remainingAmmo{-1};
+            bool inBurst{false};
+        };
+        std::unordered_map<std::string, WeaponUsageState> _weaponUsage;
         bool _lastBoss = false;
 
         // --- Game state ---

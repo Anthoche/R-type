@@ -42,7 +42,7 @@ class ServerGame : public IServerGame {
          */
         void run(int roomId) override;
         void enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) override;
-        void setInitialClients(const std::vector<uint32_t> &clients) override;
+        void setInitialClients(const std::map<uint32_t, bool> &clients) override;
 
         /**
          * @brief Loads player data from a JSON configuration file.
@@ -60,6 +60,7 @@ class ServerGame : public IServerGame {
         void broadcast_full_registry_to(uint32_t clientId);
 
         void setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins);
+        void setInitialPlayerWeapons(const std::unordered_map<uint32_t, std::string> &weapons);
 
     private:
 
@@ -87,8 +88,21 @@ class ServerGame : public IServerGame {
         /** @brief Maps obstacle IDs to their (x, y, z, width, height, depth). */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
 
-        /** @brief Maps projectile IDs to their (x, y, z, velX, velY, velZ, ownerId). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> projectiles;
+        struct ProjectileState {
+            float x;
+            float y;
+            float z;
+            float vx;
+            float vy;
+            float vz;
+            uint32_t ownerId;
+            float damage;
+            float width;
+            float height;
+        };
+
+        /** @brief Maps projectile IDs to their runtime state. */
+        std::unordered_map<uint32_t, ProjectileState> projectiles;
 
         /** @brief Cooldown timestamps to avoid damage spam. */
         std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
@@ -115,7 +129,7 @@ class ServerGame : public IServerGame {
         std::mutex mtx;
         std::mutex packetMutex;
         mutable std::mutex initialClientsMutex;
-        std::vector<uint32_t> initialClients;
+        std::map<uint32_t, bool> initialClients;
 
         /** @brief Set of dead player IDs. */
         std::unordered_set<uint32_t> deadPlayers;
@@ -128,6 +142,18 @@ class ServerGame : public IServerGame {
 
         /** @brief Cached skin filename per client. */
         std::unordered_map<uint32_t, std::string> _playerSkins;
+        /** @brief Cached weapon identifier per client. */
+        std::unordered_map<uint32_t, std::string> _playerWeapons;
+        /** @brief Cooldown tracker per player weapon. */
+        std::unordered_map<uint32_t, std::chrono::steady_clock::time_point> _playerLastShot;
+        /** @brief Remaining ammo per player weapon (if applicable). */
+        std::unordered_map<uint32_t, int> _playerAmmo;
+        struct BurstState {
+            std::chrono::steady_clock::time_point burstStart;
+            std::chrono::steady_clock::time_point lastBurstEnd;
+            bool inBurst{false};
+        };
+        std::unordered_map<uint32_t, BurstState> _playerBurstState;
 
         /** @brief Total cumulative score. */
         int totalScore = 0;
@@ -234,5 +260,7 @@ class ServerGame : public IServerGame {
 
         void broadcast_player_skin(uint32_t clientId, const std::string &filename);
         void send_player_skins_to(uint32_t clientId);
+        void broadcast_player_weapon(uint32_t clientId, const std::string &weaponId);
+        void send_player_weapons_to(uint32_t clientId);
         std::vector<uint32_t> collectRoomClients(bool includeDead = true) const;
 };

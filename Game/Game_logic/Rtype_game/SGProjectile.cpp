@@ -46,13 +46,14 @@ void ServerGame::check_projectile_enemy_collisions() {
 
     for (const auto& projKv : projectiles) {
         uint32_t projId = projKv.first;
-        float projX = std::get<0>(projKv.second);
-        float projY = std::get<1>(projKv.second);
+        const ProjectileState &projState = projKv.second;
 
-        float projLeft = projX - PROJ_WIDTH * 0.5f;
-        float projRight = projX + PROJ_WIDTH * 0.5f;
-        float projTop = projY - PROJ_HEIGHT * 0.5f;
-        float projBottom = projY + PROJ_HEIGHT * 0.5f;
+        float width = projState.width > 0.f ? projState.width : PROJ_WIDTH;
+        float height = projState.height > 0.f ? projState.height : PROJ_HEIGHT;
+        float projLeft = projState.x - width * 0.5f;
+        float projRight = projState.x + width * 0.5f;
+        float projTop = projState.y - height * 0.5f;
+        float projBottom = projState.y + height * 0.5f;
 
         for (auto enemyEntity : _enemies) {
             uint32_t eid = static_cast<uint32_t>(enemyEntity);
@@ -80,10 +81,14 @@ void ServerGame::check_projectile_enemy_collisions() {
                 
                 projectilesToRemove.push_back(projId);
                 
-                health->current -= DAMAGE_PER_HIT;
+                int damageApplied = static_cast<int>(std::round(std::max(projState.damage, 0.f)));
+                if (damageApplied <= 0) {
+                    damageApplied = DAMAGE_PER_HIT;
+                }
+                health->current -= damageApplied;
                 
                 uint32_t enemyId = static_cast<uint32_t>(enemyEntity);
-                uint32_t killerId = std::get<6>(projKv.second);
+                uint32_t killerId = projState.ownerId;
                 if (health->current <= 0) {
                     bool isBoss = false;
                     auto pattern_comp = get_component_ptr<component::pattern_element>(registry_server, enemyEntity);
@@ -128,18 +133,16 @@ void ServerGame::broadcast_projectile_positions() {
 
     for (const auto& kv : projectiles) {
         uint32_t id = kv.first;
-        float x = std::get<0>(kv.second);
-        float y = std::get<1>(kv.second);
-        float z = std::get<2>(kv.second);
+        const ProjectileState &state = kv.second;
 
         ProjectileUpdateMessage msg;
         msg.type = MessageType::ProjectileUpdate;
         msg.projectileId = htonl(id);
 
         uint32_t xb, yb, zb;
-        std::memcpy(&xb, &x, sizeof(float));
-        std::memcpy(&yb, &y, sizeof(float));
-        std::memcpy(&zb, &z, sizeof(float));
+        std::memcpy(&xb, &state.x, sizeof(float));
+        std::memcpy(&yb, &state.y, sizeof(float));
+        std::memcpy(&zb, &state.z, sizeof(float));
 
         msg.pos.xBits = htonl(xb);
         msg.pos.yBits = htonl(yb);
@@ -154,18 +157,13 @@ void ServerGame::update_projectiles_server_only(float dt) {
 
     for (auto& kv : projectiles) {
         uint32_t id = kv.first;
-        float& x = std::get<0>(kv.second);
-        float& y = std::get<1>(kv.second);
-        float& z = std::get<2>(kv.second);
-        float vx = std::get<3>(kv.second);
-        float vy = std::get<4>(kv.second);
-        float vz = std::get<5>(kv.second);
-        
-        x += vx * dt;
-        y += vy * dt;
-        z += vz * dt;
-        
-        if (x < -50.f || x > 1970.f || y < -50.f || y > 1130.f) {
+        ProjectileState &state = kv.second;
+
+        state.x += state.vx * dt;
+        state.y += state.vy * dt;
+        state.z += state.vz * dt;
+
+        if (state.x < -50.f || state.x > 1970.f || state.y < -50.f || state.y > 1130.f) {
             toRemove.push_back(id);
         }
     }
@@ -223,13 +221,15 @@ void ServerGame::check_projectile_collisions() {
 
     for (const auto& projKv : projectiles) {
         uint32_t projId = projKv.first;
-        float projX = std::get<0>(projKv.second);
-        float projY = std::get<1>(projKv.second);
+        const ProjectileState &projState = projKv.second;
 
-        float projLeft = projX - PROJ_WIDTH * 0.5f;
-        float projRight = projX + PROJ_WIDTH * 0.5f;
-        float projTop = projY - PROJ_HEIGHT * 0.5f;
-        float projBottom = projY + PROJ_HEIGHT * 0.5f;
+        float width = projState.width > 0.f ? projState.width : PROJ_WIDTH;
+        float height = projState.height > 0.f ? projState.height : PROJ_HEIGHT;
+
+        float projLeft = projState.x - width * 0.5f;
+        float projRight = projState.x + width * 0.5f;
+        float projTop = projState.y - height * 0.5f;
+        float projBottom = projState.y + height * 0.5f;
 
         for (auto obstacleEntity : _obstacles) {
             auto pos = get_component_ptr<component::position>(registry_server, obstacleEntity);
