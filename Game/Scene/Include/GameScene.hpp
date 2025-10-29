@@ -244,6 +244,7 @@ namespace game::scene {
         float _stopShoot = false;
         bool _hasLevelData = false;
         bool _levelReloadPending = false;
+        bool _lastBoss = false;
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
@@ -294,6 +295,7 @@ namespace game::scene {
         void render_network_enemy_projectiles();
         void render_death_screen();
         void render_win_screen();
+        void render_final_win_screen();
 
         /**
         * @brief Get a unique color for a given client ID.

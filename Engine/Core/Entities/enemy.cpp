@@ -16,7 +16,7 @@ namespace game::entities {
         int healthValue, float velocity) {
         auto enemy = reg.spawn_entity();
 
-        float _velocity = (velocity * 60.0f) * -1.0f;
+        float _velocity = (velocity * 100.0f) * -1.0f;
         reg.emplace_component<component::position>(enemy, x, y, z);
         reg.emplace_component<component::previous_position>(enemy, x, y, z);
         reg.emplace_component<component::velocity>(enemy, _velocity, 0.f);

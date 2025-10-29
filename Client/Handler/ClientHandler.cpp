@@ -71,6 +71,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 		case MessageType::EnemyUpdate:
 			handleEnemyUpdate(buffer);
 			break;
+    case MessageType::EndlessMode:
+      handleEndlessMode(buffer);
+      break;
 		case MessageType::PlayerDeath:
 			handlePlayerDeath(buffer);
 			break;
@@ -89,6 +92,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 		case MessageType::ChatMessage:
 			handleChatMessage(buffer);
 			break;
+    case MessageType::InitialHealth:
+        handleInitialHealth(buffer);
+        break;
 		default:
 			break;
 	}
@@ -248,6 +254,23 @@ void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
 	uint32_t id = ntohl(msg->obstacleId);
 	std::lock_guard<std::mutex> g(stateMutex);
 	obstacles.erase(id);
+}
+
+void GameClient::handleEndlessMode(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() >= sizeof(EndlessModeMessage)) {
+        const EndlessModeMessage* msg = reinterpret_cast<const EndlessModeMessage*>(buffer.data());
+        bool isEndless = msg->isEndless != 0;
+        _game.setEndlessMode(isEndless);
+    }
+}
+
+void GameClient::handleInitialHealth(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() >= sizeof(InitialHealthMessage)) {
+        const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(buffer.data());
+        uint32_t senderId = ntohl(msg->clientId);
+        size_t health = ntohs(msg->initialHealth);
+        _game.setHealth(health);
+    }
 }
 
 void GameClient::handleProjectileSpawn(const std::vector<uint8_t> &buffer) {
@@ -417,8 +440,8 @@ void GameClient::handleBossDeath(const std::vector<uint8_t> &buffer) {
     BossDeathMessage msg;
     std::memcpy(&msg, buffer.data(), sizeof(BossDeathMessage));
     uint32_t bossId = ntohl(msg.bossId);
-    std::cout << "[Client] Boss defeated (id=" << bossId << "), requesting next level data..." << std::endl;
     bossDefeated = true;
+    _lastBoss = ntohl(msg._lastBoss);
     fetchFullRegistryAsync();
 }
 

@@ -4,12 +4,9 @@
 ** File description:
 ** Game
 */
-
 #pragma once
-
 #include <string>
 #include <thread>
-
 #include "../Shared/GameStatus.hpp"
 #include "../Client/client.hpp"
 #include "../Game/Scene/Include/SceneHandler.hpp"
@@ -21,104 +18,115 @@
  * Handles the game loop, networking, and scene management for the R-Type client.
  */
 class Game {
-	public:
-		/**
-		* @brief Constructs a Game instance.
-		*
-		* Initializes the client and scene handler, prepares the networking thread.
-		*
-		* @param serverIp IP address of the game server.
-		* @param serverPort Port of the game server.
-		* @param clientName Name of the player/client.
-		*/
-		Game(const std::string &serverIp, const std::string &serverPort, const std::string &clientName);
+public:
+    /**
+    * @brief Constructs a Game instance.
+    *
+    * Initializes the client and scene handler, prepares the networking thread.
+    *
+    * @param serverIp IP address of the game server.
+    * @param serverPort Port of the game server.
+    * @param clientName Name of the player/client.
+    */
+    Game(const std::string &serverIp, const std::string &serverPort, const std::string &clientName);
+    
+    /**
+    * @brief Destructor for Game.
+    */
+    ~Game() = default;
+    
+    /**
+    * @brief Runs the main game loop.
+    *
+    * Starts the rendering, input handling, and client updates.
+    */
+    void run();
+    
+    /**
+    *  @brief Get the sceneHandler instance that manages scenes
+    * @return The sceneHandler instance
+    */
+    SceneHandler &getSceneHandler();
+    
+    /**
+     * @brief Get the GameClient instance that handles network communications with the server
+     * @return The GameClient instance
+     */
+    GameClient &getGameClient();
+    
+    /**
+     * @brief Get the current game status
+     * @return The current game status
+     */
+    GameStatus getGameStatus() const;
+    
+    /**
+     * Sets a new status for the current game
+     * @param status The new status to set
+     */
+    void setGameStatus(const GameStatus &status);
+    
+    /**
+     * @enum Language
+     * @brief Supported languages for the game.
+     * Defines the available localization options.
+     */
+    enum class Language { ENGLISH, FRENCH, ITALIAN };
+    
+    /**
+     * @brief Set the current language of the game.
+     * Changes the active language, affecting displayed text and UI labels.
+     * @param lang The language to set (ENGLISH or FRENCH).
+     */
+    void setLanguage(Language lang) { _language = lang; }
+    
+    /**
+     * @brief Get the current language of the game.
+     * Returns the language currently used for UI and text elements.
+     * @return The current language (ENGLISH or FRENCH).
+     */
+    Language getLanguage() const { return _language; }
+    
+    /**
+     * @brief Enable or disable game sound.
+     * @param enabled True to enable sound, false to disable.
+     */
+    void setSoundEnabled(bool enabled) { _soundEnabled = enabled; }
+    
+    /**
+     * @brief Check if game sound is enabled.
+     * @return True if sound is enabled, false otherwise.
+     */
+    bool isSoundEnabled() const { return _soundEnabled; }
 
-		/**
-		* @brief Destructor for Game.
-		*/
-		~Game() = default;
-
-		/**
-		* @brief Runs the main game loop.
-		*
-		* Starts the rendering, input handling, and client updates.
-		*/
-		void run();
-
-		/**
-		*  @brief Get the sceneHandler instance that manages scenes
-		* @return The sceneHandler instance
-		*/
-		SceneHandler &getSceneHandler();
-
-		/**
-		 * @brief Get the GameClient instance that handles network communications with the server
-		 * @return The GameClient instance
-		 */
-		GameClient &getGameClient();
-
-		/**
-		 * @brief Get the current game status
-		 * @return The current game status
-		 */
-		GameStatus getGameStatus() const;
-
-		/**
-		 * Sets a new status for the current game
-		 * @param status The new status to set
-		 */
-		void setGameStatus(const GameStatus &status);
-
-        /**
-         * @enum Language
-         * @brief Supported languages for the game.
-         * Defines the available localization options.
-         */
-        enum class Language { ENGLISH, FRENCH, ITALIAN };
-        /**
-         * @brief Set the current language of the game.
-         * Changes the active language, affecting displayed text and UI labels.
-         * @param lang The language to set (ENGLISH, FRENCH or ITALIAN).
-         */
-        void setLanguage(Language lang) { _language = lang; }
-
-        /**
-         * @brief Get the current language of the game.
-         * Returns the language currently used for UI and text elements.
-         * @return The current language (ENGLISH or FRENCH).
-         */
-        Language getLanguage() const { return _language; }
-
-		/**
-		 * @brief Enable or disable game sound.
-		 * @param enabled True to enable sound, false to disable.
-		 */
-		void setSoundEnabled(bool enabled) { _soundEnabled = enabled; }
-
-		/**
-		 * @brief Check if game sound is enabled.
-		 * @return True if sound is enabled, false otherwise.
-		 */
-    	bool isSoundEnabled() const { return _soundEnabled; }
-
-		/**
-		 * @brief Select the texture path used for the local player's skin.
-		 * @param path Absolute path to the desired sprite.
-		 */
-		void setSelectedSkinPath(const std::string &path) { _selectedSkinPath = path; }
+    void setSelectedSkinPath(const std::string &path) { _selectedSkinPath = path; }
 
 		/**
 		 * @brief Retrieve the currently selected player skin texture path.
 		 * @return Absolute path to the sprite used for the local player.
 		 */
 		const std::string &getSelectedSkinPath() const { return _selectedSkinPath; }
+    
+    void setEndlessMode(bool endless) { _endlessMode = endless; }
+  
+    bool isEndlessModeEnabled() const { return _endlessMode; }
+    
+    void setHealth(size_t health) { _health = health; }
+    size_t getHealth() const { return _health; }
+    
+    size_t getHealthIndex() const {
+        if (_health <= 0) return 0;
+        return (_health / 25) - 1;
+    }
 
-	private:
-		GameStatus _status; ///< Status of the game
-		SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
-		GameClient _client; ///< Network client handling server communication
-		std::thread _networkThread; ///< Thread for handling network communication
-		Language _language = Language::ENGLISH; ///< Current language setting (default is English)
-		bool _soundEnabled = true; ///< Sound enabled/disabled flag
+private:
+    GameStatus _status; ///< Status of the game
+    SceneHandler _sceneHandler; ///< Scene manager for rendering and switching scenes
+    GameClient _client; ///< Network client handling server communication
+    std::thread _networkThread; ///< Thread for handling network communication
+    Language _language = Language::ENGLISH; ///< Current language setting (default is English)
+    bool _soundEnabled = true; ///< Sound enabled/disabled flag
+    bool _endlessMode = false;
+    size_t _health = 75; ///< Current health in HP (25 = 1 life, 50 = 2 lives, etc.)
 		std::string _selectedSkinPath; ///< Sprite path picked on the waiting screen
 };

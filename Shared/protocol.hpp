@@ -29,7 +29,7 @@ enum class MessageType : uint8_t {
 	EnemyUpdate, /**< Server updates an enemy's position */
 	EnemyDespawn, /**< Server removes an enemy */
 	ObstacleSpawn, /**< Server spawns a new obstacle */
-    ObstacleUpdate,
+  ObstacleUpdate,
 	ObstacleDespawn, /**< Server removes an obstacle */
 	ClientShoot, /**< Client sends a shoot event */
 	ProjectileSpawn, /**< Server creates a projectile */
@@ -38,16 +38,17 @@ enum class MessageType : uint8_t {
 	EnemyProjectileSpawn, /**< Server spawns an enemy projectile */
 	EnemyProjectileUpdate, /**< Server updates an enemy projectile */
 	EnemyProjectileDespawn, /**< Server removes an enemy projectile */
-    BossDeath,
+  BossDeath,
+  EndlessMode,
 	EntityData, /**< Server → Clients: entity ECS synchronization */
-    PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
+  PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
 	SceneState, /**< Client → Server: indicates current scene */
 	PlayerDeath, /**< Server notifies clients that a player has died */
 	PlayerHealth, /**< Server updates a player's health */
 	InitialHealth, /**< Client sends its initial health to the server */
 	GlobalScore, /**< Server updates the global score */
 	IndividualScore, /**< Server updates a player's individual score */
-    ChatMessage               /**< Chat message exchanged between clients via server */
+  ChatMessage               /**< Chat message exchanged between clients via server */
 };
 
 /**
@@ -260,6 +261,7 @@ struct EnemyDespawnMessage {
 struct BossDeathMessage {
     MessageType type;
     uint32_t bossId;
+    bool _lastBoss = false;
 };
 
 /**
@@ -390,9 +392,9 @@ struct PlayerHealthMessage {
 };
 
 struct InitialHealthMessage {
-	MessageType type;
-	uint32_t clientId;
-	int16_t initialHealth;
+    MessageType type;
+    uint32_t clientId;
+    size_t initialHealth;
 };
 
 /**
@@ -410,4 +412,10 @@ struct IndividualScoreMessage {
 	MessageType type;
 	uint32_t clientId;
 	uint32_t score;
+};
+
+struct EndlessModeMessage {
+    MessageType type;
+    uint32_t clientId;
+    uint8_t isEndless;
 };

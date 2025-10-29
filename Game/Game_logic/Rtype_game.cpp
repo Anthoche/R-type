@@ -94,6 +94,7 @@ void ServerGame::run(int roomId) {
 
     const int tick_ms = 16;
     float dt = 0.016f;
+    _isEndless = false; 
 
     while (true) {
         auto tick_start = std::chrono::high_resolution_clock::now();
@@ -101,27 +102,29 @@ void ServerGame::run(int roomId) {
         process_pending_messages();
         process_player_inputs(dt);
 
-        update_projectiles_server_only(dt);
-        update_enemies(dt);
-        update_obstacles(dt);
-        update_enemy_projectiles_server_only(dt);
+        if (!gameCompleted) {
+            update_projectiles_server_only(dt);
+            update_enemies(dt);
+            update_obstacles(dt);
+            update_enemy_projectiles_server_only(dt);
 
-        check_enemy_projectile_player_collisions();
-        check_projectile_collisions();
-        check_projectile_enemy_collisions();
-        check_player_enemy_collisions();
+            check_enemy_projectile_player_collisions();
+            check_projectile_collisions();
+            check_projectile_enemy_collisions();
+            check_player_enemy_collisions();
 
-        broadcast_projectile_positions();
-        broadcast_obstacle_positions();
-        broadcast_enemy_positions();
-        broadcast_enemy_projectile_positions();
+            broadcast_projectile_positions();
+            broadcast_obstacle_positions();
+            broadcast_enemy_positions();
+            broadcast_enemy_projectile_positions();
+        }
 
         broadcast_states_to_clients();
         broadcast_player_health();
         broadcast_global_score();
         broadcast_individual_scores();
 
-        if (levelTransitionPending) {
+        if (levelTransitionPending && !gameCompleted) {
             auto now = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
                 now - levelTransitionTime
@@ -131,7 +134,7 @@ void ServerGame::run(int roomId) {
                 load_next_level();
                 levelTransitionPending = false;
             }
-        }
+        }       
         sleep_to_maintain_tick(tick_start, tick_ms);
     }
 }
@@ -285,10 +288,27 @@ void ServerGame::index_existing_entities() {
 void ServerGame::load_next_level() {
     LOG_INFO("[Server] Loading next level...");
     currentLevel++;
+    if (currentLevel > MAX_LEVELS) {
+        LOG_INFO("[Server] Reached maximum level. Game completed!");
+        if (_isEndless) {
+            currentLevel = 1;
+        } else {
+            gameCompleted = true;
+            return;
+        }
+    }
     clear_level_entities();
     std::string levelPath = ASSETS_PATH "/Config_assets/Levels/level_0" 
                           + std::to_string(currentLevel) + ".json";
     try {
+        std::ifstream testFile(levelPath);
+        if (!testFile.good()) {
+            LOG_INFO("[Server] Level file not found: " << levelPath);
+            LOG_INFO("[Server] Game completed! No more levels.");
+            gameCompleted = true;
+            return;
+        }
+        testFile.close();
         load_level(levelPath);
         index_existing_entities();
         for (const auto& kv : connexion.getClients()) {
@@ -436,17 +456,33 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(data.data());
                 uint32_t clientId = ntohl(msg->clientId);
                 int16_t initialHealth = ntohs(msg->initialHealth);
+
                 auto& healths = registry_server.get_components<component::health>();
                 auto& clientIds = registry_server.get_components<component::client_id>();
+                
                 for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
-                    if (clientIds[i] && clientIds[i]->id == clientId) {
-                        if (healths[i]) {
-                            healths[i]->current = initialHealth;
-                            healths[i]->max = initialHealth;
-                            LOG_DEBUG("[Server] Set initial health of client " << clientId << " to " << initialHealth);
-                        }
-                        break;
+                    if (clientIds[i] && healths[i]) {
+                        healths[i]->current = initialHealth;
+                        healths[i]->max = initialHealth;
                     }
+                }
+                
+                broadcast_global_health(initialHealth);
+            }
+            break;
+        }
+        case MessageType::EndlessMode: {
+            if (data.size() >= sizeof(EndlessModeMessage)) {
+                const EndlessModeMessage* msg = reinterpret_cast<const EndlessModeMessage*>(data.data());
+                uint32_t clientId = ntohl(msg->clientId);
+                bool isEndless = msg->isEndless != 0;
+                if (playerPositions.empty() || currentLevel == 1) {
+                    _isEndless = isEndless;
+                    LOG_INFO("[Server] Endless mode set to: " << (isEndless ? "ON" : "OFF") 
+                             << " by client " << clientId);                    
+                    broadcast_endless_mode(_isEndless);
+                } else {
+                    LOG_INFO("[Server] Endless mode cannot be changed mid-game");
                 }
             }
             break;
@@ -636,6 +672,25 @@ void ServerGame::broadcast_player_health() {
             connexion.broadcastToClients(recipients, &msg, sizeof(msg));
         }
     }
+}
+
+void ServerGame::broadcast_global_health(int16_t health) {
+    InitialHealthMessage msg;
+    msg.type = MessageType::InitialHealth;
+    msg.clientId = 0;
+    msg.initialHealth = htons(health);
+    
+    connexion.broadcast(&msg, sizeof(msg));
+    LOG_DEBUG("[Server] Broadcasted global health: " << health);
+}
+
+void ServerGame::broadcast_endless_mode(bool isEndless) {
+    EndlessModeMessage msg;
+    msg.type = MessageType::EndlessMode;
+    msg.clientId = 0;
+    msg.isEndless = isEndless ? 1 : 0;
+    
+    connexion.broadcast(&msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_global_score() {

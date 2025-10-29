@@ -117,6 +117,7 @@ class GameClient {
 
         std::atomic<bool> bossDefeated{false};
 
+        bool _lastBoss = false;
         /**
          * @brief Constructs a GameClient and connects to the server.
          * @param game The game instance.
@@ -185,6 +186,8 @@ class GameClient {
          */
         void sendHealth(int lives);
         std::optional<nlohmann::json> consumeFullRegistry();
+
+        void sendEndlessMode(bool isEndless);
 
         /**
          * @brief Sends a chat message to be relayed by the server.
@@ -370,6 +373,9 @@ class GameClient {
          */
         void handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer);
 
+        void handleInitialHealth(const std::vector<uint8_t> &buffer);
+        void handleEndlessMode(const std::vector<uint8_t> &buffer);
+};
         /**
          * @brief Handles a chat message broadcast from the server.
          * @param buffer Raw message data.

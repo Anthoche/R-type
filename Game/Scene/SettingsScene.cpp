@@ -51,7 +51,7 @@ namespace scene {
 		float y = 190.f;
 
 		std::vector<ButtonCreator> creators = {
-			&SettingsScene::createDifficultyButton,
+			&SettingsScene::createEndlessButton,
 			&SettingsScene::createLivesButton,
 			&SettingsScene::createSoundButton,
 			&SettingsScene::createLanguageButton
@@ -77,14 +77,21 @@ namespace scene {
 		}
 	}
 
-	void SettingsScene::createDifficultyButton(Vector2 pos, std::size_t i) {
-		float textWidth = _raylib.measureTextEx(_font, _values[i].c_str(), _buttonTextSize - 4, -1.0f).x;
+	void SettingsScene::createEndlessButton(Vector2 pos, std::size_t i) {
+		std::string endlessValue = _endlessMode ? 
+			(_currentLanguage == Game::Language::ENGLISH ? "On" :
+			_currentLanguage == Game::Language::FRENCH ? "Active" : "Attivo") :
+			(_currentLanguage == Game::Language::ENGLISH ? "Off" :
+			_currentLanguage == Game::Language::FRENCH ? "Desactive" : "Disattivo");
+		
+		float textWidth = _raylib.measureTextEx(_font, endlessValue.c_str(), _buttonTextSize - 4, -1.0f).x;
 		float padding = 40.f;
 		float buttonWidth = std::max(120.f, textWidth + padding);
 
-		game::entities::create_button(_registry, "button_difficulty", _values[i],
+		game::entities::create_button(_registry, "button_endless", endlessValue,
 			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
-		);
+		);		
+		_values[0] = endlessValue;
 	}
 
 	void SettingsScene::createLivesButton(Vector2 pos, std::size_t i) {
@@ -157,6 +164,26 @@ namespace scene {
 
 
 	void SettingsScene::render() {
+		bool serverEndlessMode = _game.isEndlessModeEnabled();
+		size_t serverHealthHP = _game.getHealth();
+		size_t serverHealthIndex = _game.getHealthIndex();
+		if (serverHealthIndex != _currentLivesIndex) {
+			_currentLivesIndex = serverHealthIndex;			
+			if (_currentLivesIndex < _lives.size()) {
+				_values[1] = _lives[_currentLivesIndex];
+				updateButtonText("button_lives", _values[1]);
+			}
+		}
+		if (serverEndlessMode != _endlessMode) {
+			_endlessMode = serverEndlessMode;
+			std::string newValue = _endlessMode ? 
+				(_currentLanguage == Game::Language::ENGLISH ? "On" :
+				_currentLanguage == Game::Language::FRENCH ? "Active" : "Attivo") :
+				(_currentLanguage == Game::Language::ENGLISH ? "Off" :
+				_currentLanguage == Game::Language::FRENCH ? "Desactive" : "Disattivo");
+			_values[0] = newValue;
+			updateButtonText("button_endless", newValue);
+		}
 		_raylib.beginDrawing();
 		_raylib.clearBackground(BLACK);
 
@@ -229,10 +256,10 @@ namespace scene {
 		}
 		if (id == "button_sound") toggleSound();
 		else if (id == "button_lives") cycleLives();
-		else if (id == "button_difficulty") cycleDifficulty();
+		else if (id == "button_endless") toggleEndless();
 		else if (id == "button_language") toggleLanguage();
 	}
-	
+  
 	void SettingsScene::toggleSound() {
 		_values[2] =
 			(_values[2] == "On" || _values[2] == "Active" || _values[2] == "Attivo")
@@ -247,6 +274,21 @@ namespace scene {
 		updateButtonText("button_sound", _values[2]);
 	}
 
+	void SettingsScene::toggleEndless() {
+		_endlessMode = !_endlessMode;
+		
+		std::string newValue = _endlessMode ? 
+			(_currentLanguage == Game::Language::ENGLISH ? "On" :
+			_currentLanguage == Game::Language::FRENCH ? "Active" : "Attivo") :
+			(_currentLanguage == Game::Language::ENGLISH ? "Off" :
+			_currentLanguage == Game::Language::FRENCH ? "Desactive" : "Disattivo");
+		
+		_values[0] = newValue;
+		_game.setEndlessMode(_endlessMode);
+		_game.getGameClient().sendEndlessMode(_endlessMode);
+		updateButtonText("button_endless", newValue);
+	}
+
 	void SettingsScene::cycleLives() {
 		_currentLivesIndex = (_currentLivesIndex + 1) % _lives.size();
 		_values[1] = _lives[_currentLivesIndex];
@@ -254,12 +296,6 @@ namespace scene {
 		livesValue = livesValue * 25;
 		_game.getGameClient().sendHealth(livesValue);
 		updateButtonText("button_lives", _values[1]);
-	}
-
-	void SettingsScene::cycleDifficulty() {
-		_currentLevelIndex = (_currentLevelIndex + 1) % _levels.size();
-		_values[0] = _levels[_currentLevelIndex];
-		updateButtonText("button_difficulty", _values[0]);	
 	}
 
 	void SettingsScene::toggleLanguage() {
@@ -281,32 +317,32 @@ namespace scene {
 	}
 	
 	void SettingsScene::translateToItalian() {
-		_buttons = {"1. Livello", "2. Vite", "3. Suono", "4. Lingua"};
-		_levels = {"Facile", "Medio", "Difficile"};
+		_buttons = {"1. Infinito", "2. Vite", "3. Suono", "4. Lingua"};
 		_lives = {"1", "2", "3", "4", "5", "6", "7"};
-		_values[0] = _levels[_currentLevelIndex];
+		
+		_values[0] = _endlessMode ? "Attivo" : "Disattivo";
 		_values[1] = _lives[_currentLivesIndex];
-		_values[2] = (_values[2] == "On" ? "Attivo" : "Disattivo");
+		_values[2] = (_values[2] == "On" || _values[2] == "Active" ? "Attivo" : "Disattivo");
 		_values[3] = "Italiano";
 	}
 
 	void SettingsScene::translateToFrench() {
-		_buttons = {"1. Difficulte", "2. Vies", "3. Son", "4. Langue"};
-		_levels = {"Facile", "Moyen", "Difficile"};
+		_buttons = {"1. Infini", "2. Vies", "3. Son", "4. Langue"};
 		_lives = {"1", "2", "3", "4", "5", "6", "7"};
-		_values[0] = _levels[_currentLevelIndex];
+		
+		_values[0] = _endlessMode ? "Active" : "Desactive";
 		_values[1] = _lives[_currentLivesIndex];
 		_values[2] = (_values[2] == "On" ? "Active" : "Desactive");
 		_values[3] = "Francais";
 	}
 
 	void SettingsScene::translateToEnglish() {
-		_buttons = {"1. Difficulty", "2. Lives", "3. Sound", "4. Language"};
-		_levels = {"Easy", "Medium", "Hard"};
+		_buttons = {"1. Endless", "2. Lives", "3. Sound", "4. Language"};
 		_lives = {"1", "2", "3", "4", "5", "6", "7"};
-		_values[0] = _levels[_currentLevelIndex];
+		
+		_values[0] = _endlessMode ? "On" : "Off";
 		_values[1] = _lives[_currentLivesIndex];
-		_values[2] = (_values[2] == "Active" ? "On" : "Off");
+		_values[2] = (_values[2] == "Active" || _values[2] == "Attivo" ? "On" : "Off");
 		_values[3] = "English";
 	}
 
@@ -315,7 +351,7 @@ namespace scene {
 		auto &texts = _registry.get_components<component::text>();
 		auto &drawables = _registry.get_components<component::drawable>();
 
-		std::vector<std::string> buttonIds = {"button_difficulty", "button_lives", "button_sound", "button_language"};
+		std::vector<std::string> buttonIds = {"button_endless", "button_lives", "button_sound", "button_language"};
 
 		for (size_t i = 0; i < buttonIds.size(); ++i) {
 			for (size_t j = 0; j < clickable.size(); ++j) {

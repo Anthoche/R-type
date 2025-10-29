@@ -62,6 +62,10 @@ class ServerGame : public IServerGame {
         void setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins);
 
     private:
+
+        static constexpr int MAX_LEVELS = 3;
+        bool _isEndless = false;
+        bool gameCompleted = false;
         /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 
@@ -203,6 +207,8 @@ class ServerGame : public IServerGame {
 
         void broadcast_player_health();
         void broadcast_global_score();
+        void broadcast_endless_mode(bool isEndless);
+        void broadcast_global_health(int16_t health);
         void broadcast_individual_scores();
         void check_projectile_enemy_collisions();
 
