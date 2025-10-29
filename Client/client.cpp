@@ -245,6 +245,38 @@ void GameClient::sendSkinSelection(const std::string &skinFilename) {
     }
 }
 
+void GameClient::sendWeaponSelection(const std::string &weaponId) {
+    if (weaponId.empty()) {
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        pendingWeaponSelection = weaponId;
+        if (clientId != 0) {
+            playerWeapons[clientId] = weaponId;
+        }
+    }
+
+    if (clientId == 0) {
+        return;
+    }
+
+    PlayerWeaponMessage msg{};
+    msg.type = MessageType::PlayerWeaponUpdate;
+    msg.clientId = htonl(clientId);
+    std::memset(msg.weaponId, 0, sizeof(msg.weaponId));
+    std::strncpy(msg.weaponId, weaponId.c_str(), sizeof(msg.weaponId) - 1);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        if (pendingWeaponSelection == weaponId) {
+            pendingWeaponSelection.clear();
+        }
+    }
+}
+
 void GameClient::storeFullRegistry(const nlohmann::json &registryJson, bool markPending) {
     std::lock_guard<std::mutex> lock(registryMutex);
     latestFullRegistry = registryJson;

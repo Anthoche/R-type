@@ -92,6 +92,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 		case MessageType::PlayerSkinUpdate:
 			handlePlayerSkinUpdate(buffer);
 			break;
+		case MessageType::PlayerWeaponUpdate:
+			handlePlayerWeaponUpdate(buffer);
+			break;
 		case MessageType::ChatMessage:
 			handleChatMessage(buffer);
 			break;
@@ -109,13 +112,18 @@ void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {
     clientId = ntohl(msg->clientId);
     std::cout << "[Client] Reçu clientId=" << clientId << std::endl;
     initTcpConnection();
-    std::string pending;
+    std::string pendingSkin;
+    std::string pendingWeapon;
     {
         std::lock_guard<std::mutex> g(stateMutex);
-        pending = pendingSkinSelection;
+        pendingSkin = pendingSkinSelection;
+        pendingWeapon = pendingWeaponSelection;
     }
-    if (!pending.empty()) {
-        sendSkinSelection(pending);
+    if (!pendingSkin.empty()) {
+        sendSkinSelection(pendingSkin);
+    }
+    if (!pendingWeapon.empty()) {
+        sendWeaponSelection(pendingWeapon);
     }
 }
 
@@ -191,6 +199,21 @@ void GameClient::handlePlayerSkinUpdate(const std::vector<uint8_t> &buffer) {
         playerSkins[id] = filename;
     } else {
         playerSkins.erase(id);
+    }
+}
+
+void GameClient::handlePlayerWeaponUpdate(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() < sizeof(PlayerWeaponMessage)) return;
+    const PlayerWeaponMessage *msg = reinterpret_cast<const PlayerWeaponMessage *>(buffer.data());
+
+    uint32_t id = ntohl(msg->clientId);
+    std::string weaponId(msg->weaponId);
+
+    std::lock_guard<std::mutex> g(stateMutex);
+    if (!weaponId.empty()) {
+        playerWeapons[id] = weaponId;
+    } else {
+        playerWeapons.erase(id);
     }
 }
 

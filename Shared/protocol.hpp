@@ -44,6 +44,7 @@ enum class MessageType : uint8_t {
   BossDeath,
   EndlessMode,
 	EntityData, /**< Server → Clients: entity ECS synchronization */
+  PlayerWeaponUpdate,       /**< Client ↔ Server: selected player weapon */
   PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
 	SceneState, /**< Client → Server: indicates current scene */
 	PlayerDeath, /**< Server notifies clients that a player has died */
@@ -145,6 +146,15 @@ struct PlayerSkinMessage {
     MessageType type;
     uint32_t clientId;
     char skinFilename[64];
+};
+
+/**
+ * @brief Message exchanged by client/server to synchronize selected weapons.
+ */
+struct PlayerWeaponMessage {
+    MessageType type;
+    uint32_t clientId;
+    char weaponId[32];
 };
 
 /**
