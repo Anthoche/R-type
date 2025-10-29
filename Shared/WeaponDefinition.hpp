@@ -26,6 +26,8 @@ namespace weapon {
         float projectileWidth{10.f};
         float projectileHeight{5.f};
         float spreadAngle{0.f};
+        float burstDuration{0.f};
+        float burstCooldown{0.f};
     };
 
     /**

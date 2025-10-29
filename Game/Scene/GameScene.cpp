@@ -1009,13 +1009,9 @@ void GameScene::update() {
 
         int keyPressed = _raylib.getKeyPressed();
 
+        bool shootRequested = _raylib.isKeyDown(KEY_SPACE);
+
         switch (keyPressed) {
-            case KEY_SPACE:
-                if (!_stopShoot)
-                    handle_shoot(SHOOT_COOLDOWN);
-                if (!_chat.isFocused())
-                    handle_shoot(SHOOT_COOLDOWN);
-                break;
             case KEY_F1:
                 _chat.toggleFocus();
                 break;
@@ -1077,12 +1073,12 @@ void GameScene::update() {
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                 leftPressed = true;
 
-            if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) && !_stopShoot) {
-                handle_shoot(SHOOT_COOLDOWN);
-                if (_game.isSoundEnabled()) {
-                    _raylib.playSound(_shootSound);
-                }
-            }
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
+                shootRequested = true;
+        }
+
+        if (shootRequested && !_stopShoot && !_chat.isFocused()) {
+            handle_shoot(weaponDef, SHOOT_COOLDOWN);
         }
 
         dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed);
@@ -1106,16 +1102,65 @@ void GameScene::update() {
         handle_input(input_x, input_y);
     }
 
-    void GameScene::handle_shoot(float cooldown) {
-        static float lastShotTime = 0.f;
-        
+    void GameScene::handle_shoot(const weapon::WeaponDefinition &weaponDef, float cooldown) {
+        const std::string weaponId = !weaponDef.id.empty() ? weaponDef.id : _game.getSelectedWeaponId();
+        auto &state = _weaponUsage[weaponId];
         float currentTime = _raylib.getTime();
-        if (currentTime - lastShotTime >= cooldown) {
-            _game.getGameClient().sendShoot();
-            lastShotTime = currentTime;
-            if (_game.isSoundEnabled()) {
-                _raylib.playSound(_shootSound);
+        bool usesBurst = weaponDef.burstDuration > 0.f && weaponDef.burstCooldown > 0.f;
+
+        if (!weaponDef.infiniteAmmo && state.remainingAmmo < 0) {
+            state.remainingAmmo = weaponDef.ammoCapacity;
+        }
+
+        if (usesBurst) {
+            if (state.inBurst) {
+                float elapsed = currentTime - state.burstStartTime;
+                if (elapsed >= weaponDef.burstDuration) {
+                    state.inBurst = false;
+                    state.lastBurstEndTime = currentTime;
+                }
             }
+
+            if (!state.inBurst) {
+                if (state.lastBurstEndTime >= 0.f) {
+                    float cooldownElapsed = currentTime - state.lastBurstEndTime;
+                    if (cooldownElapsed < weaponDef.burstCooldown) {
+                        return;
+                    }
+                }
+                state.inBurst = true;
+                state.burstStartTime = currentTime;
+                if (!weaponDef.infiniteAmmo) {
+                    state.remainingAmmo = weaponDef.ammoCapacity;
+                }
+            }
+        } else {
+            state.inBurst = false;
+        }
+
+        if (currentTime - state.lastShotTime < cooldown) {
+            return;
+        }
+
+        if (!weaponDef.infiniteAmmo) {
+            if (state.remainingAmmo <= 0) {
+                if (usesBurst) {
+                    state.inBurst = false;
+                    state.lastBurstEndTime = currentTime;
+                }
+                return;
+            }
+            state.remainingAmmo--;
+        }
+
+        _game.getGameClient().sendShoot();
+        state.lastShotTime = currentTime;
+        if (usesBurst && !weaponDef.infiniteAmmo && state.remainingAmmo <= 0) {
+            state.inBurst = false;
+            state.lastBurstEndTime = currentTime;
+        }
+        if (_game.isSoundEnabled()) {
+            _raylib.playSound(_shootSound);
         }
     }
 

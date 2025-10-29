@@ -435,6 +435,7 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 } else {
                     _playerAmmo[clientId] = definition.ammoCapacity;
                 }
+                _playerBurstState.erase(clientId);
                 _playerLastShot.erase(clientId);
 
                 broadcast_player_weapon(clientId, weaponId);
@@ -459,8 +460,39 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                         return "basic_shot";
                     }();
                     const auto &definition = weapon::getDefinition(weaponId);
+                    const bool usesBurst = (definition.burstDuration > 0.f && definition.burstCooldown > 0.f);
+                    BurstState *burstStatePtr = nullptr;
+                    if (usesBurst) {
+                        burstStatePtr = &_playerBurstState[clientId];
+                    } else {
+                        _playerBurstState.erase(clientId);
+                    }
 
                     const auto now = std::chrono::steady_clock::now();
+                    if (burstStatePtr != nullptr) {
+                        auto &burstState = *burstStatePtr;
+                        if (burstState.inBurst) {
+                            float burstElapsed = std::chrono::duration_cast<std::chrono::duration<float>>(now - burstState.burstStart).count();
+                            if (burstElapsed >= definition.burstDuration) {
+                                burstState.inBurst = false;
+                                burstState.lastBurstEnd = now;
+                            }
+                        }
+                        if (!burstState.inBurst) {
+                            if (burstState.lastBurstEnd != std::chrono::steady_clock::time_point{}) {
+                                float cooldownElapsed = std::chrono::duration_cast<std::chrono::duration<float>>(now - burstState.lastBurstEnd).count();
+                                if (cooldownElapsed < definition.burstCooldown) {
+                                    break;
+                                }
+                            }
+                            burstState.inBurst = true;
+                            burstState.burstStart = now;
+                            if (!definition.infiniteAmmo) {
+                                _playerAmmo[clientId] = definition.ammoCapacity;
+                            }
+                        }
+                    }
+
                     const auto lastIt = _playerLastShot.find(clientId);
                     float progress = std::clamp(totalScore / 150.f, 0.f, 1.f);
                     float allowedCooldown = definition.fireCooldown - progress * (definition.fireCooldown - definition.minCooldown);
@@ -476,9 +508,17 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     if (!definition.infiniteAmmo) {
                         int &remaining = _playerAmmo[clientId];
                         if (remaining <= 0) {
+                            if (burstStatePtr != nullptr) {
+                                burstStatePtr->inBurst = false;
+                                burstStatePtr->lastBurstEnd = now;
+                            }
                             break;
                         }
                         remaining--;
+                        if (burstStatePtr != nullptr && remaining <= 0) {
+                            burstStatePtr->inBurst = false;
+                            burstStatePtr->lastBurstEnd = now;
+                        }
                     }
                     _playerLastShot[clientId] = now;
 

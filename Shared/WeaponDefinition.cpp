@@ -25,7 +25,9 @@ namespace weapon {
                 .projectileLifetime = 4.f,
                 .projectileWidth = 10.f,
                 .projectileHeight = 5.f,
-                .spreadAngle = 0.f
+                .spreadAngle = 0.f,
+                .burstDuration = 0.f,
+                .burstCooldown = 0.f
             };
             return fallback;
         }
@@ -49,7 +51,9 @@ namespace weapon {
                 .projectileLifetime = 5.f,
                 .projectileWidth = 18.f,
                 .projectileHeight = 8.f,
-                .spreadAngle = 0.f
+                .spreadAngle = 0.f,
+                .burstDuration = 0.f,
+                .burstCooldown = 0.f
             };
             defs.emplace(charged.id, charged);
 
@@ -66,9 +70,52 @@ namespace weapon {
                 .projectileLifetime = 3.5f,
                 .projectileWidth = 8.f,
                 .projectileHeight = 8.f,
-                .spreadAngle = 15.f
+                .spreadAngle = 15.f,
+                .burstDuration = 0.f,
+                .burstCooldown = 0.f
             };
             defs.emplace(spread.id, spread);
+
+            constexpr float MINIGUN_SHOT_INTERVAL = 0.08f;
+            constexpr float MINIGUN_BURST_DURATION = 5.f;
+            constexpr int MINIGUN_MAG_SIZE = static_cast<int>(MINIGUN_BURST_DURATION / MINIGUN_SHOT_INTERVAL);
+            WeaponDefinition minigun{
+                .id = "minigun",
+                .displayName = "Vulcan Minigun",
+                .description = "Empties a drum over 5 seconds, then vents for 2 seconds.",
+                .infiniteAmmo = false,
+                .ammoCapacity = MINIGUN_MAG_SIZE > 0 ? MINIGUN_MAG_SIZE : 1,
+                .fireCooldown = MINIGUN_SHOT_INTERVAL,
+                .minCooldown = MINIGUN_SHOT_INTERVAL,
+                .damage = 0.6f,
+                .projectileSpeed = 420.f,
+                .projectileLifetime = 4.f,
+                .projectileWidth = 9.f,
+                .projectileHeight = 6.f,
+                .spreadAngle = 4.f,
+                .burstDuration = MINIGUN_BURST_DURATION,
+                .burstCooldown = 2.f
+            };
+            defs.emplace(minigun.id, minigun);
+
+            WeaponDefinition rpg{
+                .id = "rpg",
+                .displayName = "Titan RPG",
+                .description = "Slow firing rocket with massive explosive punch.",
+                .infiniteAmmo = true,
+                .ammoCapacity = 0,
+                .fireCooldown = 2.4f,
+                .minCooldown = 1.6f,
+                .damage = 12.f,
+                .projectileSpeed = 280.f,
+                .projectileLifetime = 6.5f,
+                .projectileWidth = 24.f,
+                .projectileHeight = 12.f,
+                .spreadAngle = 0.f,
+                .burstDuration = 0.f,
+                .burstCooldown = 0.f
+            };
+            defs.emplace(rpg.id, rpg);
 
             return defs;
         }

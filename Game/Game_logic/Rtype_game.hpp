@@ -144,6 +144,12 @@ class ServerGame : public IServerGame {
         std::unordered_map<uint32_t, std::chrono::steady_clock::time_point> _playerLastShot;
         /** @brief Remaining ammo per player weapon (if applicable). */
         std::unordered_map<uint32_t, int> _playerAmmo;
+        struct BurstState {
+            std::chrono::steady_clock::time_point burstStart;
+            std::chrono::steady_clock::time_point lastBurstEnd;
+            bool inBurst{false};
+        };
+        std::unordered_map<uint32_t, BurstState> _playerBurstState;
 
         /** @brief Total cumulative score. */
         int totalScore = 0;
