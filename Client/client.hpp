@@ -380,7 +380,6 @@ class GameClient {
 
         void handleInitialHealth(const std::vector<uint8_t> &buffer);
         void handleEndlessMode(const std::vector<uint8_t> &buffer);
-<<<<<<< HEAD
 
          /**
          * @brief Handles an element despwan message.
@@ -399,9 +398,7 @@ class GameClient {
          * @param buffer Raw message data.
          */
         void handleElementSpawn(const std::vector<uint8_t> &buffer);
-};
-=======
-};
+
         /**
          * @brief Handles a chat message broadcast from the server.
          * @param buffer Raw message data.
@@ -413,4 +410,3 @@ class GameClient {
          */
         std::vector<std::pair<std::string, std::string>> consumeChatMessages();
 };
->>>>>>> ef92686be02cb53b23c78861e5cf90109eb5facc

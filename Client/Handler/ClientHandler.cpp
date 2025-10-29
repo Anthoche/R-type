@@ -13,10 +13,18 @@
 #include <algorithm>
 
 void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buffer) {
-<<<<<<< HEAD
     switch (type) {
         case MessageType::ServerAssignId:
             handleServerAssignId(buffer);
+            break;
+        case MessageType::ServerRoomAssignId:
+			handleServerRoomAssign(buffer);
+			break;
+		case MessageType::ServerSendRooms:
+			handleServerRooms(buffer);
+			break;
+        case MessageType::ServerSetRoomReady:
+            handleRoomReady(buffer);
             break;
         case MessageType::GameStart:
             handleGameStart(buffer);
@@ -81,6 +89,12 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         case MessageType::InitialHealth:
             handleInitialHealth(buffer);
             break;
+        case MessageType::PlayerSkinUpdate:
+			handlePlayerSkinUpdate(buffer);
+			break;
+		case MessageType::ChatMessage:
+			handleChatMessage(buffer);
+			break;
         case MessageType::ElementSpawn:
             handleElementSpawn(buffer);
             break;
@@ -93,93 +107,6 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
         default:
             break;
     }
-=======
-	switch (type) {
-		case MessageType::ServerAssignId:
-			handleServerAssignId(buffer);
-			break;
-		case MessageType::ServerRoomAssignId:
-			handleServerRoomAssign(buffer);
-			break;
-		case MessageType::ServerSendRooms:
-			handleServerRooms(buffer);
-			break;
-		case MessageType::GameStart:
-			handleGameStart(buffer);
-			break;
-		case MessageType::ServerSetRoomReady:
-			handleRoomReady(buffer);
-			break;
-		case MessageType::StateUpdate:
-			handlePlayerUpdate(buffer);
-			break;
-		case MessageType::ObstacleSpawn:
-			handleObstacleSpawn(buffer);
-			break;
-		case MessageType::ObstacleUpdate:
-			handleObstacleUpdate(buffer);
-			break;
-		case MessageType::ObstacleDespawn:
-			handleObstacleDespawn(buffer);
-			break;
-		case MessageType::PlayerHealth:
-			handlePlayerHealth(buffer);
-			break;
-		case MessageType::GlobalScore:
-			handleGlobalScore(buffer);
-			break;
-		case MessageType::IndividualScore:
-			handleIndividualScore(buffer);
-			break;
-		case MessageType::ProjectileSpawn:
-			handleProjectileSpawn(buffer);
-			break;
-		case MessageType::ProjectileDespawn:
-			handleProjectileDespawn(buffer);
-			break;
-		case MessageType::ProjectileUpdate:
-			handleProjectileUpdate(buffer);
-			break;
-		case MessageType::EnemySpawn:
-			handleEnemySpawn(buffer);
-			break;
-		case MessageType::EnemyDespawn:
-			handleEnemyDespawn(buffer);
-			break;
-		case MessageType::BossDeath:
-			handleBossDeath(buffer);
-			break;
-		case MessageType::EnemyUpdate:
-			handleEnemyUpdate(buffer);
-			break;
-    case MessageType::EndlessMode:
-      handleEndlessMode(buffer);
-      break;
-		case MessageType::PlayerDeath:
-			handlePlayerDeath(buffer);
-			break;
-		case MessageType::EnemyProjectileSpawn:
-			handleEnemyProjectileSpawn(buffer);
-			break;
-		case MessageType::EnemyProjectileUpdate:
-			handleEnemyProjectileUpdate(buffer);
-			break;
-		case MessageType::EnemyProjectileDespawn:
-			handleEnemyProjectileDespawn(buffer);
-			break;
-		case MessageType::PlayerSkinUpdate:
-			handlePlayerSkinUpdate(buffer);
-			break;
-		case MessageType::ChatMessage:
-			handleChatMessage(buffer);
-			break;
-    case MessageType::InitialHealth:
-        handleInitialHealth(buffer);
-        break;
-		default:
-			break;
-	}
->>>>>>> ef92686be02cb53b23c78861e5cf90109eb5facc
 }
 
 void GameClient::handleServerAssignId(const std::vector<uint8_t> &buffer) {

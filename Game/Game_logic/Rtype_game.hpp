@@ -141,14 +141,10 @@ class ServerGame : public IServerGame {
         /** @brief Cached references for enemies. */
         std::vector<ecs::entity_t> _enemies;
 
-<<<<<<< HEAD
         /** @brief Cached references for elements. */
         std::vector<ecs::entity_t> _randomElements;
 
          int currentLevel = 1;
-=======
-        int currentLevel = 1;
->>>>>>> ef92686be02cb53b23c78861e5cf90109eb5facc
         bool levelTransitionPending = false;
         std::chrono::steady_clock::time_point levelTransitionTime;
         const float LEVEL_TRANSITION_DELAY = 6.0f;
