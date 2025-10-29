@@ -657,6 +657,12 @@ class Raylib {
         bool isKeyPressed(int key);
 
         /**
+         * @brief Retrieve the next character codepoint pressed (useful for text input).
+         * @return Unicode codepoint or 0 if none available.
+         */
+        int getCharPressed();
+
+        /**
          * @brief Check if a key was just released.
          * @param key Key code.
          * @return True if the key was released.

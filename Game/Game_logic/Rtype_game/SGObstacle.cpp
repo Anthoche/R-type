@@ -67,8 +67,11 @@ bool ServerGame::is_position_blocked(float testX, float testY, float playerWidth
     return false;
 }
 
-void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, 
+void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z,
     float w, float h, float d, float vx, float vy, float vz) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
     ObstacleSpawnMessage msg{};
     msg.type = MessageType::ObstacleSpawn;
     msg.obstacleId = htonl(obstacleId);
@@ -94,7 +97,7 @@ void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y,
     msg.vel.vyBits = htonl(vyb);
     msg.vel.vzBits = htonl(vzb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast obstacle spawn: ID=" << obstacleId
               << " pos=(" << x << "," << y << "," << z << ") size=(" << w << "," << h << "," << d << ")");
 }
@@ -102,13 +105,13 @@ void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y,
 void ServerGame::update_obstacles(float dt) {
     auto &positions = registry_server.get_components<component::position>();
     auto &velocities = registry_server.get_components<component::velocity>();
-    
+
     for (auto obstacle : _obstacles) {
         uint32_t idx = static_cast<uint32_t>(obstacle);
-        
+
         if (idx >= positions.size() || !positions[idx]) continue;
         if (idx >= velocities.size() || !velocities[idx]) continue;
-        
+
         positions[idx]->x += velocities[idx]->vx * dt;
         positions[idx]->y += velocities[idx]->vy * dt;
         positions[idx]->z += velocities[idx]->vz * dt;
@@ -119,10 +122,10 @@ void ServerGame::update_obstacles(float dt) {
 void ServerGame::broadcast_obstacle_positions() {
     auto &positions = registry_server.get_components<component::position>();
     auto &velocities = registry_server.get_components<component::velocity>();
-    
+
     for (auto obstacleEntity : _obstacles) {
         uint32_t obstacleId = static_cast<uint32_t>(obstacleEntity);
-        
+
         if (obstacleId < positions.size() && positions[obstacleId]) {
             const auto& pos = *positions[obstacleId];
             float vx = 0, vy = 0, vz = 0;
@@ -131,7 +134,7 @@ void ServerGame::broadcast_obstacle_positions() {
                 vy = velocities[obstacleId]->vy;
                 vz = velocities[obstacleId]->vz;
             }
-            
+
             broadcast_obstacle_update(obstacleId, pos.x, pos.y, pos.z, vx, vy, vz);
         }
     }

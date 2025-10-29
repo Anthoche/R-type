@@ -7,7 +7,7 @@
 #pragma once
 #include <string>
 #include <thread>
-#include "GameStatus.hpp"
+#include "../Shared/GameStatus.hpp"
 #include "../Client/client.hpp"
 #include "../Game/Scene/Include/SceneHandler.hpp"
 
@@ -98,8 +98,17 @@ public:
      * @return True if sound is enabled, false otherwise.
      */
     bool isSoundEnabled() const { return _soundEnabled; }
+
+    void setSelectedSkinPath(const std::string &path) { _selectedSkinPath = path; }
+
+		/**
+		 * @brief Retrieve the currently selected player skin texture path.
+		 * @return Absolute path to the sprite used for the local player.
+		 */
+		const std::string &getSelectedSkinPath() const { return _selectedSkinPath; }
     
     void setEndlessMode(bool endless) { _endlessMode = endless; }
+  
     bool isEndlessModeEnabled() const { return _endlessMode; }
     
     void setHealth(size_t health) { _health = health; }
@@ -119,4 +128,5 @@ private:
     bool _soundEnabled = true; ///< Sound enabled/disabled flag
     bool _endlessMode = false;
     size_t _health = 75; ///< Current health in HP (25 = 1 life, 50 = 2 lives, etc.)
+		std::string _selectedSkinPath; ///< Sprite path picked on the waiting screen
 };

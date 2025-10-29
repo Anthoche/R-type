@@ -27,16 +27,33 @@
 
 
 void ServerGame::broadcast_player_death(uint32_t clientId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     PlayerDeathMessage msg;
     msg.type = MessageType::PlayerDeath;
     msg.clientId = htonl(clientId);
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_INFO("[Server] Player " << clientId << " died!");
 }
 
 void ServerGame::initialize_player_positions() {
     LOG_DEBUG("Initializing player positions...");
-    for (const auto& kv : connexion.getClients()) {
-        playerPositions[kv.second] = {100.f + (kv.second - 1) * 50.f, 300.f};
+    std::vector<uint32_t> clients;
+    {
+        std::lock_guard<std::mutex> lock(initialClientsMutex);
+        clients = initialClients;
+    }
+
+    if (clients.empty()) {
+        for (const auto &kv : connexion.getClients())
+            clients.push_back(kv.second);
+    }
+
+    playerPositions.clear();
+    for (std::size_t i = 0; i < clients.size(); ++i) {
+        float baseX = 100.f + static_cast<float>(i) * 50.f;
+        playerPositions[clients[i]] = {baseX, 300.f};
     }
 }

@@ -6,6 +6,7 @@
 */
 
 #include "Include/TCP_socket.hpp"
+#include "Logger.hpp"
 
 using asio::ip::tcp;
 
@@ -21,7 +22,7 @@ TCP_socket::TCP_socket(uint16_t port)
     : socket(ioContext),
       acceptor(std::make_unique<tcp::acceptor>(ioContext, tcp::endpoint(tcp::v4(), port))),
       isServerMode(true) {
-    std::cout << "[INFO] TCP Server listening on port " << port << std::endl;
+    LOG_INFO(std::format("TCP Server listening on port {}", port));
 }
 
 TCP_socket::~TCP_socket() {
@@ -30,7 +31,7 @@ TCP_socket::~TCP_socket() {
 
 bool TCP_socket::connectToServer(const std::string& host, uint16_t port) {
     if (isServerMode) {
-        std::cerr << "[WARN] connectToServer() called on server-mode socket, ignoring." << std::endl;
+        LOG_WARN("connectToServer() called on server-mode socket, ignoring.");
         return false;
     }
 
@@ -38,27 +39,27 @@ bool TCP_socket::connectToServer(const std::string& host, uint16_t port) {
         tcp::resolver resolver(ioContext);
         auto endpoints = resolver.resolve(host, std::to_string(port));
         asio::connect(socket, endpoints);
-        std::cout << "[INFO] Connected to " << host << ":" << port << std::endl;
+        LOG_INFO(std::format("Connected to {}:{}",host, port));
         return true;
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] connectToServer(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("connectToServer(): {}", e.what()));
         return false;
     }
 }
 
 bool TCP_socket::acceptClient() {
     if (!isServerMode) {
-        std::cerr << "[WARN] acceptClient() called on client-mode socket, ignoring." << std::endl;
+        LOG_WARN("acceptClient() called on client-mode socket, ignoring.");
         return false;
     }
 
     try {
-        std::cout << "[INFO] Waiting for client..." << std::endl;
+        LOG_INFO("Waiting for client...");
         acceptor->accept(socket);
-        std::cout << "[INFO] Client connected." << std::endl;
+        LOG_INFO("Client connected.");
         return true;
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] acceptClient(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("acceptClient(): {}", e.what()));
         return false;
     }
 }
@@ -69,9 +70,9 @@ void TCP_socket::disconnect() {
         socket.close(ec);
         
         if (isServerMode) {
-            std::cout << "[INFO] Client disconnected." << std::endl;
+            LOG_INFO("Client disconnected.");
         } else {
-            std::cout << "[INFO] Disconnected from server." << std::endl;
+            LOG_INFO("Disconnected from server.");
         }
     }
 }
@@ -81,7 +82,7 @@ void TCP_socket::sendJson(const nlohmann::json& j) {
         std::string data = j.dump() + "\n";
         asio::write(socket, asio::buffer(data));
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] sendJson(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("sendJson(): {}", e.what()));
     }
 }
 
@@ -94,7 +95,7 @@ nlohmann::json TCP_socket::receiveJson() {
         std::getline(is, line);
         return nlohmann::json::parse(line);
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR] receiveJson(): " << e.what() << std::endl;
+        LOG_ERROR(std::format("receiveJson(): {}", e.what()));
         return {};
     }
 }

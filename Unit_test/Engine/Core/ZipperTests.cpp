@@ -23,9 +23,6 @@ struct Velocity {
     int dy; 
 };
 
-// -------------------------
-// Dereferencing (*, ->)
-// -------------------------
 TEST(Zipper, dereference_returns_tuple) {
     sparse_array<Position> positions;
     sparse_array<Velocity> velocities;
@@ -43,9 +40,6 @@ TEST(Zipper, dereference_returns_tuple) {
     EXPECT_EQ(vOpt->dy, 40);
 }
 
-// -------------------------
-// Equality / inequality
-// -------------------------
 TEST(Zipper, equality_operators) {
     sparse_array<Position> positions;
     sparse_array<Velocity> velocities;
@@ -61,4 +55,15 @@ TEST(Zipper, equality_operators) {
 
     EXPECT_TRUE(it1 == it2);
     EXPECT_TRUE(it1 != itEnd);
+}
+
+TEST(Zipper, empty_containers) {
+    sparse_array<Position> positions;
+    sparse_array<Velocity> velocities;
+
+    zipper zip(positions, velocities);
+    auto begin = zip.begin();
+    auto end = zip.end();
+
+    EXPECT_TRUE(begin == end);
 }

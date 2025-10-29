@@ -10,12 +10,14 @@
 #include <cmath>
 #include <tuple>
 #include <algorithm>
+#include <string>
 #include <nlohmann/json.hpp>
 #include "../../Engine/Utils/Include/serializer.hpp"
+#include <vector>
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
-        : AScene(1920, 1080, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib) {
+        : AScene(1920, 1080, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib), _chat(_raylib) {
         _raylib = Raylib();
         _game_running = true;
         _startTime = 0.f;
@@ -51,6 +53,8 @@ namespace game::scene {
         _registry.register_component<component::client_id>();
         _registry.register_component<component::pattern_element>();
         _ui.init();
+        _chat.init();
+        _chat.setUsername(_game.getGameClient().getClientName());
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 
         setup_movement_system();
@@ -125,9 +129,27 @@ namespace game::scene {
 
     void GameScene::load_entity_textures() {
         auto &sprites = _registry.get_components<component::sprite>();
+        auto &types = _registry.get_components<component::type>();
+        auto &clientIds = _registry.get_components<component::client_id>();
+
+        const std::string &selectedSkin = _game.getSelectedSkinPath();
+        uint32_t localClientId = _game.getGameClient().clientId;
 
         for (std::size_t i = 0; i < sprites.size(); ++i) {
-            if (sprites[i] && !sprites[i]->image_path.empty()) {
+            if (sprites[i]) {
+                if (!selectedSkin.empty() &&
+                    i < types.size() && types[i] &&
+                    types[i]->value == component::entity_type::PLAYER &&
+                    i < clientIds.size() && clientIds[i] &&
+                    clientIds[i]->id == localClientId &&
+                    sprites[i]->image_path != selectedSkin) {
+                    sprites[i]->image_path = selectedSkin;
+                }
+
+                if (sprites[i]->image_path.empty()) {
+                    continue;
+                }
+
                 ecs::entity_t entity = _registry.entity_from_index(i);
                 
                 if (_entityTextures.find(entity.value()) == _entityTextures.end()) {
@@ -193,9 +215,11 @@ void GameScene::update() {
     if (!_game_running) return;
 
     std::unordered_map<uint32_t, std::tuple<float, float, float>> netPlayers;
+    std::unordered_map<uint32_t, std::string> skinSelections;
     {
         std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
         netPlayers = _game.getGameClient().players;
+        skinSelections = _game.getGameClient().playerSkins;
     }
 
     for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
@@ -208,6 +232,10 @@ void GameScene::update() {
     }
 
     auto &positions = _registry.get_components<component::position>();
+    const std::string &selectedSkinPath = _game.getSelectedSkinPath();
+    uint32_t myClientId = _game.getGameClient().clientId;
+    const std::string assetsPlayerDir = std::string(ASSETS_PATH) + "/sprites/player/";
+    const std::string fallbackPlayerSkin = assetsPlayerDir + "r-typesheet42.png";
     for (auto const &kv : netPlayers) {
         uint32_t id = kv.first;
         float x = std::get<0>(kv.second);
@@ -215,10 +243,41 @@ void GameScene::update() {
         float z = std::get<2>(kv.second);
         auto f = _playerEntities.find(id);
         if (f == _playerEntities.end()) {
-            ecs::entity_t e = game::entities::create_player(_registry, x, y, z);
+            bool isLocalPlayer = (id == myClientId);
+            std::string spritePath = fallbackPlayerSkin;
+            auto skinIt = skinSelections.find(id);
+            if (skinIt != skinSelections.end() && !skinIt->second.empty()) {
+                spritePath = assetsPlayerDir + skinIt->second;
+            }
+            if (isLocalPlayer && !selectedSkinPath.empty()) {
+                spritePath = selectedSkinPath;
+            }
+
+            ecs::entity_t e = game::entities::create_player(_registry, x, y, z, spritePath, "", id);
             _playerEntities.emplace(id, e);
         } else {
             ecs::entity_t e = f->second;
+            auto skinIt = skinSelections.find(id);
+            std::string desiredPath = fallbackPlayerSkin;
+            if (skinIt != skinSelections.end() && !skinIt->second.empty()) {
+                desiredPath = assetsPlayerDir + skinIt->second;
+            }
+            if (id == myClientId && !selectedSkinPath.empty()) {
+                desiredPath = selectedSkinPath;
+            }
+
+            auto &sprites = _registry.get_components<component::sprite>();
+            if (e.value() < sprites.size() && sprites[e.value()]) {
+                if (sprites[e.value()]->image_path != desiredPath && !desiredPath.empty()) {
+                    auto texIt = _entityTextures.find(e.value());
+                    if (texIt != _entityTextures.end()) {
+                        _raylib.unloadTexture(texIt->second);
+                        _entityTextures.erase(texIt);
+                    }
+                    sprites[e.value()]->image_path = desiredPath;
+                }
+            }
+
             if (e.value() < positions.size() && positions[e.value()]) {
                 positions[e.value()]->x = x;
                 positions[e.value()]->y = y;
@@ -227,7 +286,6 @@ void GameScene::update() {
         }
     }
     
-    uint32_t myClientId = _game.getGameClient().clientId;
     auto myPlayerIt = _playerEntities.find(myClientId);
     if (myPlayerIt != _playerEntities.end())
         _player = myPlayerIt->second;
@@ -618,6 +676,13 @@ void GameScene::update() {
         } else if (_isWin && _lastBoss) {
             render_final_win_screen();
         }
+        {
+            auto newMessages = _game.getGameClient().consumeChatMessages();
+            for (auto &msg : newMessages) {
+                _chat.addMessage(msg.first, msg.second);
+            }
+        }
+        _chat.render();
         if (_isDead && !_defeatSoundPlayed) {
             _raylib.stopMusicStream(_music);
             if (_game.isSoundEnabled()) {
@@ -976,8 +1041,12 @@ void GameScene::update() {
     void GameScene::render_death_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{255, 0, 0, 100});
         bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+        bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
-        const char* deathText = isFrench ? "VOUS ÊTES MORT!" : "YOU DIED!";
+        const char* deathText = 
+            isFrench ? "VOUS ÊTES MORT!" :
+            isItalian ? "SEI MORTO!"
+            : "YOU ARE DEAD!";
         int fontSize = 72;
         int textWidth = _raylib.measureText(deathText, fontSize);
         _raylib.drawText(
@@ -991,8 +1060,13 @@ void GameScene::update() {
 
     void GameScene::render_win_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
-        
-        const char* winText = "LEVEL CLEARED!";
+        bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+        bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
+
+        const char* winText = 
+            isFrench ? "NIVEAU TERMINÉ !" :
+            isItalian ? "LIVELLO SUPERATO !"
+            : "LEVEL CLEARED !";
         int fontSize = 72;
         int textWidth = _raylib.measureText(winText, fontSize);
         _raylib.drawText(
@@ -1029,6 +1103,8 @@ void GameScene::update() {
 
     void GameScene::handleEvents() {
         update();
+        float deltaTime = _raylib.getFrameTime();
+        _chat.update(deltaTime);
         int globalScore = 0;
         uint32_t myClientId = 0;
         {
@@ -1044,16 +1120,51 @@ void GameScene::update() {
         bool leftPressed = _raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT);
         bool rightPressed = _raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT);
 
-        switch (_raylib.getKeyPressed()) {
+        int keyPressed = _raylib.getKeyPressed();
+
+        switch (keyPressed) {
             case KEY_SPACE:
                 if (!_stopShoot)
                     handle_shoot(SHOOT_COOLDOWN);
+                if (!_chat.isFocused())
+                    handle_shoot(SHOOT_COOLDOWN);
+                break;
+            case KEY_F1:
+                _chat.toggleFocus();
                 break;
             case KEY_F11:
                 toggleFullScreen();
                 break;
             default:
                 break;
+        }
+
+        if (_chat.isFocused()) {
+            if (keyPressed == KEY_ENTER) {
+                if (auto submitted = _chat.submitMessage()) {
+                    _game.getGameClient().sendChatMessage(*submitted);
+                }
+            } else if (keyPressed == KEY_BACKSPACE) {
+                _chat.removeLastCharacter();
+            } else if (keyPressed == KEY_ESCAPE) {
+                _chat.toggleFocus();
+                dispatch_input_events(false, false, false, false);
+                if (myClientId != 0) {
+                    moovePlayer[myClientId] = 0.0f;
+                }
+                return;
+            }
+
+            int codepoint = 0;
+            while ((codepoint = _raylib.getCharPressed()) != 0) {
+                _chat.appendCharacter(codepoint);
+            }
+
+            dispatch_input_events(false, false, false, false);
+            if (myClientId != 0) {
+                moovePlayer[myClientId] = 0.0f;
+            }
+            return;
         }
 
         if (_raylib.isGamepadAvailable(0)) {
