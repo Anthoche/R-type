@@ -11,6 +11,7 @@
 #include "Logger.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
+#include <chrono>
 
 namespace scene {
 	RoomSelectScene::RoomSelectScene(Game &game) : AScene(960, 540, "R-Type - Rooms"), _game(game) {
@@ -169,19 +170,13 @@ namespace scene {
 	void RoomSelectScene::refreshRooms() {
 		_game.getGameClient().sendRoomsFetch();
 		_rooms.clear();
-		auto &rooms = _game.getGameClient().rooms;
-		int i = 0;
+		std::map<int, game::serializer::RoomData> snapshot;
 
-		// TODO: Maybe consider putting this in another thread not to block current thread
-		while (rooms.empty()) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			i++;
-			if (i > 10) {
-				LOG_ERROR("Timed out while trying to retrieve rooms data.");
-				return;
-			}
+		if (!_game.getGameClient().waitForRooms(std::chrono::milliseconds(1500), snapshot)) {
+			LOG_ERROR("Timed out while trying to retrieve rooms data.");
+			return;
 		}
-		for (auto &room: rooms) {
+		for (auto &room: snapshot) {
 			createRoom(room.first, room.second);
 		}
 	}

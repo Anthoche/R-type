@@ -131,8 +131,18 @@ void GameClient::handleServerRooms(const std::vector<uint8_t> &buffer) {
 	const ServerSendRoomsMessage *msg = reinterpret_cast<const ServerSendRoomsMessage *>(buffer.data());
 	LOG_INFO("Server sent rooms");
 	LOG_DEBUG(std::format("Received JSON:\n{}\n", msg->jsonData));
-	nlohmann::json json = nlohmann::json::parse(msg->jsonData);
-	rooms = game::serializer::deserialize_rooms(json);
+	try {
+		nlohmann::json json = nlohmann::json::parse(msg->jsonData);
+		auto parsedRooms = game::serializer::deserialize_rooms(json);
+		{
+			std::lock_guard<std::mutex> lock(roomsMutex);
+			rooms = std::move(parsedRooms);
+			roomsUpdated = true;
+		}
+		roomsCv.notify_all();
+	} catch (const std::exception &e) {
+		LOG_ERROR(std::format("Failed to deserialize rooms JSON: {}", e.what()));
+	}
 }
 
 void GameClient::handleRoomReady(const std::vector<uint8_t> &buffer) {
