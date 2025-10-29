@@ -109,6 +109,7 @@ void ServerGame::run(int roomId) {
 
         if (!gameCompleted) {
             update_projectiles_server_only(dt);
+            update_element(dt);
             update_enemies(dt);
             update_obstacles(dt);
             update_enemy_projectiles_server_only(dt);
@@ -117,10 +118,12 @@ void ServerGame::run(int roomId) {
             check_projectile_collisions();
             check_projectile_enemy_collisions();
             check_player_enemy_collisions();
+            check_player_element_collisions();
 
             broadcast_projectile_positions();
             broadcast_obstacle_positions();
             broadcast_enemy_positions();
+            broadcast_element_positions();
             broadcast_enemy_projectile_positions();
         }
 
@@ -224,6 +227,7 @@ void ServerGame::load_level(const std::string &path) {
 void ServerGame::index_existing_entities() {
     _obstacles.clear();
     _enemies.clear();
+    _randomElements.clear();
 
     auto &types = registry_server.get_components<component::type>();
 
@@ -238,6 +242,9 @@ void ServerGame::index_existing_entities() {
                 break;
             case component::entity_type::OBSTACLE:
                 _obstacles.push_back(entity);
+                break;
+            case component::entity_type::RANDOM_ELEMENT:
+                _randomElements.push_back(entity);
                 break;
             default:
                 break;
@@ -297,9 +304,34 @@ void ServerGame::index_existing_entities() {
         broadcast_obstacle_spawn(id, x, y, z, w, h, d, vx, vy, vz);
     }
 
+    for (auto element: _randomElements) {
+        uint32_t id = static_cast<uint32_t>(element);
+        if (id >= positions.size() || !positions[id]) continue;
+        
+        float x = positions[id]->x;
+        float y = positions[id]->y;
+        float z = positions[id]->z;
+        float w = 0.0f, h = 0.0f;
+        float vx = 0, vy = 0, vz = 0;
+        
+        if (id < velocities.size() && velocities[id]) {
+            vx = velocities[id]->vx;
+            vy = velocities[id]->vy;
+            vz = velocities[id]->vz;
+        }
+        
+        if (id < drawables.size() && drawables[id]) {
+            w = drawables[id]->width;
+            h = drawables[id]->height;
+        }
+        
+        broadcast_element_spawn(id, x, y, z, vx, vy, vz, w, h);
+    }
+
     LOG_INFO("[Server] Indexed entities:");
     LOG_DEBUG("  - Enemies: " << _enemies.size());
     LOG_DEBUG("  - Obstacles: " << _obstacles.size());
+    LOG_DEBUG("  - elements: " << _randomElements.size());
 }
 
 void ServerGame::load_next_level() {
@@ -350,7 +382,7 @@ void ServerGame::clear_level_entities() {
             case component::entity_type::ENEMY:
             case component::entity_type::OBSTACLE:
             case component::entity_type::PROJECTILE:
-            case component::entity_type::POWERUP:
+            case component::entity_type::RANDOM_ELEMENT:
             case component::entity_type::BACKGROUND:
                 entitiesToKill.push_back(entity);
                 break;

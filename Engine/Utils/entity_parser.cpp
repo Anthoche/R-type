@@ -198,8 +198,8 @@ namespace game::parsing
 
     ecs::entity_t parse_random_element(ecs::registry &reg, const nlohmann::json &element_data)
     {
-        try {
-            float x = 0.0f, y = 0.0f, z = 0.0f;
+                try {
+            float x = 0.0f, y = 0.0f, z = 0.0f, velocity = 0.0f, width = 0, height = 0;
             if (element_data.contains("position") && element_data["position"].is_object()) {
                 const auto &pos = element_data["position"];
                 x = pos.value("x", 0.0f);
@@ -211,29 +211,19 @@ namespace game::parsing
                 z = element_data.value("z", 0.0f);
             }
 
-            float width  = element_data.value("width", 100.0f);
-            float height = element_data.value("height", 100.0f);
-            float depth  = element_data.value("depth", 10.0f);
-
+            velocity = element_data.value("speed", 0.0f);
+            width = element_data.value("w", 0.0f);
+            height = element_data.value("h", 0.0f);
             std::string image_path = element_data.value("image_path", "");
-            std::string sound_path = element_data.value("sound_path", "");
-
-            float volume = element_data.value("volume", 1.0f);
-            bool loop = element_data.value("loop", false);
-            bool autoplay = element_data.value("autoplay", false);
+            std::string type = element_data.value("type", "");
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
-                std::cerr << "[WARNING] Random element image file not found: " << image_path << std::endl;
+                std::cerr << "[WARNING] element image file not found: " << image_path << std::endl;
             }
-            if (!sound_path.empty() && !std::ifstream(sound_path).good()) {
-                std::cerr << "[WARNING] Random element sound file not found: " << sound_path << std::endl;
-            }
-            return game::entities::create_random_element(
-                reg, x, y, z, width, height, depth, image_path, sound_path, volume, loop, autoplay
-            );
+            return game::entities::create_random_element(reg, x, y, z, image_path, width, height, type, velocity);
         }
         catch (const std::exception &e) {
-            throw std::runtime_error(std::string("Failed to parse random element: ") + e.what());
+            throw std::runtime_error(std::string("Failed to parse element: ") + e.what());
         }
     }
 

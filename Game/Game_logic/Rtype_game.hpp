@@ -167,7 +167,10 @@ class ServerGame : public IServerGame {
         /** @brief Cached references for enemies. */
         std::vector<ecs::entity_t> _enemies;
 
-        int currentLevel = 1;
+        /** @brief Cached references for elements. */
+        std::vector<ecs::entity_t> _randomElements;
+
+         int currentLevel = 1;
         bool levelTransitionPending = false;
         std::chrono::steady_clock::time_point levelTransitionTime;
         const float LEVEL_TRANSITION_DELAY = 6.0f;
@@ -216,6 +219,12 @@ class ServerGame : public IServerGame {
         void update_enemy_figure8(uint32_t id, float dt);
         void update_enemy_spiral(uint32_t id, float dt);
         void update_obstacles(float dt);
+        void update_element(float dt);
+
+        void broadcast_element_positions();
+        void broadcast_element_spawn(uint32_t elementId, float x, float y, float z, float vx, float vy, float vz, float width, float height);
+        void broadcast_element_despawn(uint32_t elementId);
+        void broadcast_element_update(uint32_t elementId, float x, float y, float z);
 
         void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz, float width, float height);
         void broadcast_enemy_positions();
@@ -226,6 +235,7 @@ class ServerGame : public IServerGame {
         void shoot_enemy_projectile(uint32_t enemyId, float x, float y, float vx, float vy);
         void update_enemy_projectiles_server_only(float dt);
         void check_enemy_projectile_player_collisions();
+        void check_player_element_collisions();
 
         void broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float z, float vx, float vy, float vz);
         void broadcast_enemy_projectile_positions();

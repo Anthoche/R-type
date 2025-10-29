@@ -63,13 +63,14 @@ class GameClient {
          * @param registryJson JSON representation of the full game registry.
          * @param markPending If true, marks the registry as pending for consumption by the game thread.
          */
+
         void storeFullRegistry(const nlohmann::json &registryJson, bool markPending);
 
         /**
          * @brief Requests the full game registry from the server asynchronously.
          */
         void fetchFullRegistryAsync();
-
+        
         std::deque<std::pair<std::string, std::string>> _chatQueue; ///< Queue of chat messages waiting to be processed.
         std::mutex roomsMutex; ///< Protects access to the rooms list.
         std::condition_variable roomsCv; ///< Notifies waiting threads when rooms data is updated.
@@ -93,6 +94,11 @@ class GameClient {
         int32_t globalScore = 0; ///< The shared team score for all players.
         std::atomic<bool> bossDefeated{false}; ///< Thread-safe flag indicating if the boss has been defeated.
         bool _lastBoss = false; ///< Flag indicating if the current boss is the final boss of the game.
+
+        /**
+         * @brief Maps elements IDs to their (x,y,velX,velY).
+         */
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> elements;
 
         /**
          * @brief Waits for the rooms list to be updated by the server.
@@ -401,6 +407,23 @@ class GameClient {
          */
         void handleEndlessMode(const std::vector<uint8_t> &buffer);
 
+         /**
+         * @brief Handles an element despwan message.
+         * @param buffer Raw message data.
+         */
+        void handleElementDespawn(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an element update message.
+         * @param buffer Raw message data.
+         */
+        void handleElementUpdate(const std::vector<uint8_t> &buffer);
+
+        /**
+         * @brief Handles an Element spwan message.
+         * @param buffer Raw message data.
+         */
+        void handleElementSpawn(const std::vector<uint8_t> &buffer);
         /**
          * @brief Processes a server message broadcasting a chat message from another player.
          * @param buffer Raw message data.

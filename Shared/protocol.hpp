@@ -14,45 +14,48 @@
  * @brief Enum for all network message types exchanged between client and server.
  */
 enum class MessageType : uint8_t {
-	ClientHello, /**< Client greeting the server */
-	ServerAssignId, /**< Server assigns an ID to the client */
-	ClientRoomIdAsk, /**< Client asking for a connexion to a specific room */
-	ClientRoomCreate, /**< Client create a new room */
-	ServerRoomAssignId, /**< Assign room to client */
-	ClientConfirmStart, /**< Confirmation message from the client to confirm the game start */
-	ClientFetchRooms, /**< Fetch room list actions for client */
-	ServerSendRooms, /**< Send rooms to client */
-	ServerSetClientConfirmed, /**< Confirmation message from the server to set a client as ready to start */
-	ServerSetRoomReady, /**< Sends a message that notifies the client that the room is ready */
-	ClientLeaveRoom, /**< Notifies the server that client leaves the room*/
-	GameStart, /**< Server notifies clients that the game is starting */
-	ClientInput, /**< Client sends input for the current frame */
-	StateUpdate, /**< Server sends updated state for a client */
-	EnemySpawn, /**< Server spawns a new enemy */
-	EnemyUpdate, /**< Server updates an enemy's position */
-	EnemyDespawn, /**< Server removes an enemy */
-	ObstacleSpawn, /**< Server spawns a new obstacle */
-  ObstacleUpdate,
-	ObstacleDespawn, /**< Server removes an obstacle */
-	ClientShoot, /**< Client sends a shoot event */
-	ProjectileSpawn, /**< Server creates a projectile */
-	ProjectileUpdate, /**< Server updates a projectile */
-	ProjectileDespawn, /**< Server removes a projectile */
-	EnemyProjectileSpawn, /**< Server spawns an enemy projectile */
-	EnemyProjectileUpdate, /**< Server updates an enemy projectile */
-	EnemyProjectileDespawn, /**< Server removes an enemy projectile */
-  BossDeath,
-  EndlessMode,
-	EntityData, /**< Server → Clients: entity ECS synchronization */
-  PlayerWeaponUpdate,       /**< Client ↔ Server: selected player weapon */
-  PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
-	SceneState, /**< Client → Server: indicates current scene */
-	PlayerDeath, /**< Server notifies clients that a player has died */
-	PlayerHealth, /**< Server updates a player's health */
-	InitialHealth, /**< Client sends its initial health to the server */
-	GlobalScore, /**< Server updates the global score */
-	IndividualScore, /**< Server updates a player's individual score */
-  ChatMessage               /**< Chat message exchanged between clients via server */
+    ClientHello,              /**< Client greeting the server */
+    ClientRoomIdAsk, /**< Client asking for a connexion to a specific room */
+    ClientRoomCreate, /**< Client create a new room */
+    ServerRoomAssignId, /**< Assign room to client */
+    ClientConfirmStart, /**< Confirmation message from the client to confirm the game start */
+    ClientFetchRooms, /**< Fetch room list actions for client */
+    ServerSendRooms, /**< Send rooms to client */
+    ServerSetClientConfirmed, /**< Confirmation message from the server to set a client as ready to start */
+    ServerSetRoomReady, /**< Sends a message that notifies the client that the room is ready */
+    ServerAssignId,           /**< Server assigns an ID to the client */
+	  ClientLeaveRoom, /**< Notifies the server that client leaves the room*/
+    GameStart,                /**< Server notifies clients that the game is starting */
+    ClientInput,              /**< Client sends input for the current frame */
+    StateUpdate,              /**< Server sends updated state for a client */
+    EnemySpawn,               /**< Server spawns a new enemy */
+    EnemyUpdate,              /**< Server updates an enemy's position */
+    EnemyDespawn,             /**< Server removes an enemy */
+    ObstacleSpawn,            /**< Server spawns a new obstacle */
+    ObstacleUpdate,
+    ObstacleDespawn,          /**< Server removes an obstacle */
+    ClientShoot,              /**< Client sends a shoot event */
+    ProjectileSpawn,          /**< Server creates a projectile */
+    ProjectileUpdate,         /**< Server updates a projectile */
+    ProjectileDespawn,        /**< Server removes a projectile */
+    EnemyProjectileSpawn,     /**< Server spawns an enemy projectile */
+    EnemyProjectileUpdate,    /**< Server updates an enemy projectile */
+    EnemyProjectileDespawn,   /**< Server removes an enemy projectile */
+    BossDeath,
+    ElementSpawn,
+    ElementUpdate,
+    ElementDespawn,
+    EndlessMode,
+    EntityData,               /**< Server → Clients: entity ECS synchronization */
+    PlayerWeaponUpdate,       /**< Client ↔ Server: selected player weapon */
+    PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
+    SceneState,               /**< Client → Server: indicates current scene */
+    PlayerDeath,              /**< Server notifies clients that a player has died */
+    PlayerHealth,             /**< Server updates a player's health */
+    InitialHealth,            /**< Client sends its initial health to the server */
+    GlobalScore,              /**< Server updates the global score */
+    IndividualScore,          /**< Server updates a player's individual score */
+	  ChatMessage,              /**< Chat message exchanged between clients via server */
 };
 
 /**
@@ -268,6 +271,28 @@ struct EnemySpawnMessage {
     Velocity3D vel;      ///< 3D velocity
     float width;
     float height;
+};
+
+struct ElementSpawnMessage {
+    MessageType type;
+    uint32_t elementId;
+    Position3D pos;      ///< 3D position
+    Velocity3D vel;      ///< 3D velocity
+    float width;
+    float height;
+};
+
+struct ElementDespawnMessage {
+    MessageType type;
+    uint32_t elementId;
+};
+
+struct ElementUpdateMessage {
+    MessageType type;
+    uint32_t elementId;
+    Position3D pos;      ///< 3D position
+    uint32_t velXBits;        // Vélocité X (float bits)
+    uint32_t velYBits;        // Vélocité Y (float bits)
 };
 
 /**
