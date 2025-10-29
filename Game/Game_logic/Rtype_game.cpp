@@ -647,7 +647,11 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                     std::strncpy(outgoing.senderName, senderName.c_str(), sizeof(outgoing.senderName) - 1);
                 std::strncpy(outgoing.message, text.c_str(), sizeof(outgoing.message) - 1);
 
-                connexion.broadcast(&outgoing, sizeof(outgoing));
+                auto recipients = collectRoomClients(true);
+                if (std::find(recipients.begin(), recipients.end(), clientId) == recipients.end())
+                    recipients.push_back(clientId);
+                if (!recipients.empty())
+                    connexion.broadcastToClients(recipients, &outgoing, sizeof(outgoing));
                 LOG_DEBUG("[Server][Chat] " << (senderName.empty() ? "Player" : senderName) << ": " << text);
             }
             break;

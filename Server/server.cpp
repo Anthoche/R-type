@@ -300,6 +300,13 @@ void GameServer::routePacketToGame(const Connexion::ReceivedPacket &packet, Mess
 				hasClient = true;
 			}
 			break;
+		case MessageType::ChatMessage:
+			if (packet.data.size() >= sizeof(ChatMessagePacket)) {
+				const auto *msg = reinterpret_cast<const ChatMessagePacket *>(packet.data.data());
+				clientId = ntohl(msg->senderId);
+				hasClient = true;
+			}
+			break;
 		case MessageType::SceneState:
 			if (packet.data.size() >= sizeof(SceneStateMessage)) {
 				const auto *msg = reinterpret_cast<const SceneStateMessage *>(packet.data.data());
