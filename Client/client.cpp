@@ -62,8 +62,21 @@ void GameClient::sendRoomsFetch() {
     msg.type = MessageType::ClientFetchRooms;
     msg.clientId = clientId;
     LOG_DEBUG("Envoi de la demande de rooms list");
-    rooms.clear();
+    {
+        std::lock_guard<std::mutex> lock(roomsMutex);
+        rooms.clear();
+        roomsUpdated = false;
+    }
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+bool GameClient::waitForRooms(std::chrono::milliseconds timeout,
+                              std::map<int, game::serializer::RoomData> &outRooms) {
+    std::unique_lock<std::mutex> lock(roomsMutex);
+    if (!roomsCv.wait_for(lock, timeout, [this]() { return roomsUpdated; }))
+        return false;
+    outRooms = rooms;
+    return true;
 }
 
 void GameClient::initTcpConnection() {

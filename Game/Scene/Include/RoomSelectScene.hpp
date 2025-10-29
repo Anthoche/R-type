@@ -10,6 +10,7 @@
 
     #include "../../Engine/Rendering/scene/Include/AScene.hpp"
     #include "../Game.hpp"
+    #include <map>
 
 namespace scene {
 
