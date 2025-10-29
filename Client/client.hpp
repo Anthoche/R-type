@@ -19,12 +19,15 @@
 #include <thread>
 #include <vector>
 #include <mutex>
+#include <condition_variable>
 #include <unordered_map>
 #include <atomic>
 #include <utility>
 #include <optional>
+#include <chrono>
 #include <nlohmann/json.hpp>
 #include <deque>
+#include <map>
 
 class Game;
 
@@ -65,11 +68,13 @@ class GameClient {
          * @brief Pending chat messages retrieved from the network thread.
          */
         std::deque<std::pair<std::string, std::string>> _chatQueue;
+        std::mutex roomsMutex;
+        std::condition_variable roomsCv;
+        bool roomsUpdated{false};
+        std::map<int, game::serializer::RoomData> rooms;
     public:
         uint32_t clientId{0}; ///< Unique client ID assigned by the server.
         int roomId{-1};
-        std::map<int, game::serializer::RoomData> rooms;
-
         /**
          * @brief Mutex used to protect shared game state access.
          */
@@ -122,6 +127,16 @@ class GameClient {
 
         std::atomic<bool> bossDefeated{false};
 
+        bool _lastBoss = false;
+
+        /**
+         * @brief Wait until the rooms list is refreshed or the timeout expires.
+         * @param timeout Maximum duration to wait.
+         * @param outRooms Receives a snapshot of the rooms on success.
+         * @return true if rooms were received before timeout, false otherwise.
+         */
+        bool waitForRooms(std::chrono::milliseconds timeout,
+                          std::map<int, game::serializer::RoomData> &outRooms);
         /**
          * @brief Constructs a GameClient and connects to the server.
          * @param game The game instance.
@@ -161,6 +176,16 @@ class GameClient {
         void sendRoomsFetch();
 
         /**
+         * @brief Sends a ClientConfirmStart request to the server in order to set player as ready to start
+         */
+        void sendConfirmStart();
+
+        /**
+         * @brief Sends a ClientLeaveRoom message to server
+         */
+        void sendClientLeaveRoom();
+
+        /**
          * @brief Initializes a TCP connection to the server.
          *
          * Uses the client's assigned ID to compute a unique TCP port.
@@ -190,6 +215,8 @@ class GameClient {
          */
         void sendHealth(int lives);
         std::optional<nlohmann::json> consumeFullRegistry();
+
+        void sendEndlessMode(bool isEndless);
 
         /**
          * @brief Sends a chat message to be relayed by the server.
@@ -385,6 +412,9 @@ class GameClient {
          */
         void handleEnemyProjectileDespawn(const std::vector<uint8_t> &buffer);
 
+        void handleInitialHealth(const std::vector<uint8_t> &buffer);
+        void handleEndlessMode(const std::vector<uint8_t> &buffer);
+        
         /**
          * @brief Handles a chat message broadcast from the server.
          * @param buffer Raw message data.

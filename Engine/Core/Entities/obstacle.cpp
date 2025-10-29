@@ -15,7 +15,7 @@ namespace game::entities {
         const std::string &imagePath, const std::string &modelPath, float velocity, float width, float height) {
         auto obstacle = reg.spawn_entity();
 
-        float _velocity = (velocity * 60.0f) * -1.0f;
+        float _velocity = (velocity * 100.0f) * -1.0f;
         reg.emplace_component<component::position>(obstacle, x, y, z);
         reg.emplace_component<component::previous_position>(obstacle, x, y, z);
         reg.emplace_component<component::velocity>(obstacle, _velocity, 0.f, 0.f);

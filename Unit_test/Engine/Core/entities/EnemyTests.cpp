@@ -24,6 +24,7 @@ static void register_all_enemy_components(registry &reg)
     reg.register_component<collision_box>();
     reg.register_component<drawable>();
     reg.register_component<sprite>();
+    reg.register_component<pattern_element>();
 }
 
 TEST(Enemy, creates_basic_components)
@@ -31,7 +32,7 @@ TEST(Enemy, creates_basic_components)
     registry reg;
     register_all_enemy_components(reg);
 
-    auto enemy = create_enemy(reg);
+    auto enemy = create_enemy(reg, 900.f, 300.f, 0.f, "", 40.f, 28.f, "", "default", 50, 1.f);
     auto &positions = reg.get_components<position>();
     auto &prevs = reg.get_components<previous_position>();
     auto &vels = reg.get_components<velocity>();
@@ -39,6 +40,7 @@ TEST(Enemy, creates_basic_components)
     auto &types = reg.get_components<type>();
     auto &collisions = reg.get_components<collision_box>();
     auto &draws = reg.get_components<drawable>();
+    auto &patterns = reg.get_components<pattern_element>();
 
     EXPECT_TRUE(positions[static_cast<size_t>(enemy)].has_value());
     EXPECT_TRUE(prevs[static_cast<size_t>(enemy)].has_value());
@@ -47,6 +49,7 @@ TEST(Enemy, creates_basic_components)
     EXPECT_TRUE(types[static_cast<size_t>(enemy)].has_value());
     EXPECT_TRUE(collisions[static_cast<size_t>(enemy)].has_value());
     EXPECT_TRUE(draws[static_cast<size_t>(enemy)].has_value());
+    EXPECT_TRUE(patterns[static_cast<size_t>(enemy)].has_value());
 
     EXPECT_EQ(types[static_cast<size_t>(enemy)]->value, entity_type::ENEMY);
     EXPECT_EQ(healths[static_cast<size_t>(enemy)]->current, 50);
@@ -60,7 +63,7 @@ TEST(Enemy, sets_position_correctly)
     registry reg;
     register_all_enemy_components(reg);
 
-    auto enemy = create_enemy(reg, 123.f, 456.f, 789.f);
+    auto enemy = create_enemy(reg, 123.f, 456.f, 789.f, "", 40.f, 28.f, "", "default", 50, 1.f);
     auto &positions = reg.get_components<position>();
 
     ASSERT_TRUE(positions[static_cast<size_t>(enemy)].has_value());
@@ -74,7 +77,7 @@ TEST(Enemy, adds_sprite_image_provided)
     registry reg;
     register_all_enemy_components(reg);
 
-    auto enemy = create_enemy(reg, 0.f, 0.f, 0.f, "enemy.png");
+    auto enemy = create_enemy(reg, 0.f, 0.f, 0.f, "enemy.png", 40.f, 28.f, "", "default", 50, 1.f);
     auto &sprites = reg.get_components<sprite>();
 
     ASSERT_TRUE(sprites[static_cast<size_t>(enemy)].has_value());
@@ -86,7 +89,7 @@ TEST(Enemy, skips_sprite_no_image)
     registry reg;
     register_all_enemy_components(reg);
 
-    auto enemy = create_enemy(reg);
+    auto enemy = create_enemy(reg, 0.f, 0.f, 0.f, "", 40.f, 28.f, "", "default", 50, 1.f);
     auto &sprites = reg.get_components<sprite>();
 
     EXPECT_FALSE(sprites[static_cast<size_t>(enemy)].has_value());
@@ -97,11 +100,10 @@ TEST(Enemy, multiple_enemies_unique_positions)
     registry reg;
     register_all_enemy_components(reg);
 
-    auto e1 = create_enemy(reg, 100.f, 100.f);
-    auto e2 = create_enemy(reg, 200.f, 200.f);
+    auto e1 = create_enemy(reg, 100.f, 100.f, 0.f, "", 40.f, 28.f, "", "p1", 50, 1.f);
+    auto e2 = create_enemy(reg, 200.f, 200.f, 0.f, "", 40.f, 28.f, "", "p2", 50, 1.f);
 
     EXPECT_NE(e1, e2);
-
     auto &positions = reg.get_components<position>();
     EXPECT_FLOAT_EQ(positions[static_cast<size_t>(e1)]->x, 100.f);
     EXPECT_FLOAT_EQ(positions[static_cast<size_t>(e2)]->x, 200.f);
@@ -112,14 +114,12 @@ TEST(Enemy, ai_system_sets_velocity_left)
     registry reg;
     register_all_enemy_components(reg);
 
-    auto enemy = create_enemy(reg, 0.f, 0.f);
+    auto enemy = create_enemy(reg, 0.f, 0.f, 0.f, "", 40.f, 28.f, "", "default", 50, 1.f);
     setup_enemy_ai_system(reg);
 
     auto &vels = reg.get_components<velocity>();
-    auto &types = reg.get_components<type>();
     vels[static_cast<size_t>(enemy)]->vx = -10.f;
     reg.run_systems();
-
     EXPECT_LE(vels[static_cast<size_t>(enemy)]->vx, -100.f);
 }
 
@@ -128,9 +128,21 @@ TEST(Enemy, default_velocity_negative)
     registry reg;
     register_all_enemy_components(reg);
 
-    auto enemy = create_enemy(reg);
+    auto enemy = create_enemy(reg, 0.f, 0.f, 0.f, "", 40.f, 28.f, "", "default", 50, 1.f);
     auto &vels = reg.get_components<velocity>();
 
     ASSERT_TRUE(vels[static_cast<size_t>(enemy)].has_value());
     EXPECT_LT(vels[static_cast<size_t>(enemy)]->vx, 0.f);
+}
+
+TEST(Enemy, pattern_is_stored_correctly)
+{
+    registry reg;
+    register_all_enemy_components(reg);
+
+    auto enemy = create_enemy(reg, 0.f, 0.f, 0.f, "", 40.f, 28.f, "", "straight", 50, 1.f);
+    auto &patterns = reg.get_components<pattern_element>();
+
+    ASSERT_TRUE(patterns[static_cast<size_t>(enemy)].has_value());
+    EXPECT_EQ(patterns[static_cast<size_t>(enemy)]->pattern_name, "straight");
 }

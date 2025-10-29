@@ -39,7 +39,7 @@ std::string Room::getGameName() const {
 	return _gameName;
 }
 
-std::vector<uint32_t> Room::getClients() const {
+std::map<uint32_t, bool> Room::getClients() const {
 	return _clients;
 }
 
@@ -57,7 +57,7 @@ bool Room::isReady() const {
 
 bool Room::isClientInRoom(uint32_t clientId) const {
 	for (auto const &client: _clients) {
-		if (client == clientId)
+		if (client.first == clientId)
 			return true;
 	}
 	return false;
@@ -71,15 +71,20 @@ bool Room::isGameServerStarted() const {
 	return _isGameServerStarted;
 }
 
+void Room::setClientConfirmed(uint32_t clientId) {
+	if (!isClientInRoom(clientId)) return;
+	_clients[clientId] = true;
+}
+
 void Room::addClient(u_int32_t clientId) {
 	if (isClientInRoom(clientId) || isFull())
 		return;
-	_clients.push_back(clientId);
+	_clients.insert_or_assign(clientId, false);
 }
 
 void Room::removeClient(u_int32_t clientId) {
 	for (auto it = _clients.begin(); it != _clients.end(); ++it) {
-		if (*it == clientId) {
+		if (it->first == clientId) {
 			_clients.erase(it);
 			return;
 		}

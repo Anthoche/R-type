@@ -19,9 +19,12 @@ enum class MessageType : uint8_t {
 	ClientRoomIdAsk, /**< Client asking for a connexion to a specific room */
 	ClientRoomCreate, /**< Client create a new room */
 	ServerRoomAssignId, /**< Assign room to client */
+	ClientConfirmStart, /**< Confirmation message from the client to confirm the game start */
 	ClientFetchRooms, /**< Fetch room list actions for client */
 	ServerSendRooms, /**< Send rooms to client */
+	ServerSetClientConfirmed, /**< Confirmation message from the server to set a client as ready to start */
 	ServerSetRoomReady, /**< Sends a message that notifies the client that the room is ready */
+	ClientLeaveRoom, /**< Notifies the server that client leaves the room*/
 	GameStart, /**< Server notifies clients that the game is starting */
 	ClientInput, /**< Client sends input for the current frame */
 	StateUpdate, /**< Server sends updated state for a client */
@@ -29,7 +32,7 @@ enum class MessageType : uint8_t {
 	EnemyUpdate, /**< Server updates an enemy's position */
 	EnemyDespawn, /**< Server removes an enemy */
 	ObstacleSpawn, /**< Server spawns a new obstacle */
-    ObstacleUpdate,
+  ObstacleUpdate,
 	ObstacleDespawn, /**< Server removes an obstacle */
 	ClientShoot, /**< Client sends a shoot event */
 	ProjectileSpawn, /**< Server creates a projectile */
@@ -38,17 +41,18 @@ enum class MessageType : uint8_t {
 	EnemyProjectileSpawn, /**< Server spawns an enemy projectile */
 	EnemyProjectileUpdate, /**< Server updates an enemy projectile */
 	EnemyProjectileDespawn, /**< Server removes an enemy projectile */
-    BossDeath,
+  BossDeath,
+  EndlessMode,
 	EntityData, /**< Server → Clients: entity ECS synchronization */
-    PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
-    PlayerWeaponUpdate,       /**< Client ↔ Server: selected player weapon */
+  PlayerWeaponUpdate,       /**< Client ↔ Server: selected player weapon */
+  PlayerSkinUpdate,         /**< Client ↔ Server: selected player skin */
 	SceneState, /**< Client → Server: indicates current scene */
 	PlayerDeath, /**< Server notifies clients that a player has died */
 	PlayerHealth, /**< Server updates a player's health */
 	InitialHealth, /**< Client sends its initial health to the server */
 	GlobalScore, /**< Server updates the global score */
 	IndividualScore, /**< Server updates a player's individual score */
-    ChatMessage               /**< Chat message exchanged between clients via server */
+  ChatMessage               /**< Chat message exchanged between clients via server */
 };
 
 /**
@@ -171,6 +175,15 @@ struct RoomReadyMessage {
 };
 
 /**
+ * @brief Sends a confirmation message from the client to confirm the game start
+ */
+struct ClientConfirmStartMessage {
+	MessageType type;
+	uint32_t clientId;
+	uint32_t roomId;
+};
+
+/**
  * @brief Message sent by server to assign an ID to a client.
  */
 struct ServerAssignIdMessage {
@@ -190,6 +203,15 @@ struct ServerRoomAssignIdMessage {
  * @brief Message sent by client to ask the server to enter a room
  */
 struct ClientRoomIdAskMessage {
+	MessageType type;
+	uint32_t clientId;
+	uint32_t roomId;
+};
+
+/**
+ * @brief Message sent by client that notifies the server that the player leaves the room
+ */
+struct ClientLeaveRoomMessage {
 	MessageType type;
 	uint32_t clientId;
 	uint32_t roomId;
@@ -270,6 +292,7 @@ struct EnemyDespawnMessage {
 struct BossDeathMessage {
     MessageType type;
     uint32_t bossId;
+    bool _lastBoss = false;
 };
 
 /**
@@ -400,9 +423,9 @@ struct PlayerHealthMessage {
 };
 
 struct InitialHealthMessage {
-	MessageType type;
-	uint32_t clientId;
-	int16_t initialHealth;
+    MessageType type;
+    uint32_t clientId;
+    size_t initialHealth;
 };
 
 /**
@@ -420,4 +443,10 @@ struct IndividualScoreMessage {
 	MessageType type;
 	uint32_t clientId;
 	uint32_t score;
+};
+
+struct EndlessModeMessage {
+    MessageType type;
+    uint32_t clientId;
+    uint8_t isEndless;
 };

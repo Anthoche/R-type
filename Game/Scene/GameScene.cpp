@@ -571,6 +571,7 @@ void GameScene::update() {
         if (!_isWin)
             _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
         _isWin = _isWin = _game.getGameClient().bossDefeated.load();
+        _lastBoss = _game.getGameClient()._lastBoss;
         
         _raylib.updateMusicStream(_music);
         render_entities();
@@ -580,8 +581,10 @@ void GameScene::update() {
         _ui.render();
         if (_isDead) {
             render_death_screen();
-        } else if (_isWin) {
+        } else if (_isWin && !_lastBoss) {
             render_win_screen();
+        } else if (_isWin && _lastBoss) {
+            render_final_win_screen();
         }
         {
             auto newMessages = _game.getGameClient().consumeChatMessages();
@@ -611,7 +614,7 @@ void GameScene::update() {
             float currentTime = _raylib.getTime();
             float timeSinceVictory = currentTime - _victoryStartTime;
             
-            if (timeSinceVictory >= 6.0f) {
+            if (timeSinceVictory >= 6.0f && !_lastBoss) {
                 _isWin = false;
                 _stopShoot = false;
                 _victorySoundPlayed = false;
@@ -959,14 +962,13 @@ void GameScene::update() {
 
     void GameScene::render_win_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
-        
         bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
         bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
         const char* winText = 
-            isFrench ? "GAGNE!" :
-            isItalian ? "VINCI!"
-            : "YOU WIN!";
+            isFrench ? "NIVEAU TERMINÉ !" :
+            isItalian ? "LIVELLO SUPERATO !"
+            : "LEVEL CLEARED !";
         int fontSize = 72;
         int textWidth = _raylib.measureText(winText, fontSize);
         _raylib.drawText(
@@ -975,6 +977,21 @@ void GameScene::update() {
             _height / 2 - fontSize / 2,
             fontSize,
             GREEN
+        );
+    }
+
+    void GameScene::render_final_win_screen() {
+        _raylib.drawRectangle(0, 0, _width, _height, Color{255, 255, 0, 100});
+        
+        const char* winText = "YOU WIN!";
+        int fontSize = 72;
+        int textWidth = _raylib.measureText(winText, fontSize);
+        _raylib.drawText(
+            winText,
+            (_width - textWidth) / 2,
+            _height / 2 - fontSize / 2,
+            fontSize,
+            YELLOW
         );
     }
 

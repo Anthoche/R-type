@@ -42,7 +42,7 @@ class ServerGame : public IServerGame {
          */
         void run(int roomId) override;
         void enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) override;
-        void setInitialClients(const std::vector<uint32_t> &clients) override;
+        void setInitialClients(const std::map<uint32_t, bool> &clients) override;
 
         /**
          * @brief Loads player data from a JSON configuration file.
@@ -63,6 +63,10 @@ class ServerGame : public IServerGame {
         void setInitialPlayerWeapons(const std::unordered_map<uint32_t, std::string> &weapons);
 
     private:
+
+        static constexpr int MAX_LEVELS = 3;
+        bool _isEndless = false;
+        bool gameCompleted = false;
         /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
 
@@ -125,7 +129,7 @@ class ServerGame : public IServerGame {
         std::mutex mtx;
         std::mutex packetMutex;
         mutable std::mutex initialClientsMutex;
-        std::vector<uint32_t> initialClients;
+        std::map<uint32_t, bool> initialClients;
 
         /** @brief Set of dead player IDs. */
         std::unordered_set<uint32_t> deadPlayers;
@@ -229,6 +233,8 @@ class ServerGame : public IServerGame {
 
         void broadcast_player_health();
         void broadcast_global_score();
+        void broadcast_endless_mode(bool isEndless);
+        void broadcast_global_health(int16_t health);
         void broadcast_individual_scores();
         void check_projectile_enemy_collisions();
 

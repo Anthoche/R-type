@@ -88,6 +88,7 @@ class WaitingScene: public AScene {
         Vector2 _weaponPreviewCenter{0.f, 0.f};
         Vector2 _weaponPreviewBounds{120.f, 70.f};
         bool _ignoreInitialClick{false};
+        bool _hasConfirmedReady{false};
 
         void resetButtonStates();
         void handleButtonClick(std::string const &id);

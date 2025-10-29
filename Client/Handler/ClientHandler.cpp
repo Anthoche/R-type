@@ -29,6 +29,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 		case MessageType::ServerSetRoomReady:
 			handleRoomReady(buffer);
 			break;
+		case MessageType::ServerSetClientConfirmed:
+			LOG_DEBUG("Received ServerSetClientConfirmed message");
+			break;
 		case MessageType::StateUpdate:
 			handlePlayerUpdate(buffer);
 			break;
@@ -71,6 +74,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 		case MessageType::EnemyUpdate:
 			handleEnemyUpdate(buffer);
 			break;
+    case MessageType::EndlessMode:
+      handleEndlessMode(buffer);
+      break;
 		case MessageType::PlayerDeath:
 			handlePlayerDeath(buffer);
 			break;
@@ -92,6 +98,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 		case MessageType::ChatMessage:
 			handleChatMessage(buffer);
 			break;
+    case MessageType::InitialHealth:
+        handleInitialHealth(buffer);
+        break;
 		default:
 			break;
 	}
@@ -130,8 +139,18 @@ void GameClient::handleServerRooms(const std::vector<uint8_t> &buffer) {
 	const ServerSendRoomsMessage *msg = reinterpret_cast<const ServerSendRoomsMessage *>(buffer.data());
 	LOG_INFO("Server sent rooms");
 	LOG_DEBUG(std::format("Received JSON:\n{}\n", msg->jsonData));
-	nlohmann::json json = nlohmann::json::parse(msg->jsonData);
-	rooms = game::serializer::deserialize_rooms(json);
+	try {
+		nlohmann::json json = nlohmann::json::parse(msg->jsonData);
+		auto parsedRooms = game::serializer::deserialize_rooms(json);
+		{
+			std::lock_guard<std::mutex> lock(roomsMutex);
+			rooms = std::move(parsedRooms);
+			roomsUpdated = true;
+		}
+		roomsCv.notify_all();
+	} catch (const std::exception &e) {
+		LOG_ERROR(std::format("Failed to deserialize rooms JSON: {}", e.what()));
+	}
 }
 
 void GameClient::handleRoomReady(const std::vector<uint8_t> &buffer) {
@@ -271,6 +290,23 @@ void GameClient::handleObstacleDespawn(const std::vector<uint8_t> &buffer) {
 	uint32_t id = ntohl(msg->obstacleId);
 	std::lock_guard<std::mutex> g(stateMutex);
 	obstacles.erase(id);
+}
+
+void GameClient::handleEndlessMode(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() >= sizeof(EndlessModeMessage)) {
+        const EndlessModeMessage* msg = reinterpret_cast<const EndlessModeMessage*>(buffer.data());
+        bool isEndless = msg->isEndless != 0;
+        _game.setEndlessMode(isEndless);
+    }
+}
+
+void GameClient::handleInitialHealth(const std::vector<uint8_t> &buffer) {
+    if (buffer.size() >= sizeof(InitialHealthMessage)) {
+        const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(buffer.data());
+        uint32_t senderId = ntohl(msg->clientId);
+        size_t health = ntohs(msg->initialHealth);
+        _game.setHealth(health);
+    }
 }
 
 void GameClient::handleProjectileSpawn(const std::vector<uint8_t> &buffer) {
@@ -440,8 +476,8 @@ void GameClient::handleBossDeath(const std::vector<uint8_t> &buffer) {
     BossDeathMessage msg;
     std::memcpy(&msg, buffer.data(), sizeof(BossDeathMessage));
     uint32_t bossId = ntohl(msg.bossId);
-    std::cout << "[Client] Boss defeated (id=" << bossId << "), requesting next level data..." << std::endl;
     bossDefeated = true;
+    _lastBoss = ntohl(msg._lastBoss);
     fetchFullRegistryAsync();
 }
 
