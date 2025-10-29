@@ -21,5 +21,5 @@ class IServerGame {
 
         virtual void run(int roomId) = 0;
         virtual void enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) = 0;
-        virtual void setInitialClients(const std::vector<uint32_t> &clients) = 0;
+        virtual void setInitialClients(const std::map<uint32_t, bool> &clients) = 0;
 };

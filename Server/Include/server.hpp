@@ -88,10 +88,26 @@ private:
 	 */
 	void handleClientFetchRooms(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
 
+
+	/**
+	 * @brief Handles a ClientConfirmStart message from a client
+	 * @param data Raw message data.
+	 * @param from Sender's UDP endpoint.
+	 */
+	void handleClientConfirmStart(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
+
+	/**
+	 * @brief Handles a ClientLeaveRoom message from a client
+	 * @param data Raw message data.
+	 * @param from Sender's UDP endpoint.
+	 */
+	void handleClientLeaveRoom(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
+
 	/**
 	* @brief Broadcasts the GameStart message to all connected clients.
+	* @param roomId The room to send the start message
 	*/
-	void broadcastGameStart();
+	void broadcastGameStart(uint32_t roomId);
 
 	void processIncomingPacket(const Connexion::ReceivedPacket &packet);
 	void routePacketToGame(const Connexion::ReceivedPacket &packet, MessageType type);

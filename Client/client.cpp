@@ -66,6 +66,22 @@ void GameClient::sendRoomsFetch() {
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
+void GameClient::sendConfirmStart() {
+    ClientConfirmStartMessage msg;
+    msg.type = MessageType::ClientConfirmStart;
+    msg.clientId = clientId;
+    msg.roomId = roomId;
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+void GameClient::sendClientLeaveRoom() {
+    ClientLeaveRoomMessage msg;
+    msg.type = MessageType::ClientLeaveRoom;
+    msg.clientId = clientId;
+    msg.roomId = roomId;
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
 void GameClient::initTcpConnection() {
     if (clientId == 0) return;
 

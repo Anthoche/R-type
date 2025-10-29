@@ -144,7 +144,7 @@ void ServerGame::enqueuePacket(const std::vector<uint8_t> &data, const asio::ip:
     pendingPackets.push(PendingPacket{data, from});
 }
 
-void ServerGame::setInitialClients(const std::vector<uint32_t> &clients) {
+void ServerGame::setInitialClients(const std::map<uint32_t, bool> &clients) {
     std::lock_guard<std::mutex> lock(initialClientsMutex);
     initialClients = clients;
 }
@@ -761,9 +761,9 @@ std::vector<uint32_t> ServerGame::collectRoomClients(bool includeDead) const {
         std::lock_guard<std::mutex> lock(initialClientsMutex);
         ids.reserve(initialClients.size());
         for (auto id : initialClients) {
-            if (!includeDead && deadPlayers.find(id) != deadPlayers.end())
+            if (!includeDead && deadPlayers.find(id.first) != deadPlayers.end())
                 continue;
-            ids.push_back(id);
+            ids.push_back(id.first);
         }
     }
     return ids;

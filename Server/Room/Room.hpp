@@ -25,7 +25,7 @@ class Room {
 		GameStatus _gameStatus;
 		std::shared_ptr<IServerGame> _game;
 		bool _isGameServerStarted;
-		std::vector<uint32_t> _clients;
+		std::map<uint32_t, bool> _clients;
 		int _roomHost;
 
 	public:
@@ -37,7 +37,7 @@ class Room {
 		GameStatus getGameStatus() const;
 		std::shared_ptr<IServerGame> getGame();
 		std::string getGameName() const;
-		std::vector<uint32_t> getClients() const;
+		std::map<uint32_t, bool> getClients() const;
 		bool isFull() const;
 		bool isEmpty() const;
 		bool isReady() const;
@@ -45,6 +45,7 @@ class Room {
 		int getRoomHost() const;
 		bool isGameServerStarted() const;
 
+		void setClientConfirmed(uint32_t clientId);
 		void addClient(uint32_t clientId);
 		void removeClient(uint32_t clientId);
 		void setMaxPlayers(int value);
