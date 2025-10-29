@@ -29,6 +29,9 @@ void GameClient::handleMessage(MessageType type, const std::vector<uint8_t> &buf
 		case MessageType::ServerSetRoomReady:
 			handleRoomReady(buffer);
 			break;
+		case MessageType::ServerSetClientConfirmed:
+			LOG_DEBUG("Received ServerSetClientConfirmed message");
+			break;
 		case MessageType::StateUpdate:
 			handlePlayerUpdate(buffer);
 			break;

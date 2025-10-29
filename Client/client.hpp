@@ -171,6 +171,16 @@ class GameClient {
         void sendRoomsFetch();
 
         /**
+         * @brief Sends a ClientConfirmStart request to the server in order to set player as ready to start
+         */
+        void sendConfirmStart();
+
+        /**
+         * @brief Sends a ClientLeaveRoom message to server
+         */
+        void sendClientLeaveRoom();
+
+        /**
          * @brief Initializes a TCP connection to the server.
          *
          * Uses the client's assigned ID to compute a unique TCP port.

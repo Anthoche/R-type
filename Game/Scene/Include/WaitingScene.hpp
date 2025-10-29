@@ -76,6 +76,7 @@ class WaitingScene: public AScene {
         Vector2 _previewCenter{0.f, 0.f};
         Vector2 _previewBounds{220.f, 140.f};
         bool _ignoreInitialClick{false};
+        bool _hasConfirmedReady{false};
 
         void resetButtonStates();
         void handleButtonClick(std::string const &id);
