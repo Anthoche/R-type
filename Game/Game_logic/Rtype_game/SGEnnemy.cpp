@@ -188,6 +188,7 @@ void ServerGame::update_enemy_figure8(uint32_t id, float dt) {
 }
 
 void ServerGame::update_enemy_turret(uint32_t id, float dt, float rapidfire) {
+    if (levelTransitionPending) return;
     static std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> lastShootTime;
     static std::unordered_map<uint32_t, float> shootCooldowns;
     static std::unordered_map<uint32_t, bool> initialized;
