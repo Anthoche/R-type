@@ -56,7 +56,7 @@ void RoomManager::addClientInRoom(uint32_t clientId, int roomId) {
 
 	for (auto &r: _rooms) {
 		for (auto &p: r.second->getClients()) {
-			if (p == clientId)
+			if (p.first == clientId)
 				r.second->removeClient(clientId);
 		}
 	}

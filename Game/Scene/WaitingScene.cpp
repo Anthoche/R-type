@@ -16,9 +16,6 @@
 #include <cctype>
 #include <vector>
 
-#include <format>
-#include "Logger.hpp"
-
 namespace scene {
 	WaitingScene::WaitingScene(Game &game)
 		: AScene(960, 540, "R-Type - Waiting..."), _game(game) {
@@ -67,6 +64,10 @@ namespace scene {
 
 	void WaitingScene::handleEvents() {
 		resetButtonStates();
+		if (_game.getGameStatus() == GameStatus::RUNNING) {
+			_game.getSceneHandler().open("game");
+			return;
+		}
 
 		if (_ignoreInitialClick && !_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT)) {
 			_ignoreInitialClick = false;
@@ -155,9 +156,9 @@ namespace scene {
 									Color{180, 200, 220, 255}, -0.5f, instructionsFontSize, _font);
 
 		std::string joinText =
-			isFrench ? "Rejoindre" :
-			isItalian ? "Unisciti" :
-			"Join";
+			isFrench ? "Pret" :
+			isItalian ? "Pronto" :
+			"Ready";
 		std::string quitText =
 			isFrench ? "Quitter" :
 			isItalian ? "Uscire" :
@@ -178,12 +179,12 @@ namespace scene {
 		float baseX = static_cast<float>(_width) - std::max(joinButtonSize.x, quitButtonSize.x) - margin;
 		float baseY = static_cast<float>(_height) - stackHeight - margin;
 
-		Vector2 joinButtonPos = {baseX, baseY};
+		Vector2 joinButtonPos = {baseX - 10, baseY};
 		Vector2 quitButtonPos = {baseX, baseY + joinButtonSize.y + buttonSpacing};
 
 		Color accentColor = Color{26, 170, 177, 255};
 
-		game::entities::create_button(_registry, "button_join", joinText,
+		game::entities::create_button(_registry, "button_ready", joinText,
 									 joinButtonPos.x, joinButtonPos.y, 0.f,
 									 joinButtonSize.x, joinButtonSize.y,
 									 accentColor, RAYWHITE, buttonFontSize);
@@ -229,18 +230,19 @@ namespace scene {
 			clickable[i]->isClicked = false;
 			hoverable[i]->isHovered = false;
 
-			if (clickable[i]->id == "button_join") {
-				clickable[i]->enabled = canJoin();
+			if (clickable[i]->id == "button_ready") {
+				clickable[i]->enabled = (!_hasConfirmedReady && canJoin());
 			}
 		}
-		LOG_DEBUG(std::format("GameStatus: {}", static_cast<int>(_game.getGameStatus())));
 	}
 
 	void WaitingScene::handleButtonClick(std::string const &id) {
-		if (id == "button_join") {
-			_game.getSceneHandler().open("game");
+		if (id == "button_ready") {
+			_hasConfirmedReady = true;
+			_game.getGameClient().sendConfirmStart();
 		} else if (id == "button_quit") {
-			close();
+			_game.getGameClient().sendClientLeaveRoom();
+			_game.getSceneHandler().open("room_select");
 		} else if (id == "button_skin_prev") {
 			selectPreviousSkin();
 		} else if (id == "button_skin_next") {

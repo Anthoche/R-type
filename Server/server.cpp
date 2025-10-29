@@ -65,7 +65,7 @@ void GameServer::handleClientHello(const std::vector<uint8_t> &data, const asio:
 	assignMsg.clientId = htonl(clientId);
 	connexion.sendTo(&assignMsg, sizeof(assignMsg), clientEndpoint);
 
-	for (const auto &[otherId, skin] : waitingPlayerSkins) {
+	for (const auto &[otherId, skin]: waitingPlayerSkins) {
 		PlayerSkinMessage skinMsg{};
 		skinMsg.type = MessageType::PlayerSkinUpdate;
 		skinMsg.clientId = htonl(otherId);
@@ -76,9 +76,9 @@ void GameServer::handleClientHello(const std::vector<uint8_t> &data, const asio:
 	LOG_INFO(std::format("Client connected: {}({}) [{}/{}]", msg->clientName, clientId, connexion.getClientCount(), maxPlayers));
 }
 
-void GameServer::handlePlayerSkinUpdate(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint&) {
+void GameServer::handlePlayerSkinUpdate(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &) {
 	if (data.size() < sizeof(PlayerSkinMessage)) return;
-	const PlayerSkinMessage *msg = reinterpret_cast<const PlayerSkinMessage*>(data.data());
+	const PlayerSkinMessage *msg = reinterpret_cast<const PlayerSkinMessage *>(data.data());
 	uint32_t clientId = ntohl(msg->clientId);
 	std::string filename(msg->skinFilename);
 	if (filename.empty()) {
@@ -95,15 +95,13 @@ void GameServer::handlePlayerSkinUpdate(const std::vector<uint8_t>& data, const 
 	connexion.broadcast(&broadcastMsg, sizeof(broadcastMsg));
 }
 
-void GameServer::broadcastGameStart() {
+void GameServer::broadcastGameStart(uint32_t roomId) {
+	auto room = roomManager.getRoom(roomId);
+
 	GameStartMessage msg{};
 	msg.type = MessageType::GameStart;
-	msg.clientCount = htonl(4);
-	auto &rooms = roomManager.getRooms();
-	for (auto &entry : rooms) {
-		connexion.broadcastToRoom(*entry.second, &msg, sizeof(msg));
-	}
-	std::cout << "[DEBUG] Message GameStart envoyé à tous les clients." << std::endl;
+	msg.clientCount = htonl(room->getClients().size());
+	connexion.broadcastToRoom(*room.get(), &msg, sizeof(msg));
 }
 
 void GameServer::assignClientToRoom(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
@@ -133,7 +131,6 @@ void GameServer::assignClientToRoom(const std::vector<uint8_t> &data, const asio
 		roomReadyMsg.roomId = roomId;
 
 		LOG_DEBUG("Room is considered ready. Sending room ready message to clients in room.");
-		roomManager.startRoom(roomId);
 		connexion.broadcastToRoom(*room, &roomReadyMsg, sizeof(roomReadyMsg));
 	}
 	LOG_INFO(std::format("Assigned client {} to room {}", msg->clientId, roomId));
@@ -168,20 +165,48 @@ void GameServer::handleClientFetchRooms(const std::vector<uint8_t> &data, const 
 	connexion.sendTo(&sendMsg, sizeof(sendMsg), from);
 }
 
-void GameServer::handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from)
-{
+void GameServer::handle_client_message(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
 	if (data.size() < sizeof(MessageType)) return;
-	MessageType type = *reinterpret_cast<const MessageType*>(data.data());
+	MessageType type = *reinterpret_cast<const MessageType *>(data.data());
 	if (type != MessageType::ClientInput) return;
 	if (data.size() < sizeof(ClientInputMessage)) return;
-	const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
+	const ClientInputMessage *msg = reinterpret_cast<const ClientInputMessage *>(data.data());
 	uint32_t id = ntohl(msg->clientId);
 	InputCode code = static_cast<InputCode>(msg->inputCode);
 	bool pressed = msg->isPressed != 0;
-	(void)from;
+	(void) from;
 	std::cout << "[ServerBootstrap][Input] received event from client " << id
-			  << " code=" << inputCodeToString(code)
-			  << " pressed=" << pressed << std::endl;
+			<< " code=" << inputCodeToString(code)
+			<< " pressed=" << pressed << std::endl;
+}
+
+void GameServer::handleClientConfirmStart(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
+	if (data.size() < sizeof(ClientConfirmStartMessage)) return;
+
+	const ClientConfirmStartMessage *msg = reinterpret_cast<const ClientConfirmStartMessage *>(data.data());
+	if (!roomManager.roomExists(msg->roomId)) return;
+
+	auto room = roomManager.getRoom(msg->roomId);
+
+	if (!room->isReady()) return;
+
+	room->setClientConfirmed(msg->clientId);
+	for (auto c: room->getClients()) {
+		if (!c.second)
+			return;
+	}
+	roomManager.startRoom(msg->roomId);
+	broadcastGameStart(msg->roomId);
+}
+
+void GameServer::handleClientLeaveRoom(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
+	if (data.size() < sizeof(ClientLeaveRoomMessage)) return;
+
+	const ClientLeaveRoomMessage *msg = reinterpret_cast<const ClientLeaveRoomMessage *>(data.data());
+	if (!roomManager.roomExists(msg->roomId)) return;
+
+	auto room = roomManager.getRoom(msg->roomId);
+	room->removeClient(msg->clientId);
 }
 
 void GameServer::processIncomingPacket(const Connexion::ReceivedPacket &packet) {
@@ -198,6 +223,12 @@ void GameServer::processIncomingPacket(const Connexion::ReceivedPacket &packet) 
 			break;
 		case MessageType::ClientFetchRooms:
 			handleClientFetchRooms(packet.data, packet.endpoint);
+			break;
+		case MessageType::ClientConfirmStart:
+			handleClientConfirmStart(packet.data, packet.endpoint);
+			break;
+		case MessageType::ClientLeaveRoom:
+			handleClientLeaveRoom(packet.data, packet.endpoint);
 			break;
 		default:
 			routePacketToGame(packet, type);

@@ -19,9 +19,12 @@ enum class MessageType : uint8_t {
 	ClientRoomIdAsk, /**< Client asking for a connexion to a specific room */
 	ClientRoomCreate, /**< Client create a new room */
 	ServerRoomAssignId, /**< Assign room to client */
+	ClientConfirmStart, /**< Confirmation message from the client to confirm the game start */
 	ClientFetchRooms, /**< Fetch room list actions for client */
 	ServerSendRooms, /**< Send rooms to client */
+	ServerSetClientConfirmed, /**< Confirmation message from the server to set a client as ready to start */
 	ServerSetRoomReady, /**< Sends a message that notifies the client that the room is ready */
+	ClientLeaveRoom, /**< Notifies the server that client leaves the room*/
 	GameStart, /**< Server notifies clients that the game is starting */
 	ClientInput, /**< Client sends input for the current frame */
 	StateUpdate, /**< Server sends updated state for a client */
@@ -161,6 +164,15 @@ struct RoomReadyMessage {
 };
 
 /**
+ * @brief Sends a confirmation message from the client to confirm the game start
+ */
+struct ClientConfirmStartMessage {
+	MessageType type;
+	uint32_t clientId;
+	uint32_t roomId;
+};
+
+/**
  * @brief Message sent by server to assign an ID to a client.
  */
 struct ServerAssignIdMessage {
@@ -180,6 +192,15 @@ struct ServerRoomAssignIdMessage {
  * @brief Message sent by client to ask the server to enter a room
  */
 struct ClientRoomIdAskMessage {
+	MessageType type;
+	uint32_t clientId;
+	uint32_t roomId;
+};
+
+/**
+ * @brief Message sent by client that notifies the server that the player leaves the room
+ */
+struct ClientLeaveRoomMessage {
 	MessageType type;
 	uint32_t clientId;
 	uint32_t roomId;

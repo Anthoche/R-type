@@ -42,7 +42,7 @@ class ServerGame : public IServerGame {
          */
         void run(int roomId) override;
         void enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) override;
-        void setInitialClients(const std::vector<uint32_t> &clients) override;
+        void setInitialClients(const std::map<uint32_t, bool> &clients) override;
 
         /**
          * @brief Loads player data from a JSON configuration file.
@@ -111,7 +111,7 @@ class ServerGame : public IServerGame {
         std::mutex mtx;
         std::mutex packetMutex;
         mutable std::mutex initialClientsMutex;
-        std::vector<uint32_t> initialClients;
+        std::map<uint32_t, bool> initialClients;
 
         /** @brief Set of dead player IDs. */
         std::unordered_set<uint32_t> deadPlayers;
