@@ -1,0 +1,25 @@
+{
+    "level": {
+        "sounds": [
+            {"sound_path": "../Game/Assets/sounds/BATTLE PRESSURE.mp3", "volume": 0.5, "loop": true, "autoplay": true}
+        ],
+        "backgrounds": [
+            {"x": 400.0, "y": 300.0, "z": 0.0, "width": 1063.0, "height": 659.0, "depth": 0.0, "image_path": "../Game/Assets/sprites/background/falaise.png", "model_path": "", "scale": 1.0, "scroll_speed": 0.3}
+        ],
+        "decorations": [
+            {"x": 50.0, "y": 50.0, "z": 0.0, "width": 100.0, "height": 100.0, "depth": 20.0, "image_path": "../Game/Assets/sprites/decoration/arbre.jpeg", "model_path": "", "color": "BLUE"},
+            {"x": 1870.0, "y": 50.0, "z": 0.0, "width": 100.0, "height": 100.0, "depth": 20.0, "image_path": "../Game/Assets/sprites/decoration/arbre.jpeg", "model_path": "", "color": "BLUE"},
+            {"x": 50.0, "y": 150.0, "z": 0.0, "width": 100.0, "height": 100.0, "depth": 20.0, "image_path": "../Game/Assets/sprites/decoration/arbre.jpeg", "model_path": "", "color": "BLUE"},
+            {"x": 1870.0, "y": 150.0, "z": 0.0, "width": 100.0, "height": 100.0, "depth": 20.0, "image_path": "../Game/Assets/sprites/decoration/arbre.jpeg", "model_path": "", "color": "BLUE"},
+            {"x": 50.0, "y": 250.0, "z": 0.0, "width": 100.0, "height": 100.0, "depth": 20.0, "image_path": "../Game/Assets/sprites/decoration/arbre.jpeg", "model_path": "", "color": "BLUE"},
+            {"x": 1870.0, "y": 250.0, "z": 0.0, "width": 100.0, "height": 100.0, "depth": 20.0, "image_path": "../Game/Assets/sprites/decoration/arbre.jpeg", "model_path": "", "color": "BLUE"}
+        ],
+        "platforms": [
+            {"x": 400.0, "y": 550.0, "z": 0.0, "width": 499.0, "height": 101.0, "depth": 20.0, "image_path": "../Game/Assets/sprites/platform/plat3.png", "model_path": "", "color": "RED"},
+            {"x": 1500.0, "y": 450.0, "z": 0.0, "width": 485.0, "height": 189.0, "depth": 20.0, "image_path": "../Game/Assets/sprites/platform/plat7.png", "model_path": "", "color": "RED"}
+        ],
+        "obstacles": [
+            {"x": 1050.0, "y": 830.0, "z": 0.0, "width": 471.0, "height": 287.0, "depth": 30.0, "image_path": "../Game/Assets/sprites/platform/plat0.png", "model_path": "", "color": "GREEN", "health": 9999}
+        ]
+    }
+}

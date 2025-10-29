@@ -24,7 +24,7 @@ namespace game::entities {
         reg.emplace_component<component::type>(obstacle, component::entity_type::OBSTACLE);
 
         // ====== Collision ======
-        reg.emplace_component<component::collision_box>(obstacle, 130.f, 50.f, 50.f);
+        reg.emplace_component<component::collision_box>(obstacle, width, height, depth);
 
         // ====== Visuals ======
         component::drawable draw;

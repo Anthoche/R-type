@@ -611,10 +611,10 @@ namespace game::scene {
             else
                 moovePlayer[myClientId] = 0.0f;
         }
-        handle_input(input_x, input_y);
+        handle_input(input_x, input_y, downPressed);
     }
 
-    void GameScene::handle_input(float input_x, float input_y) {
+    void GameScene::handle_input(float input_x, float input_y, bool downPressed) {
         if (_isDead)
             return;
         auto &positions = _registry.get_components<component::position>();
@@ -641,9 +641,9 @@ namespace game::scene {
                 float testX = playerPos.x + ix * speed * dt;
                 float testY = playerPos.y + iy * speed * dt;
 
-                if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
+                if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox, downPressed))
                     ix = 0.f;
-                if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
+                if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox, downPressed))
                     iy = 0.f;
                 if (ix != 0.f || iy != 0.f) {
                     playerPos.x += ix * speed * dt;

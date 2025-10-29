@@ -42,7 +42,8 @@ namespace game::scene {
      */
     bool is_blocked(GameScene &scene, float testX, float testY,
                     const component::position &playerPos,
-                    const component::collision_box &playerBox);
+                    const component::collision_box &playerBox,
+                    bool downPressed);
 
     /**
      * @brief Resolve a collision between an entity and an obstacle.

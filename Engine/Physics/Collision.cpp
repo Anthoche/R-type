@@ -23,13 +23,15 @@ namespace game::scene::collision {
 
     bool is_blocked(GameScene &scene, float testX, float testY,
                     const component::position &playerPos,
-                    const component::collision_box &playerBox) {
+                    const component::collision_box &playerBox,
+                    bool downPressed) {
         float left   = testX - playerBox.width * 0.5f;
         float right  = testX + playerBox.width * 0.5f;
         float top    = testY - playerBox.height * 0.5f;
         float bottom = testY + playerBox.height * 0.5f;
         auto &positions = scene.get_registry().get_components<component::position>();
         auto &hitboxes  = scene.get_registry().get_components<component::collision_box>();
+        bool movingDown = testY > playerPos.y + 0.01f;
 
         for (auto &obstacle : scene.get_obstacles()) {
             if (obstacle.value() >= positions.size() || !positions[obstacle.value()] || !hitboxes[obstacle.value()])
@@ -42,6 +44,24 @@ namespace game::scene::collision {
             float obsBottom = obsPos.y + obsBox.height * 0.5f;
             bool overlap = right > obsLeft && left < obsRight && bottom > obsTop && top < obsBottom;
             if (overlap)
+                return true;
+        }
+
+        for (auto &platform : scene.get_platforms()) {
+            if (platform.value() >= positions.size() || !positions[platform.value()] || !hitboxes[platform.value()])
+                continue;
+            auto &platPos = *positions[platform.value()];
+            auto &platBox = *hitboxes[platform.value()];
+            float platLeft   = platPos.x - platBox.width * 0.5f;
+            float platRight  = platPos.x + platBox.width * 0.5f;
+            float platTop    = platPos.y - platBox.height * 0.5f;
+            float platBottom = platPos.y + platBox.height * 0.5f;
+            bool overlap = right > platLeft && left < platRight && bottom > platTop && top < platBottom;
+            if (!overlap)
+                continue;
+
+            bool allowDrop = downPressed && movingDown && (playerPos.y <= platTop + 1.f);
+            if (!allowDrop)
                 return true;
         }
         return false;

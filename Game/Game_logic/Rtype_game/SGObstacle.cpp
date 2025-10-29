@@ -66,43 +66,49 @@ bool ServerGame::is_position_blocked(float testX, float testY, float playerWidth
     return false;
 }
 
-bool ServerGame::is_position_blocked_platform(float testX, float testY, float playerWidth, float playerHeight,
+bool ServerGame::is_position_blocked_platform(uint32_t clientId, float testX, float testY, float playerWidth, float playerHeight,
                                               const std::vector<ecs::entity_t> &platforms, bool movingDown, bool isDownPressed)
 {
-    // If down is pressed, player can pass through platforms
-    if (isDownPressed) {
-        return false;
-    }
+    auto currentIt = playerPositions.find(clientId);
+    float currentY = currentIt != playerPositions.end() ? currentIt->second.second : testY;
 
-    // Only check collision when moving down
-    if (movingDown) {
-        for (auto entity : platforms) {
-            auto pos = get_component_ptr_obstacle<component::position>(registry_server, entity);
-            auto box = get_component_ptr_obstacle<component::collision_box>(registry_server, entity);
+    const float epsilon = 5.f;
+    for (auto entity : platforms) {
+        auto pos = get_component_ptr_obstacle<component::position>(registry_server, entity);
+        auto box = get_component_ptr_obstacle<component::collision_box>(registry_server, entity);
 
-            if (!pos || !box)
-                continue;
+        if (!pos || !box)
+            continue;
 
-            float ox = pos->x;
-            float oy = pos->y;
-            float ow = box->width;
-            float oh = box->height;
+        float ox = pos->x;
+        float oy = pos->y;
+        float ow = box->width;
+        float oh = box->height;
 
-            float pLeft   = testX - playerWidth / 2.f;
-            float pRight  = testX + playerWidth / 2.f;
-            float pTop    = testY - playerHeight / 2.f;
-            float pBottom = testY + playerHeight / 2.f;
+        float pLeft   = testX - playerWidth / 2.f;
+        float pRight  = testX + playerWidth / 2.f;
+        float pTop    = testY - playerHeight / 2.f;
+        float pBottom = testY + playerHeight / 2.f;
+        float prevBottom = currentY + playerHeight * 0.5f;
 
-            float oLeft   = ox - ow / 2.f;
-            float oRight  = ox + ow / 2.f;
-            float oTop    = oy - oh / 2.f;
-            float oBottom = oy + oh / 2.f;
+        float oLeft   = ox - ow / 2.f;
+        float oRight  = ox + ow / 2.f;
+        float oTop    = oy - oh / 2.f;
+        float oBottom = oy + oh / 2.f;
 
-            if (pRight > oLeft && pLeft < oRight && pBottom > oTop && pTop < oBottom) {
-                return true;
-            }
-        }
-        return false;
+        bool horizontalOverlap = (pRight > oLeft && pLeft < oRight);
+        if (!horizontalOverlap)
+            continue;
+
+        float platformTop = oTop;
+        bool crossingFromAbove = prevBottom <= platformTop + epsilon && pBottom >= platformTop;
+        if (!movingDown || !crossingFromAbove)
+            continue;
+
+        if (isDownPressed)
+            continue;
+
+        return true;
     }
 
     return false;

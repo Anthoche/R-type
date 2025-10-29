@@ -63,7 +63,7 @@ ServerGame::ServerGame(Connexion &conn) : connexion(conn), registry_server() {
 void ServerGame::run() {
     LOG("[Server] Starting game loop...");
     load_players(ASSETS_PATH "/Config_assets/Players/players.json");
-    load_level(ASSETS_PATH "/Config_assets/Levels/level.json");
+    load_level(ASSETS_PATH "/Config_assets/Levels/world2.json");
     initialize_player_positions();
     index_existing_entities();
 
@@ -258,6 +258,146 @@ void ServerGame::process_pending_messages() {
     }
 }
 
+void ServerGame::ensure_player_tracking(uint32_t clientId) {
+    if (playerLives.find(clientId) == playerLives.end())
+        playerLives[clientId] = 3;
+    if (playerVelocities.find(clientId) == playerVelocities.end())
+        playerVelocities[clientId] = 0.f;
+    if (playerHorizontalKnockback.find(clientId) == playerHorizontalKnockback.end())
+        playerHorizontalKnockback[clientId] = 0.f;
+    if (playerVerticalKnockback.find(clientId) == playerVerticalKnockback.end())
+        playerVerticalKnockback[clientId] = 0.f;
+    if (playerJumpCount.find(clientId) == playerJumpCount.end())
+        playerJumpCount[clientId] = 0;
+}
+
+std::pair<float, float> ServerGame::compute_respawn_position(uint32_t clientId, float playerWidth, float playerHeight) {
+    auto &positions = registry_server.get_components<component::position>();
+    auto &collision = registry_server.get_components<component::collision_box>();
+
+    for (auto entity : _platforms) {
+        auto idx = static_cast<std::size_t>(entity);
+        if (idx < positions.size() && positions[idx] && idx < collision.size() && collision[idx]) {
+            float platformTop = positions[idx]->y - collision[idx]->height * 0.5f;
+            float spawnY = platformTop - playerHeight * 0.5f - 5.f;
+            float spawnX = positions[idx]->x;
+            return {spawnX, spawnY};
+        }
+    }
+
+    auto it = playerSpawnPositions.find(clientId);
+    if (it != playerSpawnPositions.end())
+        return it->second;
+
+    return {300.f + (clientId - 1) * 50.f, 300.f};
+}
+
+std::pair<float, float> ServerGame::get_player_dimensions(uint32_t clientId) {
+    float width = 30.f;
+    float height = 30.f;
+
+    auto &clientIds = registry_server.get_components<component::client_id>();
+    auto &collision = registry_server.get_components<component::collision_box>();
+    auto &drawables = registry_server.get_components<component::drawable>();
+
+    for (std::size_t i = 0; i < clientIds.size(); ++i) {
+        if (clientIds[i] && clientIds[i]->id == clientId) {
+            if (i < collision.size() && collision[i]) {
+                width = collision[i]->width;
+                height = collision[i]->height;
+            } else if (i < drawables.size() && drawables[i]) {
+                width = drawables[i]->width;
+                height = drawables[i]->height;
+            }
+            break;
+        }
+    }
+
+    return {width, height};
+}
+
+void ServerGame::respawn_player(uint32_t clientId, std::size_t registryIndex) {
+    ensure_player_tracking(clientId);
+    auto &drawables = registry_server.get_components<component::drawable>();
+    float playerWidth = 50.f;
+    float playerHeight = 50.f;
+    if (registryIndex < drawables.size() && drawables[registryIndex]) {
+        playerWidth = drawables[registryIndex]->width;
+        playerHeight = drawables[registryIndex]->height;
+    }
+
+    auto spawn = compute_respawn_position(clientId, playerWidth, playerHeight);
+    playerPositions[clientId] = spawn;
+    playerSpawnPositions[clientId] = spawn;
+    playerVelocities[clientId] = 0.f;
+    playerHorizontalKnockback[clientId] = 0.f;
+    playerVerticalKnockback[clientId] = 0.f;
+    playerJumpCount[clientId] = 0;
+    playerInputStates[clientId] = PlayerInputState{};
+
+    auto &positions = registry_server.get_components<component::position>();
+    if (registryIndex < positions.size() && positions[registryIndex]) {
+        positions[registryIndex]->x = spawn.first;
+        positions[registryIndex]->y = spawn.second;
+        positions[registryIndex]->z = 0.f;
+    }
+    auto &prevPositions = registry_server.get_components<component::previous_position>();
+    if (registryIndex < prevPositions.size() && prevPositions[registryIndex]) {
+        prevPositions[registryIndex]->x = spawn.first;
+        prevPositions[registryIndex]->y = spawn.second;
+        prevPositions[registryIndex]->z = 0.f;
+    }
+
+    auto &healths = registry_server.get_components<component::health>();
+    if (registryIndex < healths.size() && healths[registryIndex]) {
+        healths[registryIndex]->current = healths[registryIndex]->max;
+    }
+
+    deadPlayers.erase(clientId);
+    LOG_INFO("[Server] Player " << clientId << " respawns (" << playerLives[clientId] << " lives remaining)");
+}
+
+bool ServerGame::handle_player_defeat(uint32_t clientId, std::size_t registryIndex) {
+    ensure_player_tracking(clientId);
+
+    auto &healths = registry_server.get_components<component::health>();
+    bool hasRegistryEntry = registryIndex < healths.size() && healths[registryIndex];
+    if (hasRegistryEntry) {
+        healths[registryIndex]->current = std::max(0, healths[registryIndex]->current);
+    }
+
+    auto lifeIt = playerLives.find(clientId);
+    if (lifeIt == playerLives.end())
+        lifeIt = playerLives.emplace(clientId, 3).first;
+
+    int &lives = lifeIt->second;
+    if (lives <= 0) {
+        lives = 0;
+        if (deadPlayers.insert(clientId).second) {
+            broadcast_player_death(clientId);
+        }
+        return true;
+    }
+
+    --lives;
+
+    if (lives > 0 && hasRegistryEntry) {
+        respawn_player(clientId, registryIndex);
+        return false;
+    }
+
+    if (hasRegistryEntry) {
+        healths[registryIndex]->current = 0;
+    }
+    playerHorizontalKnockback[clientId] = 0.f;
+    playerVerticalKnockback[clientId] = 0.f;
+    playerVelocities[clientId] = 0.f;
+    if (deadPlayers.insert(clientId).second) {
+        broadcast_player_death(clientId);
+    }
+    return true;
+}
+
 void ServerGame::process_player_inputs(float dt) {
     constexpr float speedPerSecond = 200.f;
     constexpr float playerWidth = 30.f;
@@ -267,6 +407,7 @@ void ServerGame::process_player_inputs(float dt) {
         uint32_t clientId = kv.first;
         if (deadPlayers.find(clientId) != deadPlayers.end())
             continue;
+        ensure_player_tracking(clientId);
 
         auto &buffer = playerInputBuffers[clientId];
         auto &state = playerInputStates[clientId];
@@ -330,53 +471,55 @@ void ServerGame::process_player_inputs(float dt) {
             float newX = pos.first + inputX * distance;
 
             if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles) &&
-                !is_position_blocked_platform(newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down))
+                !is_position_blocked_platform(clientId, newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down))
                 pos.first = newX;
         }
 
-        auto &knockback = playerKnockbackVelocity[clientId];
-        if (std::fabs(knockback) > 1.f) {
+        auto &knockbackX = playerHorizontalKnockback[clientId];
+        if (std::fabs(knockbackX) > 1.f) {
             auto &pos = kv.second;
-            float knockDistance = knockback * dt;
+            float knockDistance = knockbackX * dt;
             float newX = pos.first + knockDistance;
 
             if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles) &&
-                !is_position_blocked_platform(newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down)) {
+                !is_position_blocked_platform(clientId, newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down)) {
                 pos.first = newX;
             } else {
-                knockback = 0.f;
+                knockbackX = 0.f;
             }
 
             const float damping = 800.f;
-            if (knockback > 0.f) {
-                knockback = std::max(0.f, knockback - damping * dt);
+            if (knockbackX > 0.f) {
+                knockbackX = std::max(0.f, knockbackX - damping * dt);
             } else {
-                knockback = std::min(0.f, knockback + damping * dt);
+                knockbackX = std::min(0.f, knockbackX + damping * dt);
             }
         } else {
-            knockback = 0.f;
+            knockbackX = 0.f;
         }
     }
 }
 
 void ServerGame::apply_gravity(float dt) {
-    constexpr float gravity = 600.f;
-    constexpr float jumpForce = -400.f;
-    constexpr float playerWidth = 30.f;
-    constexpr float playerHeight = 30.f;
+    constexpr float gravity = 800.f;
+    constexpr float jumpForce = -700.f;
     constexpr int maxJumps = 2; // Player can jump 2 additional times after leaving ground
 
     for (auto &kv : playerPositions) {
         uint32_t clientId = kv.first;
         if (deadPlayers.find(clientId) != deadPlayers.end())
             continue;
+        ensure_player_tracking(clientId);
+
+        auto [playerWidth, playerHeight] = get_player_dimensions(clientId);
 
         auto &pos = kv.second;
         auto &velocity = playerVelocities[clientId];
+        auto &verticalKnock = playerVerticalKnockback[clientId];
         auto &state = playerInputStates[clientId];
         auto &jumpCount = playerJumpCount[clientId];
 
-        bool onGround = is_on_ground(pos.first, pos.second, playerWidth, playerHeight);
+        bool onGround = is_on_ground(clientId, pos.first, pos.second, playerWidth, playerHeight);
 
         // Reset jump count when on ground
         if (onGround) {
@@ -396,6 +539,10 @@ void ServerGame::apply_gravity(float dt) {
         }
 
         velocity += gravity * dt;
+        if (std::fabs(verticalKnock) > 1.f) {
+            velocity += verticalKnock;
+            verticalKnock = 0.f;
+        }
 
         float newY = pos.second + velocity * dt;
 
@@ -403,7 +550,7 @@ void ServerGame::apply_gravity(float dt) {
             bool movingDown = (velocity > 0.f);
             
             // If down is pressed, pass through platforms
-            if (!is_position_blocked_platform(pos.first, newY, playerWidth, playerHeight, _platforms, movingDown, state.down)) {
+            if (!is_position_blocked_platform(clientId, pos.first, newY, playerWidth, playerHeight, _platforms, movingDown, state.down)) {
                 pos.second = newY;
             } else {
                 if (movingDown) {
@@ -421,12 +568,12 @@ void ServerGame::apply_gravity(float dt) {
     }
 }
 
-bool ServerGame::is_on_ground(float x, float y, float playerWidth, float playerHeight) {
+bool ServerGame::is_on_ground(uint32_t clientId, float x, float y, float playerWidth, float playerHeight) {
     constexpr float checkDistance = 2.f;
     float testY = y + checkDistance;
     
     return is_position_blocked(x, testY, playerWidth, playerHeight, _obstacles) ||
-           is_position_blocked_platform(x, testY, playerWidth, playerHeight, _platforms, true, false);
+           is_position_blocked_platform(clientId, x, testY, playerWidth, playerHeight, _platforms, true, false);
 }
 
 template <typename Component>
@@ -467,25 +614,29 @@ float ServerGame::snap_to_platform_top(float x, float y, float playerWidth, floa
 void ServerGame::check_death_zone() {
     constexpr float deathY = 1180.f;
     
+    auto& clientIds = registry_server.get_components<component::client_id>();
+    auto& healths = registry_server.get_components<component::health>();
+
     for (auto &kv : playerPositions) {
         uint32_t clientId = kv.first;
         if (deadPlayers.find(clientId) != deadPlayers.end())
             continue;
+        ensure_player_tracking(clientId);
 
         auto &pos = kv.second;
         if (pos.second > deathY || pos.first < -150 || pos.first > 2070) {
-            LOG_INFO("[Server] Player " << clientId << " went past X=" << deathY << " and died");
-            deadPlayers.insert(clientId);
-            broadcast_player_death(clientId);
-            
-            auto& healths = registry_server.get_components<component::health>();
-            auto& clientIds = registry_server.get_components<component::client_id>();
-            for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
-                if (clientIds[i] && clientIds[i]->id == clientId && healths[i]) {
-                    healths[i]->current = 0;
+            LOG_INFO("[Server] Player " << clientId << " went out of bounds and died");
+            std::size_t index = clientIds.size();
+            for (std::size_t i = 0; i < clientIds.size(); ++i) {
+                if (clientIds[i] && clientIds[i]->id == clientId) {
+                    index = i;
                     break;
                 }
             }
+            if (index < healths.size() && healths[index]) {
+                healths[index]->current = 0;
+            }
+            handle_player_defeat(clientId, index);
         }
     }
 }
@@ -502,10 +653,29 @@ void ServerGame::check_win_condition() {
         }
     }
 
-    // Win condition: only 1 player remaining and at least 2 players total
-    if (alivePlayers == 1 && connexion.getClients().size() >= 2) {
+    if (alivePlayers == 1 && lastAlivePlayer != 0 && connexion.getClients().size() >= 2) {
         LOG_INFO("[Server] Player " << lastAlivePlayer << " is the last one alive and WINS!");
+        totalScore = std::max(totalScore, 30);
         broadcast_game_winner(lastAlivePlayer);
+
+        auto &clientIds = registry_server.get_components<component::client_id>();
+        auto &positions = registry_server.get_components<component::position>();
+        auto &drawables = registry_server.get_components<component::drawable>();
+        auto &healths = registry_server.get_components<component::health>();
+
+        for (std::size_t i = 0; i < clientIds.size(); ++i) {
+            if (clientIds[i] && clientIds[i]->id == lastAlivePlayer) {
+                ecs::entity_t entity = registry_server.entity_from_index(i);
+                float screenBottom = 1080.f;
+                if (entity.value() < positions.size() && positions[entity.value()] &&
+                    entity.value() < drawables.size() && drawables[entity.value()] &&
+                    entity.value() < healths.size() && healths[entity.value()]) {
+                    float bottom = positions[entity.value()]->y + drawables[entity.value()]->height * 0.5f;
+                    healths[entity.value()]->current = (bottom < screenBottom - 5.f) ? healths[entity.value()]->max : 0;
+                }
+                break;
+            }
+        }
     }
 }
 

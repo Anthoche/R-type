@@ -31,7 +31,7 @@ namespace game::scene {
 
         void onClose() override;
 
-        void handle_input(float input_x, float input_y);
+        void handle_input(float input_x, float input_y, bool downPressed);
 
         ecs::registry &get_registry() { return _registry; }
 
