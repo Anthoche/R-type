@@ -38,47 +38,76 @@ inline Component* get_component_ptr(ecs::registry &registry, ecs::entity_t entit
 void ServerGame::check_projectile_enemy_collisions() {
     std::vector<uint32_t> projectilesToRemove;
     std::vector<uint32_t> enemiesToRemove;
-
-    const float ENEMY_WIDTH = 30.f;
-    const float ENEMY_HEIGHT = 30.f;
     const float PROJ_WIDTH = 10.f;
     const float PROJ_HEIGHT = 5.f;
+    const int DAMAGE_PER_HIT = 1;
+
+    auto &collision_boxes = registry_server.get_components<component::collision_box>();
 
     for (const auto& projKv : projectiles) {
         uint32_t projId = projKv.first;
-        float projX = std::get<0>(projKv.second);
-        float projY = std::get<1>(projKv.second);
-        // std::get<2> = projZ (pas utilisé pour collision 2D)
+        const ProjectileState &projState = projKv.second;
 
-        float projLeft = projX - PROJ_WIDTH * 0.5f;
-        float projRight = projX + PROJ_WIDTH * 0.5f;
-        float projTop = projY - PROJ_HEIGHT * 0.5f;
-        float projBottom = projY + PROJ_HEIGHT * 0.5f;
+        float width = projState.width > 0.f ? projState.width : PROJ_WIDTH;
+        float height = projState.height > 0.f ? projState.height : PROJ_HEIGHT;
+        float projLeft = projState.x - width * 0.5f;
+        float projRight = projState.x + width * 0.5f;
+        float projTop = projState.y - height * 0.5f;
+        float projBottom = projState.y + height * 0.5f;
 
         for (auto enemyEntity : _enemies) {
+            uint32_t eid = static_cast<uint32_t>(enemyEntity);
             auto pos = get_component_ptr<component::position>(registry_server, enemyEntity);
-            if (!pos)
+            auto health = get_component_ptr<component::health>(registry_server, enemyEntity);
+            if (!pos || !health)
                 continue;
 
+            float enemyWidth = 30.f;
+            float enemyHeight = 30.f;
+            if (eid < collision_boxes.size() && collision_boxes[eid]) {
+                enemyWidth = collision_boxes[eid]->width;
+                enemyHeight = collision_boxes[eid]->height;
+            }
+            
             float enemyX = pos->x;
             float enemyY = pos->y;
-            float enemyLeft = enemyX - ENEMY_WIDTH * 0.5f;
-            float enemyRight = enemyX + ENEMY_WIDTH * 0.5f;
-            float enemyTop = enemyY - ENEMY_HEIGHT * 0.5f;
-            float enemyBottom = enemyY + ENEMY_HEIGHT * 0.5f;
+            float enemyLeft = enemyX - enemyWidth * 0.5f;
+            float enemyRight = enemyX + enemyWidth * 0.5f;
+            float enemyTop = enemyY - enemyHeight * 0.5f;
+            float enemyBottom = enemyY + enemyHeight * 0.5f;
 
             if (check_aabb_overlap(projLeft, projRight, projTop, projBottom,
                                   enemyLeft, enemyRight, enemyTop, enemyBottom)) {
+                
                 projectilesToRemove.push_back(projId);
-                enemiesToRemove.push_back(static_cast<uint32_t>(enemyEntity));
-                totalScore += 10;
-
-                uint32_t killerId = std::get<6>(projKv.second);  // Changé de 4 à 6 (x,y,z,vx,vy,vz,owner)
-                if (playerIndividualScores.find(killerId) == playerIndividualScores.end()) {
-                    playerIndividualScores[killerId] = 0;
+                
+                int damageApplied = static_cast<int>(std::round(std::max(projState.damage, 0.f)));
+                if (damageApplied <= 0) {
+                    damageApplied = DAMAGE_PER_HIT;
                 }
-                playerIndividualScores[killerId] += 10;
-                LOG_DEBUG("[Server] Projectile " << projId << " hit enemy " << static_cast<uint32_t>(enemyEntity));
+                health->current -= damageApplied;
+                
+                uint32_t enemyId = static_cast<uint32_t>(enemyEntity);
+                uint32_t killerId = projState.ownerId;
+                if (health->current <= 0) {
+                    bool isBoss = false;
+                    auto pattern_comp = get_component_ptr<component::pattern_element>(registry_server, enemyEntity);
+                    if (pattern_comp && !pattern_comp->pattern_name.empty()) {
+                        std::string pattern = pattern_comp->pattern_name;
+                        isBoss = (pattern.find("boss_phase1") != std::string::npos);
+                    }
+                    if (isBoss) {
+                        broadcast_boss_death(enemyId);
+                        totalScore += 100;
+                    } else {
+                        totalScore += 10;
+                    }
+                    enemiesToRemove.push_back(enemyId);
+                    if (playerIndividualScores.find(killerId) == playerIndividualScores.end()) {
+                        playerIndividualScores[killerId] = 0;
+                    }
+                    playerIndividualScores[killerId] += (isBoss ? 100 : 10);
+                }
                 break;
             }
         }
@@ -92,31 +121,34 @@ void ServerGame::check_projectile_enemy_collisions() {
     for (uint32_t enemyId : enemiesToRemove) {
         registry_server.kill_entity(static_cast<ecs::entity_t>(enemyId));
         broadcast_enemy_despawn(enemyId);
-        _enemies.erase(std::remove(_enemies.begin(), _enemies.end(), static_cast<ecs::entity_t>(enemyId)), _enemies.end());
+        _enemies.erase(std::remove(_enemies.begin(), _enemies.end(), 
+                                   static_cast<ecs::entity_t>(enemyId)), _enemies.end());
     }
 }
 
 void ServerGame::broadcast_projectile_positions() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     for (const auto& kv : projectiles) {
         uint32_t id = kv.first;
-        float x = std::get<0>(kv.second);
-        float y = std::get<1>(kv.second);
-        float z = std::get<2>(kv.second);
+        const ProjectileState &state = kv.second;
 
         ProjectileUpdateMessage msg;
         msg.type = MessageType::ProjectileUpdate;
         msg.projectileId = htonl(id);
 
         uint32_t xb, yb, zb;
-        std::memcpy(&xb, &x, sizeof(float));
-        std::memcpy(&yb, &y, sizeof(float));
-        std::memcpy(&zb, &z, sizeof(float));
+        std::memcpy(&xb, &state.x, sizeof(float));
+        std::memcpy(&yb, &state.y, sizeof(float));
+        std::memcpy(&zb, &state.z, sizeof(float));
 
         msg.pos.xBits = htonl(xb);
         msg.pos.yBits = htonl(yb);
         msg.pos.zBits = htonl(zb);
 
-        connexion.broadcast(&msg, sizeof(msg));
+        connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     }
 }
 
@@ -125,18 +157,13 @@ void ServerGame::update_projectiles_server_only(float dt) {
 
     for (auto& kv : projectiles) {
         uint32_t id = kv.first;
-        float& x = std::get<0>(kv.second);
-        float& y = std::get<1>(kv.second);
-        float& z = std::get<2>(kv.second);
-        float vx = std::get<3>(kv.second);
-        float vy = std::get<4>(kv.second);
-        float vz = std::get<5>(kv.second);
-        
-        x += vx * dt;
-        y += vy * dt;
-        z += vz * dt;
-        
-        if (x < -50.f || x > 1970.f || y < -50.f || y > 1130.f) {
+        ProjectileState &state = kv.second;
+
+        state.x += state.vx * dt;
+        state.y += state.vy * dt;
+        state.z += state.vz * dt;
+
+        if (state.x < -50.f || state.x > 1970.f || state.y < -50.f || state.y > 1130.f) {
             toRemove.push_back(id);
         }
     }
@@ -148,6 +175,10 @@ void ServerGame::update_projectiles_server_only(float dt) {
 
 void ServerGame::broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId,
                                     float x, float y, float z, float vx, float vy, float vz) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ProjectileSpawnMessage msg;
     msg.type = MessageType::ProjectileSpawn;
     msg.projectileId = htonl(projId);
@@ -168,14 +199,18 @@ void ServerGame::broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId,
     msg.vel.vyBits = htonl(vyb);
     msg.vel.vzBits = htonl(vzb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_projectile_despawn(uint32_t projId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ProjectileDespawnMessage msg;
     msg.type = MessageType::ProjectileDespawn;
     msg.projectileId = htonl(projId);
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::check_projectile_collisions() {
@@ -186,13 +221,15 @@ void ServerGame::check_projectile_collisions() {
 
     for (const auto& projKv : projectiles) {
         uint32_t projId = projKv.first;
-        float projX = std::get<0>(projKv.second);
-        float projY = std::get<1>(projKv.second);
+        const ProjectileState &projState = projKv.second;
 
-        float projLeft = projX - PROJ_WIDTH * 0.5f;
-        float projRight = projX + PROJ_WIDTH * 0.5f;
-        float projTop = projY - PROJ_HEIGHT * 0.5f;
-        float projBottom = projY + PROJ_HEIGHT * 0.5f;
+        float width = projState.width > 0.f ? projState.width : PROJ_WIDTH;
+        float height = projState.height > 0.f ? projState.height : PROJ_HEIGHT;
+
+        float projLeft = projState.x - width * 0.5f;
+        float projRight = projState.x + width * 0.5f;
+        float projTop = projState.y - height * 0.5f;
+        float projBottom = projState.y + height * 0.5f;
 
         for (auto obstacleEntity : _obstacles) {
             auto pos = get_component_ptr<component::position>(registry_server, obstacleEntity);
@@ -334,6 +371,10 @@ void ServerGame::check_enemy_projectile_player_collisions() {
 
 void ServerGame::broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId,
                                                    float x, float y, float z, float vx, float vy, float vz) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemyProjectileSpawnMessage msg;
     msg.type = MessageType::EnemyProjectileSpawn;
     msg.projectileId = htonl(projId);
@@ -354,10 +395,14 @@ void ServerGame::broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t owne
     msg.vel.vyBits = htonl(vyb);
     msg.vel.vzBits = htonl(vzb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_enemy_projectile_positions() {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     for (const auto& kv : enemyProjectiles) {
         uint32_t id = kv.first;
         float x = std::get<0>(kv.second);
@@ -377,13 +422,17 @@ void ServerGame::broadcast_enemy_projectile_positions() {
         msg.pos.yBits = htonl(yb);
         msg.pos.zBits = htonl(zb);
 
-        connexion.broadcast(&msg, sizeof(msg));
+        connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     }
 }
 
 void ServerGame::broadcast_enemy_projectile_despawn(uint32_t projId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     EnemyProjectileDespawnMessage msg;
     msg.type = MessageType::EnemyProjectileDespawn;
     msg.projectileId = htonl(projId);
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }

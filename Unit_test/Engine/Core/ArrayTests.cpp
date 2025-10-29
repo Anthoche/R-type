@@ -16,9 +16,6 @@ struct Position {
     int y;
 };
 
-// -------------------------
-// Construction & size
-// -------------------------
 TEST(SparseArray, default_empty) {
     sparse_array<int> arr;
 
@@ -26,9 +23,6 @@ TEST(SparseArray, default_empty) {
     EXPECT_TRUE(arr.begin() == arr.end());
 }
 
-// -------------------------
-// operator[] (mutable + const)
-// -------------------------
 TEST(SparseArray, operator_brackets_resizes) {
     sparse_array<int> arr;
     arr[5] = 42;
@@ -45,9 +39,6 @@ TEST(SparseArray, const_out_of_bounds) {
     EXPECT_FALSE(slot.has_value());
 }
 
-// -------------------------
-// insert_at
-// -------------------------
 TEST(SparseArray, insert_move) {
     sparse_array<Position> arr;
 
@@ -63,9 +54,6 @@ TEST(SparseArray, insert_move) {
     EXPECT_EQ(arr[1]->y, 4);
 }
 
-// -------------------------
-// emplace_at
-// -------------------------
 TEST(SparseArray, emplace_at) {
     sparse_array<Position> arr;
 
@@ -76,9 +64,6 @@ TEST(SparseArray, emplace_at) {
     EXPECT_EQ(arr.size(), 3);
 }
 
-// -------------------------
-// erase
-// -------------------------
 TEST(SparseArray, erase_resets_slot) {
     sparse_array<int> arr;
     arr.insert_at(0, 123);
@@ -95,9 +80,6 @@ TEST(SparseArray, erase_out_of_bounds) {
     EXPECT_TRUE(arr[0].has_value());
 }
 
-// -------------------------
-// get_index
-// -------------------------
 TEST(SparseArray, get_index_correct) {
     sparse_array<int> arr;
     arr.insert_at(0, 42);
@@ -121,9 +103,6 @@ TEST(SparseArray, get_index_invalid) {
     EXPECT_EQ(idx, static_cast<size_t>(-1));
 }
 
-// -------------------------
-// Iteration
-// -------------------------
 TEST(SparseArray, iterators_work) {
     sparse_array<int> arr;
     arr.insert_at(0, 10);

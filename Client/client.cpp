@@ -4,10 +4,13 @@
 ** File description:
 ** client
 */
+
 #include "client.hpp"
+#include "Logger.hpp"
 #include "../Engine/Game.hpp"
 #include "../Engine/Utils/Include/serializer.hpp"
 #include <asio.hpp>
+#include <cstring>
 
 GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverPort, const std::string &name)
     : socket(), clientName(name), _game(game), serverIpStr(serverIp) {
@@ -45,14 +48,61 @@ void GameClient::sendHello() {
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
+void GameClient::sendRoomAsk(uint32_t room_id) {
+    ClientRoomIdAskMessage msg;
+    msg.type = MessageType::ClientRoomIdAsk;
+    msg.clientId = clientId;
+    msg.roomId = room_id;
+    LOG_DEBUG(std::format("Envoi de la demande de roomId={}", room_id));
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+void GameClient::sendRoomsFetch() {
+    ClientFetchRoomsMessage msg;
+    msg.type = MessageType::ClientFetchRooms;
+    msg.clientId = clientId;
+    LOG_DEBUG("Envoi de la demande de rooms list");
+    {
+        std::lock_guard<std::mutex> lock(roomsMutex);
+        rooms.clear();
+        roomsUpdated = false;
+    }
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+bool GameClient::waitForRooms(std::chrono::milliseconds timeout,
+                              std::map<int, game::serializer::RoomData> &outRooms) {
+    std::unique_lock<std::mutex> lock(roomsMutex);
+    if (!roomsCv.wait_for(lock, timeout, [this]() { return roomsUpdated; }))
+        return false;
+    outRooms = rooms;
+    return true;
+}
+
+void GameClient::sendConfirmStart() {
+    ClientConfirmStartMessage msg;
+    msg.type = MessageType::ClientConfirmStart;
+    msg.clientId = clientId;
+    msg.roomId = roomId;
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+void GameClient::sendClientLeaveRoom() {
+    ClientLeaveRoomMessage msg;
+    msg.type = MessageType::ClientLeaveRoom;
+    msg.clientId = clientId;
+    msg.roomId = roomId;
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
 void GameClient::initTcpConnection() {
     if (clientId == 0) return;
 
     uint16_t tcpPort = 5000 + clientId;
-    tcpClient = std::make_unique<TCP_socket>(); // Mode client (constructeur par défaut)
+    tcpClient = std::make_unique<TCP_socket>();
 
     if (!tcpClient->connectToServer(serverIpStr, tcpPort)) {
-        std::cerr << "[Client] Impossible de se connecter en TCP" << std::endl;
+        LOG_ERROR("Client: Impossible de se connecter en TCP");
         return;
     }
 }
@@ -110,8 +160,11 @@ void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
             std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
             return;
         }
+        storeFullRegistry(fullRegistry, true);
         std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
-        game::serializer::deserialize_entities(*registry, fullRegistry);
+        if (registry) {
+            game::serializer::deserialize_entities(*registry, fullRegistry);
+        }
     }
 }
 
@@ -134,6 +187,142 @@ void GameClient::sendHealth(int health) {
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
+void GameClient::sendEndlessMode(bool isEndless) {
+    EndlessModeMessage msg;
+    msg.type = MessageType::EndlessMode;
+    msg.clientId = htonl(clientId);
+    msg.isEndless = isEndless ? 1 : 0;
+    
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
+void GameClient::sendChatMessage(const std::string &message) {
+    if (clientId == 0 || message.empty())
+        return;
+    ChatMessagePacket packet{};
+    packet.type = MessageType::ChatMessage;
+    packet.senderId = htonl(clientId);
+    std::memset(packet.senderName, 0, sizeof(packet.senderName));
+    std::memset(packet.message, 0, sizeof(packet.message));
+    std::strncpy(packet.senderName, clientName.c_str(), sizeof(packet.senderName) - 1);
+    std::strncpy(packet.message, message.c_str(), sizeof(packet.message) - 1);
+    socket.sendTo(&packet, sizeof(packet), serverEndpoint);
+}
+
 bool GameClient::hasConnectionFailed() const {
     return connectionFailed;
+}
+
+void GameClient::sendSkinSelection(const std::string &skinFilename) {
+    if (skinFilename.empty()) {
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        pendingSkinSelection = skinFilename;
+        if (clientId != 0) {
+            playerSkins[clientId] = skinFilename;
+        }
+    }
+
+    if (clientId == 0) {
+        return;
+    }
+
+    PlayerSkinMessage msg{};
+    msg.type = MessageType::PlayerSkinUpdate;
+    msg.clientId = htonl(clientId);
+    std::memset(msg.skinFilename, 0, sizeof(msg.skinFilename));
+    std::strncpy(msg.skinFilename, skinFilename.c_str(), sizeof(msg.skinFilename) - 1);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        if (pendingSkinSelection == skinFilename) {
+            pendingSkinSelection.clear();
+        }
+    }
+}
+
+void GameClient::sendWeaponSelection(const std::string &weaponId) {
+    if (weaponId.empty()) {
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        pendingWeaponSelection = weaponId;
+        if (clientId != 0) {
+            playerWeapons[clientId] = weaponId;
+        }
+    }
+
+    if (clientId == 0) {
+        return;
+    }
+
+    PlayerWeaponMessage msg{};
+    msg.type = MessageType::PlayerWeaponUpdate;
+    msg.clientId = htonl(clientId);
+    std::memset(msg.weaponId, 0, sizeof(msg.weaponId));
+    std::strncpy(msg.weaponId, weaponId.c_str(), sizeof(msg.weaponId) - 1);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        if (pendingWeaponSelection == weaponId) {
+            pendingWeaponSelection.clear();
+        }
+    }
+}
+
+void GameClient::storeFullRegistry(const nlohmann::json &registryJson, bool markPending) {
+    std::lock_guard<std::mutex> lock(registryMutex);
+    latestFullRegistry = registryJson;
+    if (markPending) {
+        hasPendingFullRegistry.store(true, std::memory_order_release);
+    }
+}
+
+std::optional<nlohmann::json> GameClient::consumeFullRegistry() {
+    std::lock_guard<std::mutex> lock(registryMutex);
+    if (!hasPendingFullRegistry.load(std::memory_order_acquire)) {
+        return std::nullopt;
+    }
+    hasPendingFullRegistry.store(false, std::memory_order_release);
+    return latestFullRegistry;
+}
+
+void GameClient::fetchFullRegistryAsync() {
+    if (!tcpClient || !tcpClient->isConnected()) {
+        return;
+    }
+
+    bool expected = false;
+    if (!fullRegistryFetchInFlight.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+        return;
+    }
+
+    std::thread([this]() {
+        nlohmann::json fullRegistry = tcpClient->receiveJson();
+        if (!fullRegistry.is_null()) {
+            storeFullRegistry(fullRegistry, true);
+        }
+        fullRegistryFetchInFlight.store(false, std::memory_order_release);
+    }).detach();
+}
+
+const std::string &GameClient::getClientName() const {
+    return clientName;
+}
+
+std::vector<std::pair<std::string, std::string>> GameClient::consumeChatMessages() {
+    std::vector<std::pair<std::string, std::string>> messages;
+    std::lock_guard<std::mutex> lock(stateMutex);
+    while (!_chatQueue.empty()) {
+        messages.emplace_back(std::move(_chatQueue.front()));
+        _chatQueue.pop_front();
+    }
+    return messages;
 }

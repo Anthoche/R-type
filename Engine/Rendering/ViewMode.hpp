@@ -10,8 +10,7 @@
  * @brief Defines the ViewMode enumeration used to control the camera view mode
  */
 
-#ifndef VIEWMODE_HPP
-#define VIEWMODE_HPP
+#pragma once
 
 /**
  * @enum ViewMode
@@ -23,5 +22,3 @@ enum ViewMode {
     PERSPECTIVE, /**< 3D perspective view mode. */
     FLAT         /**< 2D flat (orthographic) view mode. */
 };
-
-#endif //VIEWMODE_HPP

@@ -8,11 +8,15 @@
 
 #pragma once
 
-#include "../../Engine/Rendering/scene/Include/AScene.hpp"
-#include "../Game.hpp"
-#include "../../Shared/protocol.hpp"
 #include <unordered_map>
+#include <nlohmann/json_fwd.hpp>
 #include "UI.hpp"
+#include "../Game.hpp"
+#include "ChatSystem.hpp"
+#include "../../Engine/Rendering/scene/Include/AScene.hpp"
+#include "../../Engine/Core/Entities/Include/components.hpp"
+#include "../../Shared/protocol.hpp"
+#include "../../Shared/WeaponDefinition.hpp"
 
 namespace game::scene {
     /**
@@ -68,7 +72,7 @@ namespace game::scene {
          * @brief handle shoot input.
          * @param cooldown Cooldown for shoot
          */
-        void handle_shoot(float cooldown);
+        void handle_shoot(const weapon::WeaponDefinition &weaponDef, float cooldown);
 
         /**
          * @brief Handle player input.
@@ -208,6 +212,12 @@ namespace game::scene {
          */
         Texture2D* get_entity_texture(ecs::entity_t entity);
 
+        
+        bool processPendingFullRegistry();
+        void clearLevelEntitiesForReload();
+        void removeEntitiesOfType(component::entity_type type);
+        void buildSpriteMapsFromRegistry(const nlohmann::json &registryJson);
+        
         void toggleFullScreen();
 
         // --- Entities ---
@@ -219,7 +229,12 @@ namespace game::scene {
         bool _victorySoundPlayed = false; ///< Flag to track if victory sound has been played.
         bool _defeatSoundPlayed = false; ///< Flag to track if defeat sound has been played.
         std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _obstacleMap;  // Map serverId -> client entity
+        std::unordered_map<uint32_t, std::string> _obstacleSpriteMap;  // Map serverId -> sprite path
         std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
+        std::vector<ecs::entity_t> _elements; ///< List of active random element entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _elementMap; ///< Map: network element ID -> ECS entity.
+        std::unordered_map<uint32_t, std::string> _elementSpriteMap;  // Map serverId -> sprite path
         std::unordered_map<uint32_t, ecs::entity_t> _enemyMap; ///< Map: network enemy ID -> ECS entity.
         std::unordered_map<uint32_t, std::string> _enemySpriteMap; ///< Map: network enemy ID -> sprite path.
         std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
@@ -229,11 +244,25 @@ namespace game::scene {
         std::unordered_map<std::string, Texture2D> _projectileTextures; ///< Map: projectile type -> loaded texture.
         std::unordered_map<uint32_t, float> moovePlayer; ///< Map: client ID -> movement offset for sprite rendering.
         float _backgroundScrollX = 0.0f; ///< Background scrolling offset.
+        float _victoryStartTime = 0.0f;
+        float _stopShoot = false;
+        bool _hasLevelData = false;
+        bool _levelReloadPending = false;
+        struct WeaponUsageState {
+            float lastShotTime{0.f};
+            float burstStartTime{0.f};
+            float lastBurstEndTime{-1.f};
+            int remainingAmmo{-1};
+            bool inBurst{false};
+        };
+        std::unordered_map<std::string, WeaponUsageState> _weaponUsage;
+        bool _lastBoss = false;
 
         // --- Game state ---
         bool _game_running; ///< Indicates whether the game is running.
         double _startTime; ///< Start time of the scene.
         UI _ui; ///< UI instance for game overlay
+        ChatSystem _chat; ///< Chat overlay manager
 
         // --- Helpers ---
         /**
@@ -251,10 +280,14 @@ namespace game::scene {
          */
         void extract_enemy_sprite_paths();
 
-        // --- Indexation des entités ---
+        /**
+        * @brief Index existing entities in the registry for quick access.
+        */
         void index_existing_entities();
 
-        // --- Rendu générique ---
+        /**
+        * @brief Render all entities in the scene.
+        */
         void render_entities();
         void render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
         void render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
@@ -265,16 +298,22 @@ namespace game::scene {
         void render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
         void load_music();
 
-        // --- Rendu des entités réseau ---
+        /**
+        * @brief Render obstacles received from the network.
+        */
         void render_network_obstacles();
         void render_network_enemies();
         void render_network_projectiles();
         void render_network_enemy_projectiles();
         void render_death_screen();
         void render_win_screen();
+        void render_final_win_screen();
 
-
-        // --- Utilitaires ---
+        /**
+        * @brief Get a unique color for a given client ID.
+        * @param id The client ID.
+        * @return A unique Color associated with the client ID.
+        */
         Color get_color_for_id(uint32_t id);
         void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed);
         InputState _inputState;
