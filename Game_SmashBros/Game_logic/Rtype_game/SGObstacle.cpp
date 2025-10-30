@@ -66,6 +66,7 @@ bool ServerGame::is_position_blocked(float testX, float testY, float playerWidth
     return false;
 }
 
+<<<<<<< HEAD:Game_SmashBros/Game_logic/Rtype_game/SGObstacle.cpp
 bool ServerGame::is_position_blocked_platform(uint32_t clientId, float testX, float testY, float playerWidth, float playerHeight,
                                               const std::vector<ecs::entity_t> &platforms, bool movingDown, bool isDownPressed)
 {
@@ -116,17 +117,27 @@ bool ServerGame::is_position_blocked_platform(uint32_t clientId, float testX, fl
 
 void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d)
 {
+=======
+void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z,
+    float w, float h, float d, float vx, float vy, float vz) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+>>>>>>> dev:Game/Game_logic/Rtype_game/SGObstacle.cpp
     ObstacleSpawnMessage msg{};
     msg.type = MessageType::ObstacleSpawn;
     msg.obstacleId = htonl(obstacleId);
 
-    uint32_t xb, yb, zb, wb, hb, db;
+    uint32_t xb, yb, zb, wb, hb, db, vxb, vyb, vzb;
     std::memcpy(&xb, &x, sizeof(float));
     std::memcpy(&yb, &y, sizeof(float));
     std::memcpy(&zb, &z, sizeof(float));
     std::memcpy(&wb, &w, sizeof(float));
     std::memcpy(&hb, &h, sizeof(float));
     std::memcpy(&db, &d, sizeof(float));
+    std::memcpy(&vxb, &vx, sizeof(float));
+    std::memcpy(&vyb, &vy, sizeof(float));
+    std::memcpy(&vzb, &vz, sizeof(float));
 
     msg.pos.xBits = htonl(xb);
     msg.pos.yBits = htonl(yb);
@@ -134,8 +145,76 @@ void ServerGame::broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y,
     msg.size.widthBits = htonl(wb);
     msg.size.heightBits = htonl(hb);
     msg.size.depthBits = htonl(db);
+    msg.vel.vxBits = htonl(vxb);
+    msg.vel.vyBits = htonl(vyb);
+    msg.vel.vzBits = htonl(vzb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcast obstacle spawn: ID=" << obstacleId
               << " pos=(" << x << "," << y << "," << z << ") size=(" << w << "," << h << "," << d << ")");
 }
+<<<<<<< HEAD:Game_SmashBros/Game_logic/Rtype_game/SGObstacle.cpp
+=======
+
+void ServerGame::update_obstacles(float dt) {
+    auto &positions = registry_server.get_components<component::position>();
+    auto &velocities = registry_server.get_components<component::velocity>();
+
+    for (auto obstacle : _obstacles) {
+        uint32_t idx = static_cast<uint32_t>(obstacle);
+
+        if (idx >= positions.size() || !positions[idx]) continue;
+        if (idx >= velocities.size() || !velocities[idx]) continue;
+
+        positions[idx]->x += velocities[idx]->vx * dt;
+        positions[idx]->y += velocities[idx]->vy * dt;
+        positions[idx]->z += velocities[idx]->vz * dt;
+    }
+}
+
+
+void ServerGame::broadcast_obstacle_positions() {
+    auto &positions = registry_server.get_components<component::position>();
+    auto &velocities = registry_server.get_components<component::velocity>();
+
+    for (auto obstacleEntity : _obstacles) {
+        uint32_t obstacleId = static_cast<uint32_t>(obstacleEntity);
+
+        if (obstacleId < positions.size() && positions[obstacleId]) {
+            const auto& pos = *positions[obstacleId];
+            float vx = 0, vy = 0, vz = 0;
+            if (obstacleId < velocities.size() && velocities[obstacleId]) {
+                vx = velocities[obstacleId]->vx;
+                vy = velocities[obstacleId]->vy;
+                vz = velocities[obstacleId]->vz;
+            }
+
+            broadcast_obstacle_update(obstacleId, pos.x, pos.y, pos.z, vx, vy, vz);
+        }
+    }
+}
+
+void ServerGame::broadcast_obstacle_update(uint32_t obstacleId, float x, float y, float z,
+                                          float vx, float vy, float vz) {
+    ObstacleUpdateMessage msg{};
+    msg.type = MessageType::ObstacleUpdate;
+    msg.obstacleId = htonl(obstacleId);
+
+    uint32_t xb, yb, zb, vxb, vyb, vzb;
+    std::memcpy(&xb, &x, sizeof(float));
+    std::memcpy(&yb, &y, sizeof(float));
+    std::memcpy(&zb, &z, sizeof(float));
+    std::memcpy(&vxb, &vx, sizeof(float));
+    std::memcpy(&vyb, &vy, sizeof(float));
+    std::memcpy(&vzb, &vz, sizeof(float));
+
+    msg.pos.xBits = htonl(xb);
+    msg.pos.yBits = htonl(yb);
+    msg.pos.zBits = htonl(zb);
+    msg.vel.vxBits = htonl(vxb);
+    msg.vel.vyBits = htonl(vyb);
+    msg.vel.vzBits = htonl(vzb);
+
+    connexion.broadcast(&msg, sizeof(msg));
+}
+>>>>>>> dev:Game/Game_logic/Rtype_game/SGObstacle.cpp

@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** R-Type
 ** File description:
-** TextTest.cpp
+** TextTests.cpp
 */
 
 #include <gtest/gtest.h>
@@ -39,7 +39,6 @@ TEST(Text, has_position_and_text_component) {
     EXPECT_TRUE(positions[static_cast<std::size_t>(e)].has_value());
     EXPECT_EQ(positions[static_cast<std::size_t>(e)]->x, 50.f);
     EXPECT_EQ(positions[static_cast<std::size_t>(e)]->y, 100.f);
-
     EXPECT_TRUE(texts[static_cast<std::size_t>(e)].has_value());
     EXPECT_STREQ(texts[static_cast<std::size_t>(e)]->content.c_str(), "Hello World");
     EXPECT_EQ(texts[static_cast<std::size_t>(e)]->font_size, 24);
@@ -47,9 +46,7 @@ TEST(Text, has_position_and_text_component) {
     EXPECT_EQ(texts[static_cast<std::size_t>(e)]->color.g, 0);
     EXPECT_EQ(texts[static_cast<std::size_t>(e)]->color.b, 0);
     EXPECT_EQ(texts[static_cast<std::size_t>(e)]->color.a, 255);
-
     EXPECT_TRUE(drawables[static_cast<std::size_t>(e)].has_value());
-
     EXPECT_TRUE(types[static_cast<std::size_t>(e)].has_value());
     EXPECT_EQ(types[static_cast<std::size_t>(e)]->value, component::entity_type::TEXT);
 }

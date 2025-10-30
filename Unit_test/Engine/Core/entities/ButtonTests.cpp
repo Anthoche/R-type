@@ -1,8 +1,8 @@
 /*
 ** EPITECH PROJECT, 2025
-** R-Type
+** R-type
 ** File description:
-** test_button.cpp
+** ButtonTests.cpp
 */
 
 #include <gtest/gtest.h>
@@ -12,242 +12,144 @@
 
 using namespace ecs;
 using namespace game::entities;
+using namespace component;
 
-TEST(Button, has_position_component) {
-    registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {250.0f, 350.0f};
-    Vector2 size = {100.0f, 40.0f};
-    
-    entity_t btn = create_button(reg, "btn2", "Test", pos, size, BLUE, BLACK);
-    
-    auto &positions = reg.get_components<component::position>();
-    auto &p = positions[static_cast<std::size_t>(btn)];
-    
-    EXPECT_TRUE(p.has_value());
-    EXPECT_EQ(p->x, 250.0f);
-    EXPECT_EQ(p->y, 350.0f);
+static void register_all_button_components(registry &reg)
+{
+    reg.register_component<position>();
+    reg.register_component<clickable>();
+    reg.register_component<hoverable>();
+    reg.register_component<type>();
+    reg.register_component<drawable>();
+    reg.register_component<text>();
 }
 
-TEST(Button, position_at_origin) {
+TEST(Button, creates_entity_with_all_components)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {0.0f, 0.0f};
-    Vector2 size = {80.0f, 30.0f};
-    
-    entity_t btn = create_button(reg, "origin", "Origin", pos, size, GREEN, WHITE);
-    
-    auto &positions = reg.get_components<component::position>();
-    auto &p = positions[static_cast<std::size_t>(btn)];
-    
-    EXPECT_TRUE(p.has_value());
-    EXPECT_EQ(p->x, 0.0f);
-    EXPECT_EQ(p->y, 0.0f);
+    register_all_button_components(reg);
+
+    auto btn = create_button(reg, "btn_play", "Play", 
+                        100.f, 200.f, 0.f, 250.f, 60.f, WHITE, BLACK, 40);
+    auto &positions = reg.get_components<position>();
+    auto &clickables = reg.get_components<clickable>();
+    auto &hoverables = reg.get_components<hoverable>();
+    auto &types = reg.get_components<type>();
+    auto &drawables = reg.get_components<drawable>();
+    auto &texts = reg.get_components<text>();
+
+    EXPECT_TRUE(positions[static_cast<size_t>(btn)].has_value());
+    EXPECT_TRUE(clickables[static_cast<size_t>(btn)].has_value());
+    EXPECT_TRUE(hoverables[static_cast<size_t>(btn)].has_value());
+    EXPECT_TRUE(types[static_cast<size_t>(btn)].has_value());
+    EXPECT_TRUE(drawables[static_cast<size_t>(btn)].has_value());
+    EXPECT_TRUE(texts[static_cast<size_t>(btn)].has_value());
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(btn)]->x, 100.f);
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(btn)]->y, 200.f);
+    EXPECT_EQ(types[static_cast<size_t>(btn)]->value, entity_type::BUTTON);
+    EXPECT_EQ(clickables[static_cast<size_t>(btn)]->id, "btn_play");
+    EXPECT_EQ(hoverables[static_cast<size_t>(btn)]->id, "btn_play");
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->content, "Play");
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->font_size, 40);
 }
 
-TEST(Button, has_clickable_component) {
+TEST(Button, creates_button_with_defaults)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {10.0f, 20.0f};
-    Vector2 size = {120.0f, 45.0f};
-    
-    entity_t btn = create_button(reg, "clickable_btn", "Click", pos, size, YELLOW, BLACK);
-    
-    auto &clickables = reg.get_components<component::clickable>();
-    auto &c = clickables[static_cast<std::size_t>(btn)];
-    
-    EXPECT_TRUE(c.has_value());
-    EXPECT_STREQ(c->id.c_str(), "clickable_btn");
-    EXPECT_TRUE(c->enabled);
-    EXPECT_FALSE(c->isClicked);
+    register_all_button_components(reg);
+
+    auto btn = create_button(reg, "btn_exit", "Exit", 0.f, 0.f);
+    auto &positions = reg.get_components<position>();
+    auto &drawables = reg.get_components<drawable>();
+    auto &texts = reg.get_components<text>();
+
+    EXPECT_TRUE(positions[static_cast<size_t>(btn)].has_value());
+    EXPECT_TRUE(drawables[static_cast<size_t>(btn)].has_value());
+    EXPECT_TRUE(texts[static_cast<size_t>(btn)].has_value());
+    EXPECT_FLOAT_EQ(drawables[static_cast<size_t>(btn)]->width, 200.f);
+    EXPECT_FLOAT_EQ(drawables[static_cast<size_t>(btn)]->height, 50.f);
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->font_size, 35);
 }
 
-TEST(Button, has_hoverable_component) {
+TEST(Button, multiple_buttons_have_unique_entities)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {50.0f, 60.0f};
-    Vector2 size = {200.0f, 60.0f};
-    
-    entity_t btn = create_button(reg, "hover_btn", "Hover", pos, size, PURPLE, WHITE);
-    
-    auto &hoverables = reg.get_components<component::hoverable>();
-    auto &h = hoverables[static_cast<std::size_t>(btn)];
-    
-    EXPECT_TRUE(h.has_value());
-    EXPECT_STREQ(h->id.c_str(), "hover_btn");
-    EXPECT_FALSE(h->isHovered);
+    register_all_button_components(reg);
+
+    auto b1 = create_button(reg, "btn1", "A", 10.f, 10.f);
+    auto b2 = create_button(reg, "btn2", "B", 20.f, 20.f);
+    EXPECT_NE(b1, b2);
+
+    auto &positions = reg.get_components<position>();
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(b1)]->x, 10.f);
+    EXPECT_FLOAT_EQ(positions[static_cast<size_t>(b2)]->x, 20.f);
 }
 
-TEST(Button, has_type_component) {
+TEST(Button, correct_text_and_clickable_ids)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {100.0f, 100.0f};
-    Vector2 size = {150.0f, 50.0f};
-    
-    entity_t btn = create_button(reg, "type_btn", "Type", pos, size, ORANGE, BLACK);
-    
-    auto &types = reg.get_components<component::type>();
-    auto &t = types[static_cast<std::size_t>(btn)];
-    
-    EXPECT_TRUE(t.has_value());
-    EXPECT_EQ(t->value, component::entity_type::BUTTON);
+    register_all_button_components(reg);
+
+    auto btn = create_button(reg, "unique_btn", "PressMe", 50.f, 50.f);
+    auto &texts = reg.get_components<text>();
+    auto &clickables = reg.get_components<clickable>();
+    auto &hoverables = reg.get_components<hoverable>();
+
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->content, "PressMe");
+    EXPECT_EQ(clickables[static_cast<size_t>(btn)]->id, "unique_btn");
+    EXPECT_EQ(hoverables[static_cast<size_t>(btn)]->id, "unique_btn");
 }
 
-TEST(Button, has_drawable_component) {
+TEST(Button, custom_colors_applied)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {0.0f, 0.0f};
-    Vector2 size = {300.0f, 80.0f};
-    Color btnColor = {255, 128, 64, 255};
-    
-    entity_t btn = create_button(reg, "draw_btn", "Draw", pos, size, btnColor, WHITE);
-    
-    auto &drawables = reg.get_components<component::drawable>();
-    auto &d = drawables[static_cast<std::size_t>(btn)];
-    
-    EXPECT_TRUE(d.has_value());
-    EXPECT_EQ(d->width, 300.0f);
-    EXPECT_EQ(d->height, 80.0f);
-    EXPECT_EQ(d->color.r, 255);
-    EXPECT_EQ(d->color.g, 128);
-    EXPECT_EQ(d->color.b, 64);
-    EXPECT_EQ(d->color.a, 255);
+    register_all_button_components(reg);
+
+    Color bg = RED;
+    Color txt = BLUE;
+    auto btn = create_button(reg, "colored_btn", "Colorful", 
+                            5.f, 5.f, 0.f, 150.f, 40.f, bg, txt, 25);
+    auto &drawables = reg.get_components<drawable>();
+    auto &texts = reg.get_components<text>();
+
+    ASSERT_TRUE(drawables[static_cast<size_t>(btn)].has_value());
+    ASSERT_TRUE(texts[static_cast<size_t>(btn)].has_value());
+
+    EXPECT_EQ(drawables[static_cast<size_t>(btn)]->color.r, bg.r);
+    EXPECT_EQ(drawables[static_cast<size_t>(btn)]->color.g, bg.g);
+    EXPECT_EQ(drawables[static_cast<size_t>(btn)]->color.b, bg.b);
+    EXPECT_EQ(drawables[static_cast<size_t>(btn)]->color.a, bg.a);
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->color.r, txt.r);
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->color.g, txt.g);
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->color.b, txt.b);
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->color.a, txt.a);
 }
 
-TEST(Button, negative_position) {
+TEST(Button, multiple_buttons_unique)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {-50.0f, -100.0f};
-    Vector2 size = {80.0f, 40.0f};
-    
-    entity_t btn = create_button(reg, "neg_pos", "Negative", pos, size, BLUE, WHITE);
-    
-    auto &positions = reg.get_components<component::position>();
-    auto &p = positions[static_cast<std::size_t>(btn)];
-    
-    EXPECT_TRUE(p.has_value());
-    EXPECT_EQ(p->x, -50.0f);
-    EXPECT_EQ(p->y, -100.0f);
+    register_all_button_components(reg);
+
+    auto b1 = create_button(reg, "id1", "Play", 0.f, 0.f);
+    auto b2 = create_button(reg, "id2", "Exit", 10.f, 10.f);
+
+    EXPECT_NE(b1, b2);
+
+    auto &clickables = reg.get_components<clickable>();
+    EXPECT_EQ(clickables[static_cast<size_t>(b1)]->id, "id1");
+    EXPECT_EQ(clickables[static_cast<size_t>(b2)]->id, "id2");
 }
 
-TEST(Button, zero_size) {
+TEST(Button, text_content_fontsize)
+{
     registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {10.0f, 10.0f};
-    Vector2 size = {0.0f, 0.0f};
-    
-    entity_t btn = create_button(reg, "zero_size", "Zero", pos, size, RED, WHITE);
-    
-    auto &drawables = reg.get_components<component::drawable>();
-    auto &d = drawables[static_cast<std::size_t>(btn)];
-    
-    EXPECT_TRUE(d.has_value());
-    EXPECT_EQ(d->width, 0.0f);
-    EXPECT_EQ(d->height, 0.0f);
-}
+    register_all_button_components(reg);
 
-TEST(Button, multiple_buttons_independent) {
-    registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos1 = {10.0f, 10.0f};
-    Vector2 size1 = {100.0f, 50.0f};
-    entity_t btn1 = create_button(reg, "btn_1", "First", pos1, size1, RED, WHITE);
-    
-    Vector2 pos2 = {200.0f, 100.0f};
-    Vector2 size2 = {150.0f, 60.0f};
-    entity_t btn2 = create_button(reg, "btn_2", "Second", pos2, size2, BLUE, BLACK);
-    
-    EXPECT_NE(static_cast<std::size_t>(btn1), static_cast<std::size_t>(btn2));
-    
-    auto &positions = reg.get_components<component::position>();
-    auto &clickables = reg.get_components<component::clickable>();
-    auto &texts = reg.get_components<component::text>();
-    
-    auto &p1 = positions[static_cast<std::size_t>(btn1)];
-    auto &p2 = positions[static_cast<std::size_t>(btn2)];
-    auto &c1 = clickables[static_cast<std::size_t>(btn1)];
-    auto &c2 = clickables[static_cast<std::size_t>(btn2)];
-    auto &t1 = texts[static_cast<std::size_t>(btn1)];
-    auto &t2 = texts[static_cast<std::size_t>(btn2)];
-    
-    EXPECT_TRUE(p1.has_value() && p2.has_value());
-    EXPECT_NE(p1->x, p2->x);
-    EXPECT_STRNE(c1->id.c_str(), c2->id.c_str());
-    EXPECT_STRNE(t1->content.c_str(), t2->content.c_str());
-}
+    auto btn = create_button(reg, "Play", "More", 
+                            15.f, 15.f, 0.f, 100.f, 40.f, GREEN, WHITE, 42);
+    auto &texts = reg.get_components<text>();
 
-TEST(Button, unique_ids) {
-    registry reg;
-    reg.register_component<component::position>();
-    reg.register_component<component::clickable>();
-    reg.register_component<component::hoverable>();
-    reg.register_component<component::type>();
-    reg.register_component<component::drawable>();
-    reg.register_component<component::text>();
-    
-    Vector2 pos = {0.0f, 0.0f};
-    Vector2 size = {100.0f, 50.0f};
-    
-    entity_t btn1 = create_button(reg, "unique_id_1", "Button1", pos, size, RED, WHITE);
-    entity_t btn2 = create_button(reg, "unique_id_2", "Button2", pos, size, BLUE, BLACK);
-    
-    auto &clickables = reg.get_components<component::clickable>();
-    auto &c1 = clickables[static_cast<std::size_t>(btn1)];
-    auto &c2 = clickables[static_cast<std::size_t>(btn2)];
-    
-    EXPECT_STRNE(c1->id.c_str(), c2->id.c_str());
+    ASSERT_TRUE(texts[static_cast<size_t>(btn)].has_value());
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->content, "More");
+    EXPECT_EQ(texts[static_cast<size_t>(btn)]->font_size, 42);
 }

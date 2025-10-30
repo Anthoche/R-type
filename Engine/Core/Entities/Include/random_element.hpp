@@ -6,6 +6,7 @@
 */
 
 #pragma once
+
 #include "components.hpp"
 #include "../../Include/registry.hpp"
 
@@ -29,7 +30,6 @@ namespace game::entities {
  * @return ecs::entity_t Handle to the element
  */
 ecs::entity_t create_random_element(ecs::registry &reg, float x, float y, float z,
-    float width, float height, float depth, const std::string &imagePath,
-    const std::string &soundPath, float volume = 1.f, bool loop = false, bool autoplay = false);
+        const std::string &imagePath, float width, float height, const std::string &type, float velocity);
 
 }

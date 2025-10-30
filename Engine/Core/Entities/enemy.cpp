@@ -12,33 +12,27 @@
 namespace game::entities {
 
     ecs::entity_t create_enemy(ecs::registry &reg, float x, float y, float z,
-        const std::string &imagePath, const std::string &modelPath) {
+        const std::string &imagePath, float width, float height, const std::string &modelPath, const std::string &pattern,
+        int healthValue, float velocity) {
         auto enemy = reg.spawn_entity();
 
-        // ====== Position / Movement ======
+        float _velocity = (velocity * 100.0f) * -1.0f;
         reg.emplace_component<component::position>(enemy, x, y, z);
         reg.emplace_component<component::previous_position>(enemy, x, y, z);
-        reg.emplace_component<component::velocity>(enemy, -100.f, 0.f, 0.f);
+        reg.emplace_component<component::velocity>(enemy, _velocity, 0.f);
+        reg.emplace_component<component::health>(enemy, healthValue, healthValue);
+        reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
+        reg.emplace_component<component::collision_box>(enemy, width, height, 28.f);
+        reg.emplace_component<component::pattern_element>(enemy, pattern);
 
-    reg.emplace_component<component::velocity>(enemy, -30.f, 0.f);
-
-    reg.emplace_component<component::health>(enemy, 50, 50);
-
-    reg.emplace_component<component::type>(enemy, component::entity_type::ENEMY);
-
-        // ====== Collision ======
-        reg.emplace_component<component::collision_box>(enemy, 40.f, 28.f, 28.f);
-
-        // ====== Visuals ======
         component::drawable draw;
-        draw.width = 40.f;
-        draw.height = 28.f;
+        draw.width = width;
+        draw.height = height;
         draw.depth = 28.f;
         draw.color = RED;
         reg.add_component<component::drawable>(enemy, std::move(draw));
 
     if (!imagePath.empty()) {
-        std::cout << "[DEBUG] Creating enemy with sprite: " << imagePath << std::endl;
         component::sprite spr;
         spr.image_path = imagePath;
         spr.scale = 1.f;

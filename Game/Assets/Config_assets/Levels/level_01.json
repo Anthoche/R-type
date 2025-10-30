@@ -1,0 +1,128 @@
+{
+  "level": {
+        "sounds": [
+      {
+        "sound_path": "../Game/Assets/sounds/BATTLE PRESSURE.mp3",
+        "volume": 0.5,
+        "loop": true,
+        "autoplay": true
+      }
+    ],
+    "backgrounds": [
+      {
+        "x": 400.0,
+        "y": 300.0,
+        "z": 0.0,
+        "width": 1200.0,
+        "height": 200.0,
+        "depth": 50.0,
+        "image_path": "../Game/Assets/sprites/lvl1_Backgrounds.png",
+        "model_path": "",
+        "scale": 1.0,
+        "scroll_speed": 0.5
+      }
+    ],
+    "enemies": [
+      {"x": 900.0, "y": 150.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "spiral", "health": 1, "speed": 0.7, "pattern": "spiral", "w": 33.0, "h": 28.0},
+      {"x": 1000.0, "y": 200.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "spiral", "health": 1, "speed": 0.7, "pattern": "spiral", "w": 33.0, "h": 28.0},
+      {"x": 1100.0, "y": 250.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "spiral", "health": 1, "speed": 0.7, "pattern": "spiral", "w": 33.0, "h": 28.0},
+      {"x": 1200.0, "y": 200.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "spiral", "health": 1, "speed": 0.7, "pattern": "spiral", "w": 33.0, "h": 28.0},
+      {"x": 1300.0, "y": 150.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "spiral", "health": 1, "speed": 0.7, "pattern": "spiral", "w": 33.0, "h": 28.0},
+
+      {"x": 1600.0, "y": 100.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "w": 50.0, "h": 50.0},
+      {"x": 1800.0, "y": 200.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "w": 50.0, "h": 50.0},
+      {"x": 2000.0, "y": 100.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "w": 50.0, "h": 50.0},
+
+      {"x": 2400.0, "y": 120.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+      {"x": 2600.0, "y": 200.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+      {"x": 2800.0, "y": 120.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+
+      {"x": 3200.0, "y": 150.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "w": 33.0, "h": 33.0},
+      {"x": 3200.0, "y": 250.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "w": 33.0, "h": 33.0},
+      {"x": 3200.0, "y": 350.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "w": 33.0, "h": 33.0},
+      {"x": 3200.0, "y": 450.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "w": 33.0, "h": 33.0},
+
+      {"x": 800.0,  "y": 100.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+      {"x": 900.0,  "y": 150.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+      {"x": 1000.0, "y": 200.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+      {"x": 1100.0, "y": 250.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+      {"x": 1200.0, "y": 300.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+
+      {"x": 1400.0, "y": 50.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 4, "speed": 1.0, "pattern": "straight", "w": 33, "h": 28.0},
+      {"x": 1450.0, "y": 50.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 4, "speed": 1.0, "pattern": "straight", "w": 33, "h": 28.0},
+      {"x": 1500.0, "y": 50.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 4, "speed": 1.0, "pattern": "straight", "w": 33, "h": 28.0},
+      {"x": 1400.0, "y": 750.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 4, "speed": 1.0, "pattern": "straight", "w": 33, "h": 28.0},
+      {"x": 1450.0, "y": 800.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 4, "speed": 1.0, "pattern": "straight", "w": 33, "h": 28.0},
+      {"x": 1500.0, "y": 750.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet19.png", "type": "basic", "health": 4, "speed": 1.0, "pattern": "straight", "w": 33, "h": 28.0},
+
+      {"x": 1700.0, "y": 50.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 50.0, "h": 50.0},
+      {"x": 1750.0, "y": 100.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 50.0, "h": 50.0},
+      {"x": 1800.0, "y": 900.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 50.0, "h": 50.0},
+      {"x": 1850.0, "y": 950.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 50.0, "h": 50.0},
+      {"x": 1900.0, "y": 550.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 50.0, "h": 50.0},
+      {"x": 1950.0, "y": 700.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 50.0, "h": 50.0},
+      {"x": 2000.0, "y": 600.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 50.0, "h": 50.0},
+      {"x": 2050.0, "y": 300.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet14.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 50.0, "h": 50.0},
+
+      {"x": 2800.0, "y": 100.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "circle", "health": 2, "speed": 1.0, "pattern": "circle", "w": 33.0, "h": 33.0},
+      {"x": 2800.0, "y": 400.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "circle", "health": 2, "speed": 1.0, "pattern": "circle", "w": 33.0, "h": 33.0},
+      {"x": 2800.0, "y": 600.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "circle", "health": 2, "speed": 1.0, "pattern": "circle", "w": 33.0, "h": 33.0},
+      {"x": 2800.0, "y": 700.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "circle", "health": 2, "speed": 1.0, "pattern": "circle", "w": 33.0, "h": 33.0},
+      {"x": 2800.0, "y": 900.0, "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "circle", "health": 2, "speed": 1.0, "pattern": "circle", "w": 33.0, "h": 33.0},
+
+      {"x": 3500.0, "y": 50.0,   "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3550.0, "y": 150.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3600.0, "y": 250.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3650.0, "y": 350.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3700.0, "y": 450.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3750.0, "y": 550.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3800.0, "y": 450.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3850.0, "y": 350.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3900.0, "y": 250.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+      {"x": 3950.0, "y": 150.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet7.png", "type": "figure", "health": 2, "speed": 1.0, "pattern": "figure", "w": 33.0, "h": 33.0},
+
+      {"x": 4200.0, "y": 650.0,   "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+      {"x": 4250.0, "y": 250.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "turret", "health": 3, "speed": 0.9, "pattern": "turret", "w": 33.0, "h": 33.0},
+      {"x": 4300.0, "y": 350.0,   "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "basic", "health": 4, "speed": 1.0, "pattern": "straight", "w": 33.0, "h": 33.0},
+      {"x": 4350.0, "y": 850.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "basic", "health": 4, "speed": 1.0, "pattern": "straight", "w": 33.0, "h": 33.0},
+      {"x": 4400.0, "y": 350.0,   "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "circle", "health": 2, "speed": 1.0, "pattern": "circle", "w": 33.0, "h": 33.0},
+      {"x": 4450.0, "y": 450.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "spiral", "health": 1, "speed": 0.7, "pattern": "spiral", "w": 33.0, "h": 33.0},
+      {"x": 4500.0, "y": 500.0,  "image_path": "../Game/Assets/sprites/ennemies/r-typesheet11.png", "type": "zigzag", "health": 2, "speed": 0.8, "pattern": "zigzag", "w": 33.0, "h": 33.0},
+
+      {"x": 4000.0, "y": 600.0, "image_path": "../Game/Assets/sprites/r-typesheet37.png", "type": "boss", "health": 10, "speed": 0.45, "pattern": "boss_phase1", "w": 595.0, "h": 180.0}
+    ],
+    "obstacles": [
+      {"x": 0.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 640.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 1280.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 1930.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 2560.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 3200.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 3840.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 4480.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 5120.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 5760.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 6400.0, "y": 1000.0, "image_path": "../Game/Assets/sprites/space_obs.png", "speed": 0.55, "w":650.0, "h":50.0},
+      {"x": 600.0, "y": 445.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 800.0, "y": 115.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 1200.0, "y": 470.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 1500.0, "y": 800.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 1500.0, "y": 350.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 1800.0, "y": 130.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 2200.0, "y": 600.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 2700.0, "y": 200.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 3000.0, "y": 800.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 3450.0, "y": 200.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 3500.0, "y": 630.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 4000.0, "y": 300.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 4300.0, "y": 200.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 4600.0, "y": 400.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 4900.0, "y": 800.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0},
+      {"x": 5200.0, "y": 500.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0}
+    ],
+    "random_elements": [
+      {"x": 1000.0, "y": 650.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0},
+      {"x": 1500.0, "y": 650.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0}
+    ]
+  }
+}
