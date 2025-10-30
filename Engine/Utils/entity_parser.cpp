@@ -184,10 +184,6 @@ namespace game::parsing
                 z = obstacle_data.value("z", 0.0f);
             }
 
-            float width = obstacle_data.value("width", 33.0f);
-            float height = obstacle_data.value("height", 16.0f);
-            float depth = obstacle_data.value("depth", 16.0f);
-
             std::string image_path = obstacle_data.value("image_path", "");
             std::string model_path = obstacle_data.value("model_path", "");
             velocity = obstacle_data.value("speed", 0.0f);

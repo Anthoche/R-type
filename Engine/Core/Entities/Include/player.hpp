@@ -10,8 +10,8 @@
 #include "components.hpp"
 #include "../../Include/registry.hpp"
 
-namespace game::entities {
-
+namespace game::entities
+{
     /**
      * @brief Factory function to create a player entity with all necessary components.
      *

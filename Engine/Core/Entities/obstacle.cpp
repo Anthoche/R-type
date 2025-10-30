@@ -11,7 +11,6 @@
 
 namespace game::entities {
 
-
     ecs::entity_t create_obstacle(ecs::registry &reg, float x, float y, float z,
         const std::string &imagePath, const std::string &modelPath, float velocity, float width, float height) {
         auto obstacle = reg.spawn_entity();

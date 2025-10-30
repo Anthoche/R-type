@@ -31,19 +31,18 @@ namespace game::scene {
          */
         ecs::entity_t find_hitbox_of(GameScene &scene, ecs::entity_t owner);
 
-    /**
-     * @brief Check if movement to a test position would be blocked by an obstacle.
-     * @param scene Reference to the game scene.
-     * @param testX Target X position.
-     * @param testY Target Y position.
-     * @param playerPos Current player position.
-     * @param playerBox Player collision box.
-     * @return True if blocked, false otherwise.
-     */
-    bool is_blocked(GameScene &scene, float testX, float testY,
-                    const component::position &playerPos,
-                    const component::collision_box &playerBox,
-                    bool downPressed);
+        /**
+         * @brief Check if movement to a test position would be blocked by an obstacle.
+         * @param scene Reference to the game scene.
+         * @param testX Target X position.
+         * @param testY Target Y position.
+         * @param playerPos Current player position.
+         * @param playerBox Player collision box.
+         * @return True if blocked, false otherwise.
+         */
+        bool is_blocked(GameScene &scene, float testX, float testY,
+                        const component::position &playerPos,
+                        const component::collision_box &playerBox);
 
         /**
          * @brief Resolve a collision between an entity and an obstacle.

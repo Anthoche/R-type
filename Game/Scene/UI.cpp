@@ -6,6 +6,11 @@
 */
 
 #include "Include/UI.hpp"
+#include <algorithm>
+#include <cmath>
+#include <format>
+#include <unordered_map>
+#include <vector>
 #include "image.hpp"
 #include "RenderUtils.hpp"
 #include "text.hpp"
@@ -18,11 +23,10 @@ UI::UI(game::scene::GameScene &scene, ecs::registry &reg, Raylib &raylib) : _sce
 	_spacing = -1.f;
 	_heartScale = 1.8f;
 	_heartSpacing = 10;
-	maxPlayerLives = 4;
+	maxPlayerLives = 3;
 }
 
 void UI::init() {
-	Color textColor = WHITE;
 	_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
 	Image heartImage = LoadImage(ASSETS_PATH"/sprites/heart.png");
 	Image heartEmptyImage = LoadImage(ASSETS_PATH"/sprites/heart_empty.png");
@@ -31,153 +35,60 @@ void UI::init() {
 
 	UnloadImage(heartImage);
 	UnloadImage(heartEmptyImage);
-
-	bool isFrench = (_scene.getGame().getLanguage() == Game::Language::FRENCH);
-	bool isItalian = (_scene.getGame().getLanguage() == Game::Language::ITALIAN);
-	game::entities::create_text(
-		_reg, 
-		BOTTOM_LEFT, 
-		{0, 0}, 
-		isFrench ? "Joueurs: 0" :
-		isItalian ? "Giocatori: 0" :
-		"Players: 0", 
-		textColor, 
-		_spacing, 
-		_fontSize, 
-		_font
-	);
-	game::entities::create_text(
-		_reg, 
-		BOTTOM_CENTER, 
-		{0, 0}, 
-		isFrench ? "Individuel: 0" :
-		isItalian ? "Individuale: 0" :
-		"Individual: 0", 
-		textColor, 
-		_spacing, 
-		_fontSize, 
-		_font
-	);
-	game::entities::create_text(
-		_reg, 
-		BOTTOM_RIGHT, 
-		{0, 0}, 
-		isFrench ? "Total: 0" :
-		isItalian ? "Totale: 0" :
-		"Total: 0", 
-		textColor, 
-		_spacing, 
-		_fontSize, 
-		_font
-	);
-	
-	uint32_t myClientId = _scene._game.getGameClient().clientId;
-	int playerHealth = 100;
-	int maxHealth = 100;
-	int playerID = 0;
-	auto it = _scene._game.getGameClient().playerHealth.find(myClientId);
-	if (it != _scene._game.getGameClient().playerHealth.end()) {
-		playerHealth = it->second.first;
-		maxHealth = it->second.second;
-		playerID = myClientId;
-	}
-	maxPlayerLives = (playerHealth + 24) / 25;
-
-	float offsetX = 0;
-	for (size_t i = 0; i < maxPlayerLives; ++i) {
-		game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector3{offsetX, 0.f, 0.f});
-		offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
-	}
 }
 
 void UI::render() {
-    auto &dynamic_pos = _reg.get_components<component::dynamic_position>();
-    auto &text = _reg.get_components<component::text>();
-    auto &types = _reg.get_components<component::type>();
-    auto &drawables = _reg.get_components<component::drawable>();
-    auto &sprite = _reg.get_components<component::sprite>();
-
-    int playerHealth = 100;
-    int maxHealth = 100;
-    int playerID = 0;
-	int score = 0;
+    auto &client = _scene._game.getGameClient();
+    std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> healthSnapshot;
+    uint32_t myClientId = client.clientId;
     {
-        std::lock_guard<std::mutex> g(_scene._game.getGameClient().stateMutex);
-        uint32_t myClientId = _scene._game.getGameClient().clientId;
-        
-        auto it = _scene._game.getGameClient().playerHealth.find(myClientId);
-        if (it != _scene._game.getGameClient().playerHealth.end()) {
-            playerHealth = it->second.first;
-            maxHealth = it->second.second;
-            playerID = myClientId;
-        }
-    }
-    if (playerHealth < 0)
-		playerHealth = 0;
-    int playerLives = (playerHealth + 24) / 25;
-    int currentLive = 1;
-
-	float offsetX = 0;
-    for (size_t i = 0; i < playerLives; ++i) {
-        game::entities::create_image(_reg, _fullHeart, TOP_LEFT, Vector3{offsetX, 0.f, 0.f});
-        offsetX += (_fullHeart.width * _heartScale) + _heartSpacing;
+        std::lock_guard<std::mutex> lock(client.stateMutex);
+        healthSnapshot = client.playerHealth;
     }
 
-    for (std::size_t i = 0; i < dynamic_pos.size() && i < text.size(); ++i) {
-        if (!dynamic_pos[i] || !types[i] || !drawables[i]) continue;
+    const float heartWidth = _fullHeart.width * _heartScale;
+    const float heartHeight = _fullHeart.height * _heartScale;
+    const float heartStep = heartWidth + _heartSpacing;
+    const float hpTextOffset = heartHeight + 12.f;
 
-        Vector2 offset = {dynamic_pos[i]->offsetX, dynamic_pos[i]->offsetY};
-        DynamicPosition dyna_pos = dynamic_pos[i]->position;
-        Vector2 pos = getRealPos(_raylib, dyna_pos, offset, Vector2{drawables[i]->width, drawables[i]->height}, _margin);
+    auto computeLives = [this](int currentHealth, int maxHealth) -> int {
+        if (maxPlayerLives <= 0 || maxHealth <= 0)
+            return 0;
 
-        switch (types[i]->value) {
-            case component::entity_type::TEXT:
-                if (text[i]->content.starts_with("Players:"))
-                    text[i]->content = std::format("Players: {}", playerID);
-                if (text[i]->content.starts_with("Total:")) {
-                    int globalScore = 0;
-                    {
-                        std::lock_guard<std::mutex> g(_scene._game.getGameClient().stateMutex);
-                        globalScore = _scene._game.getGameClient().globalScore;
-                    }
-                    text[i]->content = std::format("Total: {}", globalScore);
-                }
-                if (text[i]->content.starts_with("Individual:")) {
-					uint32_t playerScore = 0;
-					{
-						std::lock_guard<std::mutex> g(_scene._game.getGameClient().stateMutex);
-						auto it = _scene._game.getGameClient().playerIndividualScores.find(_scene._game.getGameClient().clientId);
-						if (it != _scene._game.getGameClient().playerIndividualScores.end()) {
-							playerScore = it->second;
-						}
-					}
-					text[i]->content = std::format("Individual: {}", playerScore);
-				}
-                pos = getTextPos(_raylib, dyna_pos, offset, _margin, text[i]->content, _font, _fontSize, _spacing);
-                _raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
-                break;
-            case component::entity_type::IMAGE:
-				sprite[i]->texture = _emptyHeart;
-				if (currentLive <= playerLives)
-					sprite[i]->texture = _fullHeart;
-				_raylib.drawTextureEx(sprite[i]->texture, pos, 0, _heartScale, WHITE);
-				++currentLive;
-				break;
-            default:
-                break;
-        }
+        const float unit = std::max(1.f, static_cast<float>(maxHealth) / static_cast<float>(maxPlayerLives));
+        int lives = static_cast<int>(std::ceil(std::max(0.f, static_cast<float>(currentHealth)) / unit));
+        return std::clamp(lives, 0, maxPlayerLives);
+    };
+
+    int myCurrentHealth = 0;
+    int myMaxHealth = 0;
+    if (auto it = healthSnapshot.find(myClientId); it != healthSnapshot.end()) {
+        myCurrentHealth = std::max(0, static_cast<int>(it->second.first));
+        myMaxHealth = std::max(0, static_cast<int>(it->second.second));
     }
+
+    int myLives = computeLives(myCurrentHealth, myMaxHealth);
+
+    for (int i = 0; i < maxPlayerLives; ++i) {
+        Texture2D &tex = (i < myLives) ? _fullHeart : _emptyHeart;
+        Vector2 position = {_margin.x + static_cast<float>(i) * heartStep, _margin.y};
+        _raylib.drawTextureEx(tex, position, 0.f, _heartScale, WHITE);
+    }
+
     {
-        std::string healthText = std::format("HP: {}/{}", playerHealth, maxHealth);
-        Vector2 healthPos = {_margin.x, _raylib.getRenderHeight() - _margin.y - 30.f};
+        std::string healthText = std::format("HP: {}/{}", myCurrentHealth, myMaxHealth);
+        Vector2 healthPos = {_margin.x, _margin.y + hpTextOffset};
         Color healthColor = WHITE;
-        
-        if (playerHealth <= 25) {
-            healthColor = RED;
-        } else if (playerHealth <= 50) {
-            healthColor = ORANGE;
+
+        if (myMaxHealth > 0) {
+            float ratio = static_cast<float>(myCurrentHealth) / static_cast<float>(std::max(1, myMaxHealth));
+            if (ratio <= 0.25f) {
+                healthColor = RED;
+            } else if (ratio <= 0.5f) {
+                healthColor = ORANGE;
+            }
         }
-        
+
         _raylib.drawTextEx(_font, healthText, healthPos, _fontSize, _spacing, healthColor);
     }
 }
@@ -186,6 +97,43 @@ void UI::unload() {
 	_raylib.unloadFont(_font);
 	_raylib.unloadTexture(_fullHeart);
 	_raylib.unloadTexture(_emptyHeart);
+}
+
+Vector2 UI::getRealPos(DynamicPosition pos, Vector2 offset, Vector2 size) const {
+	Vector2 finalPos = {0.f, 0.f};
+	float bottomPosY = _raylib.getRenderHeight() - _margin.y - (size.y) / 2;
+	float centerPosX = getElementCenter(_raylib.getRenderWidth(), size.x);
+	float rightPosX = _raylib.getRenderWidth() - size.x - _margin.x;
+
+	switch (pos) {
+		case TOP_LEFT:
+			finalPos = {_margin.x, _margin.y};
+			break;
+		case TOP_CENTER:
+			finalPos = {centerPosX, _margin.y};
+			break;
+		case TOP_RIGHT:
+			finalPos = {rightPosX, _margin.y};
+			break;
+		case BOTTOM_LEFT:
+			finalPos = {_margin.x, bottomPosY};
+			break;
+		case BOTTOM_CENTER:
+			finalPos = {centerPosX, bottomPosY};
+			break;
+		case BOTTOM_RIGHT:
+			finalPos = {rightPosX, bottomPosY};
+			break;
+	}
+	finalPos.x += offset.x;
+	finalPos.y += offset.y;
+	return finalPos;
+}
+
+Vector2 UI::getTextPos(DynamicPosition pos, Vector2 offset, std::string const &content) const {
+	Vector2 textSize = _raylib.measureTextEx(_font, content, _fontSize, _spacing);
+
+	return getRealPos(pos, offset, textSize);
 }
 
 void UI::addScore(int points) { 
