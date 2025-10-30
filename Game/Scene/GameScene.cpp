@@ -254,7 +254,7 @@ void GameScene::update() {
                 spritePath = selectedSkinPath;
             }
 
-            ecs::entity_t e = game::entities::create_player(_registry, x, y, z, spritePath, "", id);
+            ecs::entity_t e = game::entities::create_player(_registry, x, y, z, 32.f, 32.f, 0.f, spritePath, "", id);
             _playerEntities.emplace(id, e);
         } else {
             ecs::entity_t e = f->second;

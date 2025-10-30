@@ -12,7 +12,7 @@
 #include "RenderUtils.hpp"
 
 namespace scene {
-	MenuScene::MenuScene(Game &game) : AScene(960, 540, "R-Type - Menu"), _game(game) {
+	MenuScene::MenuScene(Game &game) : AScene(960, 540, "BrawlGetto - Menu"), _game(game) {
 		_titleCenterY = 80.f;
 		_buttonCenterY = static_cast<float>(_height) * 0.45f;
 		_buttonPosition = {0.f, 0.f};
