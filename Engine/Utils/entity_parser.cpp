@@ -25,6 +25,7 @@
 #include "../Core/Entities/Include/triggerzone.hpp"
 #include <fstream>
 #include <stdexcept>
+#include <initializer_list>
 
 namespace game::parsing
 {
@@ -48,6 +49,19 @@ namespace game::parsing
     {
         if (data.contains(field)) {
             return data.at(field).get<float>();
+        }
+        return default_val;
+    }
+
+    static float read_dimension(const nlohmann::json &data,
+                                std::initializer_list<const char*> keys,
+                                float default_val)
+    {
+        for (const auto *key : keys) {
+            auto it = data.find(key);
+            if (it != data.end() && (it->is_number_float() || it->is_number_integer() || it->is_number_unsigned())) {
+                return it->get<float>();
+            }
         }
         return default_val;
     }
@@ -105,7 +119,13 @@ namespace game::parsing
                 z = player_data.value("z", 0.0f);
             }
 
+            float width = read_dimension(player_data, {"width", "w"}, 33.0f);
+            float height = read_dimension(player_data, {"height", "h"}, 16.0f);
+            float depth = read_dimension(player_data, {"depth", "d"}, 16.0f);
+
             uint32_t clientId = player_data.value("client_id", 0u);
+            int health = player_data.value("health", 100);
+            float speed = player_data.value("speed", 300.0f);
 
             std::string image_path = player_data.value("image_path", "");
             std::string model_path = player_data.value("model_path", "");
@@ -116,12 +136,14 @@ namespace game::parsing
             if (!model_path.empty() && !std::ifstream(model_path).good()) {
                 std::cerr << "[WARNING] Player model file not found: " << model_path << std::endl;
             }
-            return game::entities::create_player(reg, x, y, z, image_path, model_path, clientId);
+
+            return game::entities::create_player(reg, x, y, z, width, height, depth, image_path, model_path,  clientId, health, speed);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse player: ") + e.what());
         }
     }
+
 
     ecs::entity_t parse_enemy(ecs::registry &reg, const nlohmann::json &enemy_data)
     {
@@ -180,8 +202,8 @@ namespace game::parsing
             std::string image_path = obstacle_data.value("image_path", "");
             std::string model_path = obstacle_data.value("model_path", "");
             velocity = obstacle_data.value("speed", 0.0f);
-            width = obstacle_data.value("w", 0.0f);
-            height = obstacle_data.value("h", 0.0f);
+            width = read_dimension(obstacle_data, {"width", "w"}, 0.0f);
+            height = read_dimension(obstacle_data, {"height", "h"}, 0.0f);
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Obstacle image file not found: " << image_path << std::endl;
@@ -452,9 +474,9 @@ namespace game::parsing
             float y = data.value("y", 0.f);
             float z = data.value("z", 0.f);
 
-            float width  = data.value("width", 200.f);
-            float height = data.value("height", 40.f);
-            float depth  = data.value("depth", 20.f);
+            float width  = read_dimension(data, {"width", "w"}, 200.f);
+            float height = read_dimension(data, {"height", "h"}, 40.f);
+            float depth  = read_dimension(data, {"depth", "d"}, 20.f);
 
             std::string image_path = data.value("image_path", "");
             std::string model_path = data.value("model_path", "");

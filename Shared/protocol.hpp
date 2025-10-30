@@ -70,11 +70,13 @@ enum class MessageType : uint8_t {
  * Represents directional movement inputs for player control.
  */
 enum class InputCode : uint8_t {
-    Up = 0,      ///< Move up/forward.
-    Down = 1,    ///< Move down/backward.
-    Left = 2,    ///< Move left.
-    Right = 3,   ///< Move right.
-    Unknown = 255 ///< Invalid or unrecognized input.
+    Up = 0,
+    Down = 1,
+    Left = 2,
+    Right = 3,
+    J = 4,
+    K = 5,
+    Unknown = 255
 };
 
 /**
@@ -83,7 +85,7 @@ enum class InputCode : uint8_t {
  * @param code The input code to convert.
  * @return Human-readable string name of the input.
  */
-inline const char *inputCodeToString(InputCode code) {
+inline const char* inputCodeToString(InputCode code) {
     switch (code) {
         case InputCode::Up:
             return "Up";
@@ -93,6 +95,10 @@ inline const char *inputCodeToString(InputCode code) {
             return "Left";
         case InputCode::Right:
             return "Right";
+        case InputCode::J:
+            return "J";
+        case InputCode::K:
+            return "K";
         default:
             return "Unknown";
     }

@@ -1,0 +1,18 @@
+{
+    "level": {
+        "sounds": [
+            {"sound_path": "../Game/Assets/sounds/BATTLE PRESSURE.mp3", "volume": 0.5, "loop": true, "autoplay": true}
+        ],
+        "backgrounds": [
+            {"x": 960.0, "y": 540.0, "z": 0.0, "width": 1920.0, "height": 1080.0, "depth": 0.0, "image_path": "../Game/Assets/sprites/background/back2.png", "model_path": "", "scale": 1.0, "scroll_speed": 0.3}
+        ],
+        "platforms": [
+            {"x": 765.0, "y": 330.0, "z": 0.0, "width": 408.0, "height": 99.0, "depth": 0.0, "image_path": "../Game/Assets/sprites/platform/world1/plat3.png", "model_path": "", "color": "RED"},
+            {"x": 1175.0, "y": 330.0, "z": 0.0, "width": 406.0, "height": 99.0, "depth": 0.0, "image_path": "../Game/Assets/sprites/platform/world1/plat4.png", "model_path": "", "color": "RED"}
+        ],
+        "obstacles": [
+            {"x": 705.0, "y": 890.0, "z": 0.0, "width": 510.0, "height": 391.0, "depth": 0.0, "image_path": "../Game/Assets/sprites/platform/world1/plat1.png", "model_path": "", "color": "GREEN", "health": 9999},
+            {"x": 1215.0, "y": 890.0, "z": 0.0, "width": 510.0, "height": 391.0, "depth": 0.0, "image_path": "../Game/Assets/sprites/platform/world1/plat2.png", "model_path": "", "color": "GREEN", "health": 9999}
+        ]
+    }
+}

@@ -7,7 +7,7 @@
 
 #include "Room.hpp"
 
-#include "Rtype_game.hpp"
+#include "Rungame.hpp"
 
 Room::Room(Connexion &connexion, int maxPlayers, int minPlayers, std::string const &game, int roomHost) : _connexion(connexion) {
 	_game = std::make_shared<ServerGame>(_connexion);
