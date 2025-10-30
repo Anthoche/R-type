@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** G-CPP-500-PAR-5-1-rtype-1
 ** File description:
-** client v1
+** client
 */
 
 #pragma once
@@ -83,9 +83,9 @@ class GameClient {
         std::mutex stateMutex; ///< Protects access to shared game state data structures.
 
         std::unordered_map<uint32_t, std::tuple<float, float, float>> players; ///< Maps player IDs to their (x, y, z) positions.
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> obstacles; ///< Maps obstacle IDs to their position, size, and velocity data.
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> projectiles; ///< Maps projectile IDs to their position, velocity, and owner data.
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> enemies; ///< Maps enemy IDs to their position, velocity, and size data.
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> obstacles; ///< Maps obstacle IDs to their position and size data.
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> projectiles; ///< Maps projectile IDs to their position, size, and owner data.
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> enemies; ///< Maps enemy IDs to their position and velocity data.
         std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> playerHealth; ///< Maps player IDs to their (current health, max health).
         std::unordered_map<uint32_t, uint32_t> playerIndividualScores; ///< Maps player IDs to their individual scores.
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles; ///< Maps enemy projectile IDs to their position, velocity, and owner data.
@@ -96,7 +96,7 @@ class GameClient {
         bool _lastBoss = false; ///< Flag indicating if the current boss is the final boss of the game.
 
         /**
-         * @brief Maps elements IDs to their (x,y,z,velX,velY,velZ,width,height).
+         * @brief Maps elements IDs to their (x,y,velX,velY).
          */
         std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> elements;
 
@@ -174,9 +174,9 @@ class GameClient {
 
         /**
          * @brief Sends the player's current health status to the server.
-         * @param health Current health value.
+         * @param lives Current number of lives remaining.
          */
-        void sendHealth(int health);
+        void sendHealth(int lives);
 
         /**
          * @brief Retrieves and clears the pending full registry if available.
@@ -408,7 +408,7 @@ class GameClient {
         void handleEndlessMode(const std::vector<uint8_t> &buffer);
 
          /**
-         * @brief Handles an element despawn message.
+         * @brief Handles an element despwan message.
          * @param buffer Raw message data.
          */
         void handleElementDespawn(const std::vector<uint8_t> &buffer);
@@ -420,7 +420,7 @@ class GameClient {
         void handleElementUpdate(const std::vector<uint8_t> &buffer);
 
         /**
-         * @brief Handles an Element spawn message.
+         * @brief Handles an Element spwan message.
          * @param buffer Raw message data.
          */
         void handleElementSpawn(const std::vector<uint8_t> &buffer);

@@ -10,27 +10,26 @@
 
 namespace game::entities
 {
-    ecs::entity_t create_player(ecs::registry &reg, float x, float y,  float z, float width, float height, float depth,
-        const std::string &imagePath, const std::string &modelPath,  uint32_t clientId, int health, float speed) {
-        
+    ecs::entity_t create_player(ecs::registry &reg, float x, float y, float z,
+        const std::string &imagePath, const std::string &modelPath, uint32_t clientId) {
         auto player = reg.spawn_entity();
 
         // ====== Position / Movement ======
         reg.emplace_component<component::position>(player, x, y, z);
         reg.emplace_component<component::previous_position>(player, x, y, z);
         reg.emplace_component<component::velocity>(player, 0.f, 0.f, 0.f);
-        reg.emplace_component<component::controllable>(player, speed, true, false); // speed, can_jump, can_fly
+        reg.emplace_component<component::controllable>(player, 300.f, true, false); // speed, can_jump, can_fly
 
         // ====== Stats ======
-        reg.emplace_component<component::health>(player, health, health);
+        reg.emplace_component<component::health>(player, 100, 100);
         reg.emplace_component<component::type>(player, component::entity_type::PLAYER);
         reg.emplace_component<component::client_id>(player, clientId);
 
-        // ====== Visuals - USE PARSED DIMENSIONS ======
+        // ====== Visuals ======
         component::drawable draw;
-        draw.width = width;
-        draw.height = height;
-        draw.depth = depth;
+        draw.width = 33.f;
+        draw.height = 16.f;
+        draw.depth = 16.f; // 3D depth
         reg.add_component<component::drawable>(player, std::move(draw));
 
         if (!imagePath.empty()) {

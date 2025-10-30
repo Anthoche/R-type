@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** G-CPP-500-PAR-5-1-rtype-1
 ** File description:
-** client v1
+** client
 */
 
 #include "client.hpp"
@@ -211,10 +211,6 @@ void GameClient::sendChatMessage(const std::string &message) {
 
 bool GameClient::hasConnectionFailed() const {
     return connectionFailed;
-}
-
-bool GameClient::isConnected() const {
-    return clientId != 0;
 }
 
 void GameClient::sendSkinSelection(const std::string &skinFilename) {

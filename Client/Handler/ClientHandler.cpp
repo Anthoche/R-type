@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2025
 ** R-type
 ** File description:
-** client_handler v1
+** client_handler
 */
 
 #include "../client.hpp"

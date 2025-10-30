@@ -10,8 +10,8 @@
 #include "components.hpp"
 #include "../../Include/registry.hpp"
 
-namespace game::entities
-{
+namespace game::entities {
+
     /**
      * @brief Factory function to create a player entity with all necessary components.
      *
@@ -26,8 +26,8 @@ namespace game::entities
      * @param clientId Client ID (for multiplayer).
      * @return The created player entity ID.
      */
-    ecs::entity_t create_player(ecs::registry &reg, float x = 100.f, float y = 0.f, float z = 0.f, float width = 32.f, float height = 32.f, float depth = 0.f,
-    const std::string &imagePath = "", const std::string &modelPath = "", uint32_t clientId = 0, int health = 100, float speed = 5.0f);
+    ecs::entity_t create_player(ecs::registry &reg, float x = 100.f, float y = 0.f, float z = 0.f,
+        const std::string &imagePath = "", const std::string &modelPath = "", uint32_t clientId = 0);
 
     /**
      * @brief Setup the player control system.
