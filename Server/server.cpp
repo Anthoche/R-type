@@ -7,7 +7,7 @@
 
 #include "Include/server.hpp"
 #include "Include/IServerGame.hpp"
-#include "../Game/Game_logic/Rtype_game.hpp"
+#include "../Game/Game_logic/Rungame.hpp"
 #include <chrono>
 #include <thread>
 #include <cstring>
