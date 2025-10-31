@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <map>
+#include <cstdint>
 #include "../Include/IServerGame.hpp"
 #include "GameStatus.hpp"
 

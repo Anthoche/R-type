@@ -76,13 +76,13 @@ void Room::setClientConfirmed(uint32_t clientId) {
 	_clients[clientId] = true;
 }
 
-void Room::addClient(u_int32_t clientId) {
+void Room::addClient(uint32_t clientId) {
 	if (isClientInRoom(clientId) || isFull())
 		return;
 	_clients.insert_or_assign(clientId, false);
 }
 
-void Room::removeClient(u_int32_t clientId) {
+void Room::removeClient(uint32_t clientId) {
 	for (auto it = _clients.begin(); it != _clients.end(); ++it) {
 		if (it->first == clientId) {
 			_clients.erase(it);

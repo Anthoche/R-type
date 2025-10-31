@@ -67,7 +67,7 @@ namespace game::scene {
         game::entities::setup_hitbox_sync_system(_registry);
 
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
-        game::entities::create_sound(_registry, "../Game/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
+        game::entities::create_sound(_registry, std::string(ASSETS_PATH) + "/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
         
         if (!processPendingFullRegistry()) {
             std::cerr << "[WARN] Aucun full registry disponible lors de l'initialisation." << std::endl;
@@ -125,8 +125,8 @@ namespace game::scene {
     }
 
     void GameScene::load_projectile_textures() {
-        _projectileTextures["player_missile"] = _raylib.loadTexture("../Game/Assets/sprites/r-typesheet1.png");
-        _projectileTextures["enemy_missile"] = _raylib.loadTexture("../Game/Assets/sprites/r-typesheet1.png");
+        _projectileTextures["player_missile"] = _raylib.loadTexture(std::string(ASSETS_PATH) + "/sprites/r-typesheet1.png");
+        _projectileTextures["enemy_missile"] = _raylib.loadTexture(std::string(ASSETS_PATH) + "/sprites/r-typesheet1.png");
     }
 
     void GameScene::load_entity_textures() {
@@ -339,7 +339,7 @@ void GameScene::update() {
         auto it = _enemyMap.find(serverId);
         
         if (it == _enemyMap.end()) {
-            std::string spritePath = "../Game/Assets/sprites/ennemies/r-typesheet19.png";
+            std::string spritePath = std::string(ASSETS_PATH) + "/sprites/ennemies/r-typesheet19.png";
             
             auto spriteIt = _enemySpriteMap.find(serverId);
             if (spriteIt != _enemySpriteMap.end()) {
@@ -410,7 +410,7 @@ void GameScene::update() {
         auto it = _obstacleMap.find(serverId);
         
         if (it == _obstacleMap.end()) {
-            std::string spritePath = "../Game/Assets/sprites/obstacles/default_obstacle.png";
+            std::string spritePath = std::string(ASSETS_PATH) + "/sprites/obstacles/default_obstacle.png";
             
             auto spriteIt = _obstacleSpriteMap.find(serverId);
             if (spriteIt != _obstacleSpriteMap.end()) {
@@ -794,11 +794,11 @@ void GameScene::update() {
             _raylib.updateMusicStream(_music);
             break;
         }
-         _shootSound = _raylib.loadSound("../Game/Assets/sounds/shoot.wav");
+         _shootSound = _raylib.loadSound(std::string(ASSETS_PATH) + "/sounds/shoot.wav");
         _raylib.setSoundVolume(_shootSound, 0.8f);
-        _victorySound = _raylib.loadSound("../Game/Assets/sounds/victory.wav");
+        _victorySound = _raylib.loadSound(std::string(ASSETS_PATH) + "/sounds/victory.wav");
         _raylib.setSoundVolume(_victorySound, 0.8f);
-        _defeatSound = _raylib.loadSound("../Game/Assets/sounds/defeat.wav");
+        _defeatSound = _raylib.loadSound(std::string(ASSETS_PATH) + "/sounds/defeat.wav");
         _raylib.setSoundVolume(_defeatSound, 0.8f);
     }
 
