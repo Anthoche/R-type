@@ -129,6 +129,11 @@ class GameClient {
          */
         void run();
 
+		/**
+		 * @brief Disconnects from server
+		 */
+		void disconnect();
+
         /**
          * @brief Sends an initial hello message to the server to establish connection.
          */

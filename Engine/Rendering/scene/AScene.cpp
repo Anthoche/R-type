@@ -13,6 +13,8 @@ AScene::AScene(int const &width, int const &height, std::string const &title) {
 	_height = height;
 	_title = title;
 	_isOpen = false;
+
+	_registry = ecs::registry{};
 }
 
 int AScene::getWindowWidth() const {

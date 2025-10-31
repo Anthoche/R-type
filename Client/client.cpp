@@ -25,19 +25,26 @@ GameClient::GameClient(Game &game, const std::string &serverIp, uint16_t serverP
 }
 
 GameClient::~GameClient() {
+    if (running)
+        disconnect();
+}
+
+void GameClient::run() {
+    LOG_INFO("Client started.");
+    running = true;
+    rxThread = std::thread(&GameClient::recvLoop, this);
+    while (_game.getGameStatus() != GameStatus::RUNNING) {
+        if (!running)
+            break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+void GameClient::disconnect() {
     running = false;
     if (rxThread.joinable()) rxThread.join();
 }
 
-void GameClient::run() {
-    std::cout << "Client démarré. En attente du début du jeu..." << std::endl;
-    running = true;
-    rxThread = std::thread(&GameClient::recvLoop, this);
-    while (_game.getGameStatus() != GameStatus::RUNNING) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-    std::cout << "Le jeu commence, ouverture de la fenêtre client..." << std::endl;
-}
 
 void GameClient::sendHello() {
     ClientHelloMessage msg;
