@@ -19,11 +19,11 @@ namespace scene {
 	}
 
 	void RoomSelectScene::init() {
+		_registry.clear();
 		_isOpen = true;
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
-		_registry = ecs::registry{};
 		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
 		_registry.register_component<component::dynamic_position>();

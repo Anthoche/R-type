@@ -22,6 +22,7 @@ namespace game::scene {
     }
 
     void GameScene::init() {
+        _registry.clear();
         _isOpen = true;
         _startTime = _raylib.getTime();
         _raylib.disableCursor();
