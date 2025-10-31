@@ -19,6 +19,7 @@ namespace scene {
 	}
 
 	void RoomSelectScene::init() {
+		_registry.clear();
 		_isOpen = true;
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);

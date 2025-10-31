@@ -21,6 +21,7 @@ namespace scene {
 	}
 
 	void ServerWaitScene::init() {
+		_registry.clear();
 		_isOpen = true;
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);

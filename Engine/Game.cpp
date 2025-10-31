@@ -22,7 +22,6 @@ void Game::run() {
 	});
 	_sceneHandler.openMenu();
 
-	std::cout << "DEBUG: " << _client.roomId << std::endl;
 	if (_client.roomId >= 0)
 		_client.sendClientLeaveRoom();
 
