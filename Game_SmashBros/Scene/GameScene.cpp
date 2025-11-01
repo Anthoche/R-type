@@ -10,7 +10,8 @@
 #include <cmath>
 #include <tuple>
 #include <algorithm>
-#include <optional>
+#include <string>
+#include <filesystem>
 #include <vector>
 
 namespace game::scene {
@@ -21,8 +22,42 @@ namespace game::scene {
         _startTime = 0.f;
     }
 
+    void GameScene::initialize_player_sprite_frames() {
+        _rightFrames.idle = Rectangle{15.f, 13.f, 104.f, 137.f};
+        _rightFrames.attack = Rectangle{145.f, 18.f, 112.f, 135.f};
+        _rightFrames.hit = Rectangle{274.f, 18.f, 113.f, 124.f};
+        _rightFrames.jump = Rectangle{405.f, 16.f, 113.f, 130.f};
+        _rightFrames.fall = _rightFrames.jump;
+
+        _leftFrames.idle = Rectangle{20.f, 172.f, 104.f, 138.f};
+        _leftFrames.attack = Rectangle{143.f, 177.f, 112.f, 135.f};
+        _leftFrames.hit = Rectangle{274.f, 178.f, 113.f, 123.f};
+        _leftFrames.jump = Rectangle{408.f, 171.f, 109.f, 139.f};
+        _leftFrames.fall = _leftFrames.jump;
+    }
+
+    const Rectangle &GameScene::get_player_source_rect(PlayerAnimState state, PlayerFacing facing) const {
+        static Rectangle fallback{0.f, 0.f, 0.f, 0.f};
+        const PlayerSpriteFrames &frames = (facing == PlayerFacing::Right) ? _rightFrames : _leftFrames;
+        switch (state) {
+            case PlayerAnimState::Idle:
+                return frames.idle.width > 0.f ? frames.idle : fallback;
+            case PlayerAnimState::Attack:
+                return frames.attack.width > 0.f ? frames.attack : fallback;
+            case PlayerAnimState::Hit:
+                return frames.hit.width > 0.f ? frames.hit : fallback;
+            case PlayerAnimState::Jump:
+                return frames.jump.width > 0.f ? frames.jump : fallback;
+            case PlayerAnimState::Fall:
+                return frames.fall.width > 0.f ? frames.fall : fallback;
+        }
+        return fallback;
+    }
+
     void GameScene::init() {
         _registry.clear();
+        initialize_player_sprite_frames();
+        _playerVisualStates.clear();
         _isOpen = true;
         _startTime = _raylib.getTime();
         _raylib.disableCursor();
@@ -74,6 +109,7 @@ namespace game::scene {
         _platforms.clear();
         _decorations.clear();
         _playerEntities.clear();
+        _playerVisualStates.clear();
 
         auto &types = _registry.get_components<component::type>();
         auto &clientIds = _registry.get_components<component::client_id>();
@@ -174,14 +210,17 @@ namespace game::scene {
         if (!_game_running) return;
 
         std::unordered_map<uint32_t, std::tuple<float, float, float>> netPlayers;
+        std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> netHealth;
         {
             std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
             netPlayers = _game.getGameClient().players;
+            netHealth = _game.getGameClient().playerHealth;
         }
 
         for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
             if (netPlayers.find(it->first) == netPlayers.end()) {
                 _registry.kill_entity(it->second);
+                _playerVisualStates.erase(it->first);
                 it = _playerEntities.erase(it);
             } else {
                 ++it;
@@ -198,12 +237,30 @@ namespace game::scene {
             if (f == _playerEntities.end()) {
                 ecs::entity_t e = game::entities::create_player(_registry, x, y, z);
                 _playerEntities.emplace(id, e);
+                PlayerVisualState &visual = _playerVisualStates[id];
+                visual = PlayerVisualState{};
+                visual.facing = PlayerFacing::Right;
+                visual.previousPosition = Vector2{x, y};
+                visual.hasPrevious = true;
+                auto healthIt = netHealth.find(id);
+                if (healthIt != netHealth.end()) {
+                    visual.lastKnownHealth = healthIt->second.first;
+                }
             } else {
                 ecs::entity_t e = f->second;
                 if (e.value() < positions.size() && positions[e.value()]) {
                     positions[e.value()]->x = x;
                     positions[e.value()]->y = y;
                     positions[e.value()]->z = z;
+                }
+                auto &visual = _playerVisualStates[id];
+                if (!visual.hasPrevious) {
+                    visual.previousPosition = Vector2{x, y};
+                    visual.hasPrevious = true;
+                }
+                auto healthIt = netHealth.find(id);
+                if (healthIt != netHealth.end() && visual.lastKnownHealth < 0) {
+                    visual.lastKnownHealth = healthIt->second.first;
                 }
             }
         }
@@ -221,6 +278,7 @@ namespace game::scene {
                 pp[i]->z = positions[i]->z;
             }
         }
+        update_player_visual_states(netPlayers, netHealth, 1.f / 60.f);
         _registry.run_systems();
     }
 
@@ -255,6 +313,7 @@ namespace game::scene {
             }
             _victorySoundPlayed = true;
         }
+        render_player_portrait();
         _raylib.endDrawing();
     }
 
@@ -340,6 +399,22 @@ namespace game::scene {
     void GameScene::render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
+        uint32_t clientId = 0;
+        for (auto const &kv : _playerEntities) {
+            if (kv.second == entity) {
+                clientId = kv.first;
+                break;
+            }
+        }
+
+        const PlayerVisualState *visualState = nullptr;
+        if (clientId != 0) {
+            auto it = _playerVisualStates.find(clientId);
+            if (it != _playerVisualStates.end()) {
+                visualState = &it->second;
+            }
+        }
+
         if (texture != nullptr) {
             auto &sprites = _registry.get_components<component::sprite>();
             const component::sprite *spriteComp = nullptr;
@@ -353,23 +428,36 @@ namespace game::scene {
             float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
             float rotation = spriteComp ? spriteComp->rotation : 0.0f;
 
-            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
-            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
+            Rectangle sourceRec;
+            bool hasCustomRect = false;
+            if (visualState) {
+                PlayerFacing renderFacing = visualState->facing;
+                if (visualState->state == PlayerAnimState::Hit) {
+                    renderFacing = (visualState->facing == PlayerFacing::Right)
+                        ? PlayerFacing::Left
+                        : PlayerFacing::Right;
+                }
+                const Rectangle &candidate = get_player_source_rect(visualState->state, renderFacing);
+                if (candidate.width > 0.f && candidate.height > 0.f) {
+                    sourceRec = candidate;
+                    hasCustomRect = true;
+                }
+            }
+            if (!hasCustomRect) {
+                sourceRec = Rectangle{0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
+            }
 
-            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
+            float baseWidth = (draw.width > 0.0f) ? draw.width : sourceRec.width;
+            float baseHeight = (draw.height > 0.0f) ? draw.height : sourceRec.height;
+            float destWidth = baseWidth * scale;
+            float destHeight = baseHeight * scale;
+
             Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
 
             Vector2 origin = {0.0f, 0.0f};
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
-            uint32_t idForColor = 0;
-            for (auto const &kv : _playerEntities) {
-                if (kv.second == entity) {
-                    idForColor = kv.first;
-                    break;
-                }
-            }
-            Color playerColor = get_color_for_id(idForColor);
+            Color playerColor = get_color_for_id(clientId);
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, playerColor);
         }
     }
@@ -552,6 +640,200 @@ namespace game::scene {
         return palette[id % (sizeof(palette)/sizeof(palette[0]))];
     }
 
+    void GameScene::render_player_portrait() {
+        uint32_t myClientId = _game.getGameClient().clientId;
+        if (myClientId == 0)
+            return;
+
+        auto entityIt = _playerEntities.find(myClientId);
+        if (entityIt == _playerEntities.end())
+            return;
+
+        ecs::entity_t entity = entityIt->second;
+        Texture2D* texture = get_entity_texture(entity);
+        if (texture == nullptr)
+            return;
+
+        PlayerFacing facing = PlayerFacing::Right;
+        auto visualIt = _playerVisualStates.find(myClientId);
+        if (visualIt != _playerVisualStates.end()) {
+            facing = visualIt->second.facing;
+        }
+
+        Rectangle sourceRec = get_player_source_rect(PlayerAnimState::Idle, facing);
+        if (sourceRec.width <= 0.f || sourceRec.height <= 0.f) {
+            sourceRec = {
+                0.f,
+                0.f,
+                static_cast<float>(texture->width),
+                static_cast<float>(texture->height)
+            };
+        }
+
+        const float outerRadius = 40.f;
+        const float innerRadius = 34.f;
+        Vector2 center = {
+            outerRadius + 28.f,
+            outerRadius + 28.f
+        };
+
+        _raylib.drawCircle(static_cast<int>(center.x), static_cast<int>(center.y), outerRadius, Color{20, 28, 46, 200});
+        _raylib.drawCircle(static_cast<int>(center.x), static_cast<int>(center.y), innerRadius, Color{8, 12, 20, 255});
+
+        const float targetDiameter = innerRadius * 1.5f;
+        float scale = 1.f;
+        if (sourceRec.width > 0.f && sourceRec.height > 0.f) {
+            float fitW = targetDiameter / sourceRec.width;
+            float fitH = targetDiameter / sourceRec.height;
+            scale = std::min(fitW, fitH);
+        }
+
+        Rectangle destRec = {
+            center.x - (sourceRec.width * scale) / 2.f,
+            center.y - (sourceRec.height * scale) / 2.f,
+            sourceRec.width * scale,
+            sourceRec.height * scale
+        };
+
+        _raylib.drawTexturePro(*texture, sourceRec, destRec, {0.f, 0.f}, 0.f, WHITE);
+    }
+
+    void GameScene::update_player_visual_states(
+        const std::unordered_map<uint32_t, std::tuple<float, float, float>> &netPlayers,
+        const std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> &netHealth,
+        float dt) {
+
+        float effectiveDt = (dt > 0.0001f) ? dt : (1.f / 60.f);
+        constexpr float horizontalEpsilon = 1.0f;
+        constexpr float jumpVelocityThreshold = 140.f;
+        constexpr float fallVelocityThreshold = 140.f;
+        constexpr float landingVelocityThreshold = 40.f;
+        constexpr float landingDisplacementThreshold = 0.6f;
+        constexpr float airborneHoldTime = 0.08f;
+        constexpr float hitDisplayTime = 0.45f;
+
+        for (auto it = _playerVisualStates.begin(); it != _playerVisualStates.end(); ) {
+            if (netPlayers.find(it->first) == netPlayers.end()) {
+                it = _playerVisualStates.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        for (auto const &kv : netPlayers) {
+            uint32_t id = kv.first;
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
+
+            PlayerVisualState &visual = _playerVisualStates[id];
+            Vector2 currentPos{x, y};
+
+            if (!visual.hasPrevious) {
+                visual.previousPosition = currentPos;
+                visual.hasPrevious = true;
+            }
+
+            float dx = currentPos.x - visual.previousPosition.x;
+            float dy = currentPos.y - visual.previousPosition.y;
+            float vy = dy / effectiveDt;
+
+            if (dx > horizontalEpsilon)
+                visual.facing = PlayerFacing::Right;
+            else if (dx < -horizontalEpsilon)
+                visual.facing = PlayerFacing::Left;
+
+            visual.verticalVelocity = vy;
+
+            auto healthIt = netHealth.find(id);
+            if (healthIt != netHealth.end()) {
+                int currentHealth = healthIt->second.first;
+                if (visual.lastKnownHealth >= 0 && currentHealth < visual.lastKnownHealth) {
+                    visual.hitTimer = hitDisplayTime;
+                    visual.attackTimer = 0.f;
+                }
+                visual.lastKnownHealth = currentHealth;
+            }
+
+            if (visual.hitTimer > 0.f) {
+                visual.hitTimer = std::max(0.f, visual.hitTimer - effectiveDt);
+            }
+            if (visual.attackTimer > 0.f) {
+                visual.attackTimer = std::max(0.f, visual.attackTimer - effectiveDt);
+            }
+
+            PlayerAnimState newState = visual.state;
+            if (visual.hitTimer > 0.f) {
+                newState = PlayerAnimState::Hit;
+            } else if (visual.attackTimer > 0.f) {
+                newState = PlayerAnimState::Attack;
+            } else {
+                bool goingUp = vy < -jumpVelocityThreshold;
+                bool goingDown = vy > fallVelocityThreshold;
+                bool slowDescent = dy > landingDisplacementThreshold * 0.5f && vy > landingVelocityThreshold * 0.5f;
+                bool canLand = std::fabs(vy) < landingVelocityThreshold &&
+                               std::fabs(dy) < landingDisplacementThreshold;
+
+                if (goingUp) {
+                    visual.airborne = true;
+                    visual.airborneTimer = 0.f;
+                    newState = PlayerAnimState::Jump;
+                } else if (goingDown || (visual.airborne && slowDescent)) {
+                    visual.airborne = true;
+                    visual.airborneTimer = 0.f;
+                    newState = PlayerAnimState::Fall;
+                } else if (visual.airborne) {
+                    visual.airborneTimer += effectiveDt;
+                    if (visual.state == PlayerAnimState::Fall) {
+                        newState = PlayerAnimState::Fall;
+                    } else {
+                        newState = PlayerAnimState::Jump;
+                    }
+
+                    if (canLand && visual.airborneTimer > airborneHoldTime) {
+                        visual.airborne = false;
+                        visual.airborneTimer = 0.f;
+                        newState = PlayerAnimState::Idle;
+                    }
+                } else {
+                    visual.airborne = false;
+                    visual.airborneTimer = 0.f;
+                    newState = PlayerAnimState::Idle;
+                }
+            }
+
+            if (newState != visual.state) {
+                visual.state = newState;
+                visual.stateTimer = 0.f;
+            } else {
+                visual.stateTimer += effectiveDt;
+            }
+
+            visual.previousPosition = currentPos;
+        }
+    }
+
+    void GameScene::apply_local_attack_state(uint32_t clientId, bool triggerAttack, bool faceLeft, bool faceRight) {
+        auto it = _playerVisualStates.find(clientId);
+        if (it == _playerVisualStates.end())
+            return;
+
+        PlayerVisualState &visual = it->second;
+
+        if (faceLeft)
+            visual.facing = PlayerFacing::Left;
+        else if (faceRight)
+            visual.facing = PlayerFacing::Right;
+
+        if (triggerAttack) {
+            constexpr float attackDisplayTime = 0.35f;
+            visual.attackTimer = attackDisplayTime;
+            if (visual.hitTimer <= 0.f) {
+                visual.state = PlayerAnimState::Attack;
+                visual.stateTimer = 0.f;
+            }
+        }
+    }
+
     void GameScene::handleEvents() {
         update();
         int globalScore = 0;
@@ -597,7 +879,15 @@ namespace game::scene {
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                 leftPressed = true;
         }
+        bool wasJDown = _inputState.j;
+        bool wasKDown = _inputState.k;
         dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed, jPressed, kPressed);  // MODIFIÉ
+        if (myClientId != 0) {
+            bool attackTriggered = (jPressed && !wasJDown) || (kPressed && !wasKDown);
+            bool faceLeft = leftPressed && !rightPressed;
+            bool faceRight = rightPressed && !leftPressed;
+            apply_local_attack_state(myClientId, attackTriggered, faceLeft, faceRight);
+        }
         float input_x = 0.f;
         float input_y = 0.f;
         if (leftPressed != rightPressed)

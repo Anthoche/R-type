@@ -12,6 +12,7 @@
 #include "../Game.hpp"
 #include "../../Shared/protocol.hpp"
 #include <unordered_map>
+#include <tuple>
 #include "UI.hpp"
 
 namespace game::scene {
@@ -51,6 +52,41 @@ namespace game::scene {
             bool right{false};
             bool j{false};
             bool k{false};
+        };
+
+        enum class PlayerAnimState {
+            Idle,
+            Attack,
+            Hit,
+            Jump,
+            Fall
+        };
+
+        enum class PlayerFacing {
+            Right,
+            Left
+        };
+
+        struct PlayerSpriteFrames {
+            Rectangle idle{};
+            Rectangle attack{};
+            Rectangle hit{};
+            Rectangle jump{};
+            Rectangle fall{};
+        };
+
+        struct PlayerVisualState {
+            PlayerAnimState state{PlayerAnimState::Idle};
+            PlayerFacing facing{PlayerFacing::Right};
+            float stateTimer{0.f};
+            float attackTimer{0.f};
+            float hitTimer{0.f};
+            Vector2 previousPosition{0.f, 0.f};
+            bool hasPrevious{false};
+            float verticalVelocity{0.f};
+            int lastKnownHealth{-1};
+            bool airborne{false};
+            float airborneTimer{0.f};
         };
 
         void update();
@@ -105,7 +141,18 @@ namespace game::scene {
         void render_win_screen();
 
         Color get_color_for_id(uint32_t id);
+        void render_player_portrait();
+        void initialize_player_sprite_frames();
+        const Rectangle &get_player_source_rect(PlayerAnimState state, PlayerFacing facing) const;
+        void update_player_visual_states(
+            const std::unordered_map<uint32_t, std::tuple<float, float, float>> &netPlayers,
+            const std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> &netHealth,
+            float dt);
+        void apply_local_attack_state(uint32_t clientId, bool triggerAttack, bool faceLeft, bool faceRight);
         void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed, bool jPressed, bool kPressed);
         InputState _inputState;
+        PlayerSpriteFrames _rightFrames{};
+        PlayerSpriteFrames _leftFrames{};
+        std::unordered_map<uint32_t, PlayerVisualState> _playerVisualStates;
     };
 } // namespace game::scene

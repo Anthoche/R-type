@@ -10,7 +10,7 @@
       "image_path": "../Game/Assets/sprites/player/Hattory.png",
       "model_path": "",
       "health": 100,
-      "speed": 600.0,
+      "speed": 800.0,
       "client_id": 1,
       "color": "WHITE"
     },
@@ -24,7 +24,7 @@
       "image_path": "../Game/Assets/sprites/player/Cross.png",
       "model_path": "",
       "health": 100,
-      "speed": 600.0,
+      "speed": 800.0,
       "client_id": 2,
       "color": "BLUE"
     },
@@ -38,7 +38,7 @@
       "image_path": "../Game/Assets/sprites/player/thor.png",
       "model_path": "",
       "health": 100,
-      "speed": 600.0,
+      "speed": 800.0,
       "client_id": 3,
       "color": "GREEN"
     },
@@ -52,7 +52,7 @@
       "image_path": "../Game/Assets/sprites/player/Bodvar.png",
       "model_path": "",
       "health": 100,
-      "speed": 600.0,
+      "speed": 800.0,
       "client_id": 4,
       "color": "YELLOW"
     }
