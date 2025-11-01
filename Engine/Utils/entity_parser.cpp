@@ -27,14 +27,37 @@
 #include <stdexcept>
 #include <initializer_list>
 #include <cstring>
+#include <filesystem>
 
 // Normalize asset paths to the configured ASSETS_PATH at build time.
 static std::string resolve_asset_path(const std::string &path)
 {
     if (path.empty()) return path;
-    // Absolute Windows or POSIX paths: leave as-is
-    if ((path.size() > 1 && (path[1] == ':' || path[0] == '/')))
-        return path;
+    // Detect absolute Windows (drive letter) or POSIX paths.
+    if ((path.size() > 1 && path[1] == ':') || (!path.empty() && (path[0] == '/' || path[0] == '\\'))) {
+        std::filesystem::path absolute(path);
+        try {
+            if (std::filesystem::exists(absolute)) {
+                return absolute.generic_string();
+            }
+        } catch (const std::exception &) {
+            // Ignore filesystem errors; we'll fall back to normalization below.
+        }
+
+        std::string generic = absolute.generic_string();
+        const std::string marker = "assets/";
+        auto pos = generic.find(marker);
+        if (pos != std::string::npos) {
+            std::string relative = generic.substr(pos + marker.size());
+            if (!relative.empty() && relative.front() == '/')
+                relative.erase(relative.begin());
+            return std::string(ASSETS_PATH) + "/" + relative;
+        }
+
+        if (!generic.empty() && generic.front() == '/')
+            generic.erase(generic.begin());
+        return std::string(ASSETS_PATH) + "/" + generic;
+    }
     const char *legacyRoot = "../Game/Assets/";
     if (path.rfind(legacyRoot, 0) == 0) {
         return std::string(ASSETS_PATH) + "/" + path.substr(std::strlen(legacyRoot));
