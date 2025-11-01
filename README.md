@@ -195,6 +195,7 @@ Repository to run CI.
 ## 📕 Wiki
 
 - [Comparative Study](https://github.com/Anthoche/R-type/wiki/Comparative-Study)
+- [How to create a new game](https://github.com/Anthoche/R-type/wiki/How-to-create-a-new-game)
 - [Protocol](https://github.com/Anthoche/R-type/wiki/Protocol)
 - [User Guide](https://github.com/Anthoche/R-type/wiki/User-Guide)
 
