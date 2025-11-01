@@ -393,6 +393,15 @@ void ServerGame::clear_level_entities() {
     for (auto entity : entitiesToKill) {
         registry_server.kill_entity(entity);
     }
+    for (const auto &kv : projectiles) {
+        uint32_t projId = kv.first;
+        broadcast_projectile_despawn(projId);
+    }
+    for (const auto &kv : enemyProjectiles) {
+        uint32_t projId = kv.first;
+        broadcast_enemy_projectile_despawn(projId);
+    }
+
     _enemies.clear();
     _obstacles.clear();
     projectiles.clear();
