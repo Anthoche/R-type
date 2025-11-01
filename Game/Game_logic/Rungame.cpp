@@ -1,28 +1,17 @@
 /*
 ** EPITECH PROJECT, 2025
-** G-CPP-500-PAR-5-1-rtype-1
+** R-type
 ** File description:
-** ServerGame
+** Rungame
 */
 
 #include "Rungame.hpp"
+#include "../../Shared/Logger.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
-#include <cstring>
 #include <thread>
 #include <fstream>
-#include <iostream>
 #include <cmath>
-
-#define RESET_COLOR   "\033[0m"
-#define RED_COLOR     "\033[31m"
-#define GREEN_COLOR   "\033[32m"
-#define YELLOW_COLOR  "\033[33m"
-#define BLUE_COLOR    "\033[34m"
-#define LOG_ERROR(msg)   std::cerr << RED_COLOR << "[ERROR] " << msg << RESET_COLOR << std::endl
-#define LOG_INFO(msg)    std::cout << GREEN_COLOR << "[INFO] " << msg << RESET_COLOR << std::endl
-#define LOG_DEBUG(msg)   std::cout << YELLOW_COLOR << "[DEBUG] " << msg << RESET_COLOR << std::endl
-#define LOG(msg)         std::cout << BLUE_COLOR << msg << RESET_COLOR << std::endl
 
 
 static nlohmann::json load_json_from_file(const std::string &path) {
@@ -72,34 +61,41 @@ void ServerGame::setInitialClients(const std::map<uint32_t, bool> &clients) {
 void ServerGame::run(int roomId) {
     LOG("[Server] Starting game loop...");
     _roomId = roomId;
+    setup_game_state();
+    const int tickMs = 16;
+    const float dt = 0.016f;
+    game_loop(tickMs, dt);
+}
+
+void ServerGame::setup_game_state() {
     load_players(ASSETS_PATH "/Config_assets/Players/players.json");
     load_level(ASSETS_PATH "/Config_assets/Levels/world1.json");
     initialize_player_positions();
     index_existing_entities();
+}
 
-    const int tick_ms = 16;
-    float dt = 0.016f;
-
+void ServerGame::game_loop(int tickMs, float dt) {
     while (true) {
-        auto tick_start = std::chrono::high_resolution_clock::now();
-
-        // --- Handle players only ---
-        process_pending_messages();
-        process_player_inputs(dt);
-        apply_gravity(dt);
-        check_death_zone();
-        check_win_condition();
-
-        // --- Broadcast only players ---
-        broadcast_states_to_clients();
-        broadcast_player_health();
-        broadcast_global_score();
-        broadcast_individual_scores();
-
-        // --- Maintain tick rate ---
-        sleep_to_maintain_tick(tick_start, tick_ms);
+        auto tickStart = std::chrono::high_resolution_clock::now();
+        service_players(dt);
+        broadcast_player_updates();
+        sleep_to_maintain_tick(tickStart, tickMs);
     }
+}
 
+void ServerGame::service_players(float dt) {
+    process_pending_messages();
+    process_player_inputs(dt);
+    apply_gravity(dt);
+    check_death_zone();
+    check_win_condition();
+}
+
+void ServerGame::broadcast_player_updates() {
+    broadcast_states_to_clients();
+    broadcast_player_health();
+    broadcast_global_score();
+    broadcast_individual_scores();
 }
 
 bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float bottom1,
@@ -107,35 +103,10 @@ bool ServerGame::check_aabb_overlap(float left1, float right1, float top1, float
     return right1 > left2 && left1 < right2 && bottom1 > top2 && top1 < bottom2;
 }
 
-void ServerGame::broadcast_full_registry_to(uint32_t clientId) {
-    nlohmann::json root;
-    root["type"] = "FullRegistry";
-    root["entities"] = nlohmann::json::array();
-
-    for (auto entity : registry_server.alive_entities()) {
-        auto j = game::serializer::serialize_entity(registry_server, entity);
-        if (!j.empty()) {
-            root["entities"].push_back(j);
-        }
-    }
-    connexion.sendJsonToClient(clientId, root);
-    LOG_DEBUG("[Server] Sent full registry to client " << clientId 
-              << " with " << root["entities"].size() << " entities");
-}
-
 void ServerGame::load_players(const std::string &path) {
     try {
         auto json = load_json_from_file(path);
         game::storage::store_players(registry_server, json);
-        auto &positions = registry_server.get_components<component::position>();
-        auto &clientIds = registry_server.get_components<component::client_id>();
-        for (std::size_t i = 0; i < positions.size(); ++i) {
-            if (positions[i].has_value() && clientIds[i].has_value()) {
-                auto &pos = positions[i].value();
-                auto &cid = clientIds[i].value();
-                ecs::entity_t entity = registry_server.entity_from_index(i);
-            }
-        }
     } catch (const std::exception &e) {
         LOG_ERROR("load_players failed: " << e.what());
     }
@@ -145,13 +116,6 @@ void ServerGame::load_level(const std::string &path) {
     try {
         auto json = load_json_from_file(path);
         game::storage::store_level_entities(registry_server, json);
-        auto &positions = registry_server.get_components<component::position>();
-        for (std::size_t i = 0; i < positions.size(); ++i) {
-            if (positions[i].has_value()) {
-                auto &pos = positions[i].value();
-                ecs::entity_t entity = registry_server.entity_from_index(i);
-            }
-        }
     } catch (const std::exception &e) {
         LOG_ERROR("load_level failed: " << e.what());
     }
@@ -184,74 +148,173 @@ void ServerGame::index_existing_entities() {
               << ", Platforms=" << _platforms.size());
 }
 
-
-void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from) {
+void ServerGame::handle_client_message(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &) {
     if (data.size() < sizeof(MessageType))
         return;
-    MessageType type = *reinterpret_cast<const MessageType*>(data.data());
-    switch(type) {
-        case MessageType::ClientInput: {
-            if (data.size() >= sizeof(ClientInputMessage)) {
-                const ClientInputMessage* msg = reinterpret_cast<const ClientInputMessage*>(data.data());
-                uint32_t id = ntohl(msg->clientId);
-                if (deadPlayers.find(id) != deadPlayers.end())
-                    break;
-                InputCode code = static_cast<InputCode>(msg->inputCode);
-                bool pressed = msg->isPressed != 0;
-                switch (code) {
-                    case InputCode::Up:
-                    case InputCode::Down:
-                    case InputCode::Left:
-                    case InputCode::Right:
-                    case InputCode::J:
-                    case InputCode::K:
-                        playerInputBuffers[id].push_back({code, pressed});
-                        break;
-                    default:
-                        break;
-                }
-            }
+    auto type = *reinterpret_cast<const MessageType *>(data.data());
+    switch (type) {
+        case MessageType::ClientInput:
+            if (data.size() >= sizeof(ClientInputMessage))
+                handle_client_input_message(*reinterpret_cast<const ClientInputMessage *>(data.data()));
             break;
-        }
-        case MessageType::SceneState: {
-            if (data.size() >= sizeof(SceneStateMessage)) {
-                const SceneStateMessage* msg = reinterpret_cast<const SceneStateMessage*>(data.data());
-                uint32_t id = ntohl(msg->clientId);
-                SceneState scene = static_cast<SceneState>(ntohl(msg->scene));
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    clientScenes[id] = scene;
-                }
-                LOG_DEBUG("[Server] Client " << id << " switched to scene = " << static_cast<int>(scene));
-                if (scene == SceneState::GAME) {
-                    broadcast_full_registry_to(id);
-                }
-            }
+        case MessageType::SceneState:
+            if (data.size() >= sizeof(SceneStateMessage))
+                handle_scene_state_message(*reinterpret_cast<const SceneStateMessage *>(data.data()));
             break;
-        }
-        case MessageType::InitialHealth: {
-            if (data.size() >= sizeof(InitialHealthMessage)) {
-                const InitialHealthMessage* msg = reinterpret_cast<const InitialHealthMessage*>(data.data());
-                uint32_t clientId = ntohl(msg->clientId);
-                int16_t initialHealth = ntohs(msg->initialHealth);
-                auto& healths = registry_server.get_components<component::health>();
-                auto& clientIds = registry_server.get_components<component::client_id>();
-                for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
-                    if (clientIds[i] && clientIds[i]->id == clientId) {
-                        if (healths[i]) {
-                            healths[i]->current = initialHealth;
-                            healths[i]->max = initialHealth;
-                            LOG_DEBUG("[Server] Set initial health of client " << clientId << " to " << initialHealth);
-                        }
-                        break;
-                    }
-                }
-            }
+        case MessageType::InitialHealth:
+            if (data.size() >= sizeof(InitialHealthMessage))
+                handle_initial_health_message(*reinterpret_cast<const InitialHealthMessage *>(data.data()));
             break;
-        }
         default:
             break;
     }
+}
+
+void ServerGame::handle_client_input_message(const ClientInputMessage &msg) {
+    uint32_t clientId = ntohl(msg.clientId);
+    if (deadPlayers.find(clientId) != deadPlayers.end())
+        return;
+    InputCode code = static_cast<InputCode>(msg.inputCode);
+    if (!is_tracked_input(code))
+        return;
+    bool pressed = msg.isPressed != 0;
+    playerInputBuffers[clientId].push_back({code, pressed});
+}
+
+void ServerGame::handle_scene_state_message(const SceneStateMessage &msg) {
+    uint32_t clientId = ntohl(msg.clientId);
+    SceneState scene = static_cast<SceneState>(ntohl(msg.scene));
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        clientScenes[clientId] = scene;
+    }
+    LOG_DEBUG("[Server] Client " << clientId << " switched to scene = " << static_cast<int>(scene));
+    if (scene == SceneState::GAME)
+        broadcast_full_registry_to(clientId);
+}
+
+void ServerGame::handle_initial_health_message(const InitialHealthMessage &msg) {
+    uint32_t clientId = ntohl(msg.clientId);
+    int16_t initialHealth = ntohs(msg.initialHealth);
+    auto &healths = registry_server.get_components<component::health>();
+    auto &clientIds = registry_server.get_components<component::client_id>();
+    for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
+        if (!clientIds[i] || clientIds[i]->id != clientId)
+            continue;
+        if (healths[i]) {
+            healths[i]->current = initialHealth;
+            healths[i]->max = initialHealth;
+            LOG_DEBUG("[Server] Set initial health of client " << clientId << " to " << initialHealth);
+        }
+        break;
+    }
+}
+
+bool ServerGame::is_tracked_input(InputCode code) const {
+    switch (code) {
+        case InputCode::Up:
+        case InputCode::Down:
+        case InputCode::Left:
+        case InputCode::Right:
+        case InputCode::J:
+        case InputCode::K:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void ServerGame::process_input_event(uint32_t clientId, PlayerInputState &state, const InputEvent &event) {
+    bool pressed = event.pressed;
+    switch (event.code) {
+        case InputCode::Up:
+            state.up = pressed;
+            if (pressed)
+                set_last_direction(state, 0, -1);
+            break;
+        case InputCode::Down:
+            state.down = pressed;
+            if (pressed)
+                set_last_direction(state, 0, 1);
+            break;
+        case InputCode::Left:
+            state.left = pressed;
+            if (pressed)
+                set_last_direction(state, -1, 0);
+            break;
+        case InputCode::Right:
+            state.right = pressed;
+            if (pressed)
+                set_last_direction(state, 1, 0);
+            break;
+        case InputCode::J:
+            state.j = pressed;
+            if (pressed)
+                resolve_attack_input(clientId, state, InputCode::J);
+            break;
+        case InputCode::K:
+            state.k = pressed;
+            if (pressed)
+                resolve_attack_input(clientId, state, InputCode::K);
+            break;
+        default:
+            break;
+    }
+}
+
+void ServerGame::set_last_direction(PlayerInputState &state, int x, int y) {
+    state.lastDirX = x;
+    state.lastDirY = y;
+}
+
+void ServerGame::resolve_attack_input(uint32_t clientId, PlayerInputState &state, InputCode code) {
+    int dirX = state.lastDirX;
+    int dirY = state.lastDirY;
+    if (dirX == 0 && dirY == 0)
+        dirX = 1;
+    if (code == InputCode::J)
+        handle_melee_attack(clientId, 15.f, 10, 350.f, 450.f, dirX, dirY);
+    else
+        handle_melee_attack(clientId, 25.f, 25, 650.f, 600.f, dirX, dirY);
+}
+
+void ServerGame::move_player_horizontally(uint32_t clientId, float dt, PlayerInputState &state,
+                                     std::pair<float, float> &pos, float width, float height) {
+    float inputX = 0.f;
+    if (state.left != state.right)
+        inputX = state.left ? -1.f : 1.f;
+    if (inputX == 0.f)
+        return;
+    constexpr float speedPerSecond = 300.f;
+    float distance = speedPerSecond * dt;
+    float newX = pos.first + inputX * distance;
+    if (is_position_blocked(newX, pos.second, width, height, _obstacles))
+        return;
+    if (is_position_blocked_platform(clientId, newX, pos.second, width, height, _platforms, false, state.down))
+        return;
+    pos.first = newX;
+}
+
+void ServerGame::apply_horizontal_knockback(uint32_t clientId, float dt, std::pair<float, float> &pos,
+                                        float width, float height) {
+    auto &knockbackX = playerHorizontalKnockback[clientId];
+    if (std::fabs(knockbackX) <= 1.f) {
+        knockbackX = 0.f;
+        return;
+    }
+    float newX = pos.first + knockbackX * dt;
+    if (!is_position_blocked(newX, pos.second, width, height, _obstacles) &&
+        !is_position_blocked_platform(clientId, newX, pos.second, width, height, _platforms, false, playerInputStates[clientId].down)) {
+        pos.first = newX;
+    } else {
+        knockbackX = 0.f;
+        return;
+    }
+    constexpr float damping = 800.f;
+    if (knockbackX > 0.f)
+        knockbackX = std::max(0.f, knockbackX - damping * dt);
+    else
+        knockbackX = std::min(0.f, knockbackX + damping * dt);
 }
 
 void ServerGame::process_pending_messages() {
@@ -272,19 +335,6 @@ void ServerGame::process_pending_messages() {
         handle_client_message(packet.data, packet.endpoint);
         ++processed;
     }
-}
-
-void ServerGame::ensure_player_tracking(uint32_t clientId) {
-    if (playerLives.find(clientId) == playerLives.end())
-        playerLives[clientId] = 3;
-    if (playerVelocities.find(clientId) == playerVelocities.end())
-        playerVelocities[clientId] = 0.f;
-    if (playerHorizontalKnockback.find(clientId) == playerHorizontalKnockback.end())
-        playerHorizontalKnockback[clientId] = 0.f;
-    if (playerVerticalKnockback.find(clientId) == playerVerticalKnockback.end())
-        playerVerticalKnockback[clientId] = 0.f;
-    if (playerJumpCount.find(clientId) == playerJumpCount.end())
-        playerJumpCount[clientId] = 0;
 }
 
 std::pair<float, float> ServerGame::compute_respawn_position(uint32_t clientId, float playerWidth, float playerHeight) {
@@ -308,304 +358,49 @@ std::pair<float, float> ServerGame::compute_respawn_position(uint32_t clientId, 
     return {300.f + (clientId - 1) * 50.f, 300.f};
 }
 
-std::pair<float, float> ServerGame::get_player_dimensions(uint32_t clientId) {
-    float width = 30.f;
-    float height = 30.f;
-
-    auto &clientIds = registry_server.get_components<component::client_id>();
-    auto &collision = registry_server.get_components<component::collision_box>();
-    auto &drawables = registry_server.get_components<component::drawable>();
-
-    for (std::size_t i = 0; i < clientIds.size(); ++i) {
-        if (clientIds[i] && clientIds[i]->id == clientId) {
-            if (i < collision.size() && collision[i]) {
-                width = collision[i]->width;
-                height = collision[i]->height;
-            } else if (i < drawables.size() && drawables[i]) {
-                width = drawables[i]->width;
-                height = drawables[i]->height;
-            }
-            break;
-        }
-    }
-
-    return {width, height};
-}
-
-void ServerGame::respawn_player(uint32_t clientId, std::size_t registryIndex) {
-    ensure_player_tracking(clientId);
-    auto &drawables = registry_server.get_components<component::drawable>();
-    float playerWidth = 50.f;
-    float playerHeight = 50.f;
-    if (registryIndex < drawables.size() && drawables[registryIndex]) {
-        playerWidth = drawables[registryIndex]->width;
-        playerHeight = drawables[registryIndex]->height;
-    }
-
-    auto spawn = compute_respawn_position(clientId, playerWidth, playerHeight);
-    playerPositions[clientId] = spawn;
-    playerSpawnPositions[clientId] = spawn;
-    playerVelocities[clientId] = 0.f;
-    playerHorizontalKnockback[clientId] = 0.f;
-    playerVerticalKnockback[clientId] = 0.f;
-    playerJumpCount[clientId] = 0;
-    playerInputStates[clientId] = PlayerInputState{};
-
-    auto &positions = registry_server.get_components<component::position>();
-    if (registryIndex < positions.size() && positions[registryIndex]) {
-        positions[registryIndex]->x = spawn.first;
-        positions[registryIndex]->y = spawn.second;
-        positions[registryIndex]->z = 0.f;
-    }
-    auto &prevPositions = registry_server.get_components<component::previous_position>();
-    if (registryIndex < prevPositions.size() && prevPositions[registryIndex]) {
-        prevPositions[registryIndex]->x = spawn.first;
-        prevPositions[registryIndex]->y = spawn.second;
-        prevPositions[registryIndex]->z = 0.f;
-    }
-
-    auto &healths = registry_server.get_components<component::health>();
-    if (registryIndex < healths.size() && healths[registryIndex]) {
-        healths[registryIndex]->current = healths[registryIndex]->max;
-    }
-
-    deadPlayers.erase(clientId);
-    LOG_INFO("[Server] Player " << clientId << " respawns (" << playerLives[clientId] << " lives remaining)");
-}
-
 bool ServerGame::handle_player_defeat(uint32_t clientId, std::size_t registryIndex) {
     ensure_player_tracking(clientId);
-
     auto &healths = registry_server.get_components<component::health>();
-    bool hasRegistryEntry = registryIndex < healths.size() && healths[registryIndex];
-    if (hasRegistryEntry) {
+    bool hasHealth = registryIndex < healths.size() && healths[registryIndex];
+    if (hasHealth)
         healths[registryIndex]->current = std::max(0, healths[registryIndex]->current);
-    }
-
-    auto lifeIt = playerLives.find(clientId);
-    if (lifeIt == playerLives.end())
-        lifeIt = playerLives.emplace(clientId, 3).first;
-
-    int &lives = lifeIt->second;
-    if (lives <= 0) {
-        lives = 0;
-        if (deadPlayers.insert(clientId).second) {
-            broadcast_player_death(clientId);
-        }
-        return true;
-    }
-
+    int &lives = playerLives[clientId];
+    if (lives <= 0)
+        return finalize_player_death(clientId, registryIndex);
     --lives;
-
-    if (lives > 0 && hasRegistryEntry) {
+    if (lives > 0 && hasHealth) {
         respawn_player(clientId, registryIndex);
         return false;
     }
-
-    if (hasRegistryEntry) {
+    if (hasHealth)
         healths[registryIndex]->current = 0;
-    }
-    playerHorizontalKnockback[clientId] = 0.f;
-    playerVerticalKnockback[clientId] = 0.f;
-    playerVelocities[clientId] = 0.f;
-    if (deadPlayers.insert(clientId).second) {
-        broadcast_player_death(clientId);
-    }
-    return true;
+    return finalize_player_death(clientId, registryIndex);
 }
 
 void ServerGame::process_player_inputs(float dt) {
-    constexpr float speedPerSecond = 300.f;
-
     for (auto &kv : playerPositions) {
         uint32_t clientId = kv.first;
         if (deadPlayers.find(clientId) != deadPlayers.end())
             continue;
         ensure_player_tracking(clientId);
-
+        auto &state = playerInputStates[clientId];
         auto &buffer = playerInputBuffers[clientId];
-        auto &state = playerInputStates[clientId];
-        auto &pos = kv.second;
-        auto [playerWidth, playerHeight] = get_player_dimensions(clientId);
-
-        for (const auto &event : buffer) {
-            switch (event.code) {
-                case InputCode::Up:
-                    state.up = event.pressed;
-                    if (event.pressed) {
-                        state.lastDirX = 0;
-                        state.lastDirY = -1;
-                    }
-                    break;
-                case InputCode::Down:
-                    state.down = event.pressed;
-                    if (event.pressed) {
-                        state.lastDirX = 0;
-                        state.lastDirY = 1;
-                    }
-                    break;
-                case InputCode::Left:
-                    state.left = event.pressed;
-                    if (event.pressed) {
-                        state.lastDirX = -1;
-                        state.lastDirY = 0;
-                    }
-                    break;
-                case InputCode::Right:
-                    state.right = event.pressed;
-                    if (event.pressed) {
-                        state.lastDirX = 1;
-                        state.lastDirY = 0;
-                    }
-                    break;
-                case InputCode::J:
-                    state.j = event.pressed;
-                    if (event.pressed) {
-                        handle_melee_attack(clientId, 15.f, 10, 350.f, 450.f, state.lastDirX, state.lastDirY);
-                    }
-                    break;
-                case InputCode::K:
-                    state.k = event.pressed;
-                    if (event.pressed) {
-                        handle_melee_attack(clientId, 25.f, 25, 650.f, 600.f, state.lastDirX, state.lastDirY);
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
+        for (const auto &event : buffer)
+            process_input_event(clientId, state, event);
         buffer.clear();
-
-        float inputX = 0.f;
-
-        if (state.left != state.right)
-            inputX = state.left ? -1.f : 1.f;
-
-        if (inputX != 0.f) {
-            float distance = speedPerSecond * dt;
-            float newX = pos.first + inputX * distance;
-
-            if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles) &&
-                !is_position_blocked_platform(clientId, newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down))
-                pos.first = newX;
-        }
-
-        auto &knockbackX = playerHorizontalKnockback[clientId];
-        if (std::fabs(knockbackX) > 1.f) {
-            float knockDistance = knockbackX * dt;
-            float newX = pos.first + knockDistance;
-
-            if (!is_position_blocked(newX, pos.second, playerWidth, playerHeight, _obstacles) &&
-                !is_position_blocked_platform(clientId, newX, pos.second, playerWidth, playerHeight, _platforms, false, state.down)) {
-                pos.first = newX;
-            } else {
-                knockbackX = 0.f;
-            }
-
-            const float damping = 800.f;
-            if (knockbackX > 0.f) {
-                knockbackX = std::max(0.f, knockbackX - damping * dt);
-            } else {
-                knockbackX = std::min(0.f, knockbackX + damping * dt);
-            }
-        } else {
-            knockbackX = 0.f;
-        }
-    }
-}
-
-void ServerGame::apply_gravity(float dt) {
-    constexpr float gravity = 800.f;
-    constexpr float jumpForce = -700.f;
-    constexpr int maxJumps = 2; // Player can jump 2 additional times after leaving ground
-
-    for (auto &kv : playerPositions) {
-        uint32_t clientId = kv.first;
-        if (deadPlayers.find(clientId) != deadPlayers.end())
-            continue;
-        ensure_player_tracking(clientId);
-
-        auto [playerWidth, playerHeight] = get_player_dimensions(clientId);
-
         auto &pos = kv.second;
-        auto &velocity = playerVelocities[clientId];
-        auto &verticalKnock = playerVerticalKnockback[clientId];
-        auto &state = playerInputStates[clientId];
-        auto &jumpCount = playerJumpCount[clientId];
-
-        bool onGround = is_on_ground(clientId, pos.first, pos.second, playerWidth, playerHeight);
-
-        // Reset jump count when on ground
-        if (onGround) {
-            jumpCount = 0;
-        }
-
-        // Handle jumping with counter
-        if (state.up) {
-            if (onGround || jumpCount < maxJumps) {
-                velocity = jumpForce;
-                if (!onGround) {
-                    jumpCount++;
-                    LOG_DEBUG("[Server] Player " << clientId << " performed air jump " << jumpCount << "/" << maxJumps);
-                }
-                state.up = false;
-            }
-        }
-
-        velocity += gravity * dt;
-        if (std::fabs(verticalKnock) > 1.f) {
-            velocity += verticalKnock;
-            verticalKnock = 0.f;
-        }
-
-        float newY = pos.second + velocity * dt;
-
-        if (!is_position_blocked(pos.first, newY, playerWidth, playerHeight, _obstacles)) {
-            bool movingDown = (velocity > 0.f);
-            
-            // If down is pressed, pass through platforms
-            if (!is_position_blocked_platform(clientId, pos.first, newY, playerWidth, playerHeight, _platforms, movingDown, state.down)) {
-                pos.second = newY;
-            } else {
-                if (movingDown) {
-                    pos.second = snap_to_platform_top(pos.first, pos.second, playerWidth, playerHeight);
-                    velocity = 0.f;
-                }
-            }
-        } else {
-            velocity = 0.f;
-        }
-
-        if (onGround && velocity > 0.f) {
-            velocity = 0.f;
-        }
+        auto [width, height] = get_player_dimensions(clientId);
+        move_player_horizontally(clientId, dt, state, pos, width, height);
+        apply_horizontal_knockback(clientId, dt, pos, width, height);
     }
-}
-
-bool ServerGame::is_on_ground(uint32_t clientId, float x, float y, float playerWidth, float playerHeight) {
-    constexpr float checkDistance = 2.f;
-    float testY = y + checkDistance;
-    
-    return is_position_blocked(x, testY, playerWidth, playerHeight, _obstacles) ||
-           is_position_blocked_platform(clientId, x, testY, playerWidth, playerHeight, _platforms, true, false);
-}
-
-template <typename Component>
-inline Component* get_component_ptr_obstacle(ecs::registry &registry, ecs::entity_t entity) {
-    auto &arr = registry.get_components<Component>();
-    auto idx = static_cast<std::size_t>(entity);
-    if (idx >= arr.size() || !arr[idx].has_value()) {
-        return nullptr;
-    }
-    return &arr[idx].value();
 }
 
 float ServerGame::snap_to_platform_top(float x, float y, float playerWidth, float playerHeight) {
     constexpr float epsilon = 5.f;
     
     for (auto entity : _platforms) {
-        auto pos = get_component_ptr_obstacle<component::position>(registry_server, entity);
-        auto box = get_component_ptr_obstacle<component::collision_box>(registry_server, entity);
+        auto pos = component_ptr<component::position>(registry_server, entity);
+        auto box = component_ptr<component::collision_box>(registry_server, entity);
 
         if (!pos || !box)
             continue;
@@ -627,148 +422,92 @@ float ServerGame::snap_to_platform_top(float x, float y, float playerWidth, floa
 
 void ServerGame::check_death_zone() {
     constexpr float deathY = 1180.f;
-    
-    auto& clientIds = registry_server.get_components<component::client_id>();
-    auto& healths = registry_server.get_components<component::health>();
-
     for (auto &kv : playerPositions) {
         uint32_t clientId = kv.first;
         if (deadPlayers.find(clientId) != deadPlayers.end())
             continue;
         ensure_player_tracking(clientId);
-
         auto &pos = kv.second;
-        if (pos.second > deathY || pos.first < -150 || pos.first > 2070) {
-            LOG_INFO("[Server] Player " << clientId << " went out of bounds and died");
-            std::size_t index = clientIds.size();
-            for (std::size_t i = 0; i < clientIds.size(); ++i) {
-                if (clientIds[i] && clientIds[i]->id == clientId) {
-                    index = i;
-                    break;
-                }
-            }
-            if (index < healths.size() && healths[index]) {
-                healths[index]->current = 0;
-            }
-            handle_player_defeat(clientId, index);
-        }
+        if (pos.second <= deathY && pos.first >= -150 && pos.first <= 2070)
+            continue;
+        LOG_INFO("[Server] Player " << clientId << " went out of bounds and died");
+        std::size_t index = registry_index_for_client(clientId);
+        auto &healths = registry_server.get_components<component::health>();
+        if (index < healths.size() && healths[index])
+            healths[index]->current = 0;
+        handle_player_defeat(clientId, index);
     }
 }
 
 void ServerGame::check_win_condition() {
-    int alivePlayers = 0;
-    uint32_t lastAlivePlayer = 0;
-
-    for (const auto& kv : connexion.getClients()) {
-        uint32_t clientId = kv.second;
-        if (deadPlayers.find(clientId) == deadPlayers.end()) {
-            alivePlayers++;
-            lastAlivePlayer = clientId;
-        }
-    }
-
-    if (alivePlayers == 1 && lastAlivePlayer != 0 && connexion.getClients().size() >= 2) {
-        LOG_INFO("[Server] Player " << lastAlivePlayer << " is the last one alive and WINS!");
-        totalScore = std::max(totalScore, 30);
-        broadcast_game_winner(lastAlivePlayer);
-
-        auto &clientIds = registry_server.get_components<component::client_id>();
-        auto &positions = registry_server.get_components<component::position>();
-        auto &drawables = registry_server.get_components<component::drawable>();
-        auto &healths = registry_server.get_components<component::health>();
-
-        for (std::size_t i = 0; i < clientIds.size(); ++i) {
-            if (clientIds[i] && clientIds[i]->id == lastAlivePlayer) {
-                ecs::entity_t entity = registry_server.entity_from_index(i);
-                float screenBottom = 1080.f;
-                if (entity.value() < positions.size() && positions[entity.value()] &&
-                    entity.value() < drawables.size() && drawables[entity.value()] &&
-                    entity.value() < healths.size() && healths[entity.value()]) {
-                    float bottom = positions[entity.value()]->y + drawables[entity.value()]->height * 0.5f;
-                    healths[entity.value()]->current = (bottom < screenBottom - 5.f) ? healths[entity.value()]->max : 0;
-                }
-                break;
-            }
-        }
-    }
+    auto winner = find_last_alive_player();
+    if (!winner)
+        return;
+    handle_victory(*winner);
 }
 
-void ServerGame::broadcast_states_to_clients() {
-    for (const auto& kv : connexion.getClients()) {
+std::optional<uint32_t> ServerGame::find_last_alive_player() {
+    int alivePlayers = 0;
+    uint32_t lastAlive = 0;
+    const auto &clients = connexion.getClients();
+    for (const auto &kv : clients) {
         uint32_t id = kv.second;
         if (deadPlayers.find(id) != deadPlayers.end())
             continue;
-        auto it = playerPositions.find(id);
-        if (it == playerPositions.end()) continue;
-        
-        StateUpdateMessage m;
-        m.type = MessageType::StateUpdate;
-        m.clientId = htonl(id);
-        
-        uint32_t xbits, ybits, zbits;
-        float z = 0.f;
-        std::memcpy(&xbits, &it->second.first, sizeof(float));
-        std::memcpy(&ybits, &it->second.second, sizeof(float));
-        std::memcpy(&zbits, &z, sizeof(float));
-        
-        m.pos.xBits = htonl(xbits);
-        m.pos.yBits = htonl(ybits);
-        m.pos.zBits = htonl(zbits);
-        
-        connexion.broadcast(&m, sizeof(m));
+        ++alivePlayers;
+        lastAlive = id;
     }
+    if (alivePlayers == 1 && lastAlive != 0 && clients.size() >= 2)
+        return lastAlive;
+    return std::nullopt;
 }
 
-void ServerGame::broadcast_obstacle_despawn(uint32_t obstacleId) {
-    ObstacleDespawnMessage m;
-    m.type = MessageType::ObstacleDespawn;
-    m.obstacleId = htonl(obstacleId);
-    connexion.broadcast(&m, sizeof(m));
-}
-
-void ServerGame::broadcast_player_health() {
-    auto& healths = registry_server.get_components<component::health>();
-    auto& clientIds = registry_server.get_components<component::client_id>();
-    
-    for (std::size_t i = 0; i < healths.size() && i < clientIds.size(); ++i) {
-        if (healths[i] && clientIds[i]) {
-            PlayerHealthMessage msg;
-            msg.type = MessageType::PlayerHealth;
-            msg.clientId = htonl(clientIds[i]->id);
-            msg.currentHealth = htons(static_cast<int16_t>(healths[i]->current));
-            msg.maxHealth = htons(static_cast<int16_t>(healths[i]->max));
-            
-            connexion.broadcast(&msg, sizeof(msg));
+void ServerGame::handle_victory(uint32_t winnerId) {
+    LOG_INFO("[Server] Player " << winnerId << " is the last one alive and WINS!");
+    totalScore = std::max(totalScore, 30);
+    broadcast_game_winner(winnerId);
+    auto &clientIds = registry_server.get_components<component::client_id>();
+    auto &positions = registry_server.get_components<component::position>();
+    auto &drawables = registry_server.get_components<component::drawable>();
+    auto &healths = registry_server.get_components<component::health>();
+    for (std::size_t i = 0; i < clientIds.size(); ++i) {
+        if (!clientIds[i] || clientIds[i]->id != winnerId)
+            continue;
+        ecs::entity_t entity = registry_server.entity_from_index(i);
+        std::size_t idx = entity.value();
+        float screenBottom = 1080.f;
+        if (idx < positions.size() && positions[idx] && idx < drawables.size() && drawables[idx] &&
+            idx < healths.size() && healths[idx]) {
+            float bottom = positions[idx]->y + drawables[idx]->height * 0.5f;
+            healths[idx]->current = (bottom < screenBottom - 5.f) ? healths[idx]->max : 0;
         }
+        break;
     }
 }
 
-void ServerGame::broadcast_global_score() {
-    GlobalScoreMessage msg;
-    msg.type = MessageType::GlobalScore;
-    msg.totalScore = htonl(totalScore);
-    connexion.broadcast(&msg, sizeof(msg));
-}
-
-void ServerGame::broadcast_individual_scores() {
-    for (const auto& kv : playerIndividualScores) {
-        uint32_t clientId = kv.first;
-        int score = kv.second;
-        
-        IndividualScoreMessage msg;
-        msg.type = MessageType::IndividualScore;
-        msg.clientId = htonl(clientId);
-        msg.score = htonl(score);
-        
-        connexion.broadcast(&msg, sizeof(msg));
+std::size_t ServerGame::registry_index_for_client(uint32_t clientId) {
+    auto &clientIds = registry_server.get_components<component::client_id>();
+    for (std::size_t i = 0; i < clientIds.size(); ++i) {
+        if (clientIds[i] && clientIds[i]->id == clientId)
+            return i;
     }
+    return clientIds.size();
 }
 
-void ServerGame::broadcast_game_winner(uint32_t winnerId) {
-    // You'll need to define a GameWinnerMessage in your protocol
-    // For now, logging it
-    LOG_INFO("[Server] Broadcasting winner: Player " << winnerId);
-    // TODO: Implement actual broadcast message for winner
+bool ServerGame::finalize_player_death(uint32_t clientId, std::size_t registryIndex) {
+    (void)registryIndex;
+    reset_player_motion(clientId);
+    playerLives[clientId] = 0;
+    bool inserted = deadPlayers.insert(clientId).second;
+    if (inserted)
+        broadcast_player_death(clientId);
+    return true;
+}
+
+void ServerGame::reset_player_motion(uint32_t clientId) {
+    playerHorizontalKnockback[clientId] = 0.f;
+    playerVerticalKnockback[clientId] = 0.f;
+    playerVelocities[clientId] = 0.f;
 }
 
 void ServerGame::sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms) {
