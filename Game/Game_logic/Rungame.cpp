@@ -346,8 +346,8 @@ void ServerGame::load_next_level() {
             return;
         }
     }
-        // Ensure all entities are properly cleared before loading new level
     clear_level_entities();
+    initialize_player_positions();
 
     std::string levelPath = ASSETS_PATH "/Config_assets/Levels/level_0" 
                           + std::to_string(currentLevel) + ".json";
