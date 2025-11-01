@@ -59,31 +59,52 @@ class MenuScene: public AScene {
         void onClose() override;
 
         /**
-        * @brief Update the menu buttons' text based on the selected language.
-        * @param isFrench True if French, false if English.
-        */
+         * @brief Update the menu buttons' text based on the selected language.
+         * @param isFrench True if French, false if English.
+         */
         void updateLanguage(bool isFrench);
 
     private:
         Game &_game; ///< Reference to the game instance.
 
-        Font _font{};
+        Font _font{}; ///< Font used for rendering text.
 
-        //Title
-        int const _titleSize = 90;
-        float _titleCenterY;
+        // Title
+        int const _titleSize = 90; ///< Font size for the title.
+        float _titleCenterY; ///< Y position to center the title vertically.
 
-        //Buttons
-        Color const _accentColor{26, 170, 177, 255};
-        Vector2 const _buttonSize{280.f, 70.f};
-        int const _buttonTextSize = 35;
-        int const _buttonSpacing = 35;
-        float _buttonCenterY{};
-        Vector2 _buttonPosition{};
-        int _selectedButtonIndex = -1;
+        // Buttons
+        Color const _accentColor{26, 170, 177, 255}; ///< Accent color for buttons.
+        Vector2 const _buttonSize{280.f, 70.f}; ///< Size of buttons.
+        int const _buttonTextSize = 35; ///< Font size for button text.
+        int const _buttonSpacing = 35; ///< Vertical spacing between buttons.
+        float _buttonCenterY{}; ///< Y position to center buttons vertically.
+        Vector2 _buttonPosition{}; ///< Position of the current button.
+        int _selectedButtonIndex = -1; ///< Index of the currently selected button.
 
+        /**
+         * @brief Reset the hover and click states of all menu buttons.
+         */
         void resetButtonStates();
+
+        /**
+         * @brief Handle the click event for a specific button.
+         * @param id The ID of the clicked button as a string.
+         */
         void handleButtonClick(std::string const &id);
+
+        /**
+         * @brief Draw a button on the screen.
+         * @param position Position of the button.
+         * @param size Size of the button.
+         * @param content Text displayed on the button.
+         * @param fontSize Size of the text font.
+         * @param spacing Spacing for button elements.
+         * @param color Background color of the button.
+         * @param textColor Color of the text.
+         * @param isHovered True if the mouse is hovering over the button.
+         * @param isClicked True if the button is being clicked.
+         */
         void drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize, float spacing, Color color, Color textColor, bool isHovered, bool isClicked);
 };
 
