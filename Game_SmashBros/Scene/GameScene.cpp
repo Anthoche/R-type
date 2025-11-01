@@ -881,7 +881,7 @@ namespace game::scene {
         }
         bool wasJDown = _inputState.j;
         bool wasKDown = _inputState.k;
-        dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed, jPressed, kPressed);  // MODIFIÉ
+        dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed, jPressed, kPressed);
         if (myClientId != 0) {
             bool attackTriggered = (jPressed && !wasJDown) || (kPressed && !wasKDown);
             bool faceLeft = leftPressed && !rightPressed;
