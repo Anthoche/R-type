@@ -1,10 +1,9 @@
-/**
- * @file RoomSelectScene.hpp
- * @brief Room selection scene for multiplayer game lobbies
- * 
- * EPITECH PROJECT, 2025
- * rtype
- */
+/*
+** EPITECH PROJECT, 2025
+** rtype
+** File description:
+** RoomSelectScene
+*/
 
 #ifndef ROOMSELECTSCENE_HPP
     #define ROOMSELECTSCENE_HPP
@@ -64,7 +63,7 @@ class RoomSelectScene: public AScene {
 
         /**
          * @brief Initializes room selection UI and resources
-         * 
+         *
          * Sets up fonts, calculates layout positions, and requests
          * initial room list from the server.
          */
@@ -72,7 +71,7 @@ class RoomSelectScene: public AScene {
 
         /**
          * @brief Renders the room selection interface
-         * 
+         *
          * Draws the title, room list with player counts, join buttons,
          * and navigation elements.
          */
@@ -80,7 +79,7 @@ class RoomSelectScene: public AScene {
 
         /**
          * @brief Processes user input and interactions
-         * 
+         *
          * Handles mouse clicks on room buttons, hover states,
          * and keyboard navigation.
          */
@@ -88,7 +87,7 @@ class RoomSelectScene: public AScene {
 
         /**
          * @brief Cleans up resources when the scene closes
-         * 
+         *
          * Releases fonts, clears room data, and performs cleanup.
          */
         void onClose() override;
@@ -116,58 +115,60 @@ class RoomSelectScene: public AScene {
         int _titleSize = 46; ///< Font size for scene title
 
         // Button configuration
-        int _selectedButtonIndex = -1;                ///< Index of currently selected button (-1 if none)
+        int _selectedButtonIndex = -1;               ///< Index of currently selected button (-1 if none)
+        int _selectedRoomIndex = -1;                 ///< Index of currently selected room (-1 if none)
+        bool _selectingRooms = false;                ///< Indicates if the user is selecting rooms or not
         Color const _accentColor{46, 204, 113, 255}; ///< Accent color for UI highlights (green)
         Vector2 const _buttonSize{160.f, 50.f};      ///< Standard button dimensions
         int const _buttonTextSize = 23;              ///< Font size for button text
 
         /**
          * @brief Requests and updates the room list from the server
-         * 
+         *
          * Fetches current room data including names, player counts,
          * and availability status.
          */
         void refreshRooms();
-        
+
         /**
          * @brief Renders all available rooms to the screen
-         * 
+         *
          * Iterates through the room list and draws each room card
          * with its associated information and join button.
          */
         void displayRooms();
-        
+
         /**
          * @brief Creates and adds a new room to the display list
          * @param id Unique identifier for the room
          * @param roomData Room information including name and player count
-         * 
+         *
          * Constructs a RoomDisplay object and adds it to the internal
          * room map for rendering.
          */
         void createRoom(uint32_t id, game::serializer::RoomData roomData);
-        
+
         /**
          * @brief Resets all button interaction states to default
-         * 
+         *
          * Clears hover and click states for all buttons and rooms,
          * typically called at the start of event processing.
          */
         void resetButtonStates();
-        
+
         /**
          * @brief Handles navigation button click actions
          * @param id Unique identifier of the clicked button
-         * 
+         *
          * Executes actions for navigation buttons such as back,
          * refresh, or create new room.
          */
         void handleButtonClick(std::string const &id);
-        
+
         /**
          * @brief Handles join button clicks for a specific room
          * @param id Room identifier to join
-         * 
+         *
          * Initiates connection to the selected room and transitions
          * to the game scene if successful.
          */

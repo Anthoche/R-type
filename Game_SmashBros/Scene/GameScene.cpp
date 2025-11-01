@@ -878,6 +878,10 @@ namespace game::scene {
                 rightPressed = true;
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                 leftPressed = true;
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
+                jPressed = true;
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_LEFT))
+                kPressed = true;
         }
         bool wasJDown = _inputState.j;
         bool wasKDown = _inputState.k;

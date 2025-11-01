@@ -23,6 +23,7 @@ namespace scene {
 		_isOpen = true;
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
+		_selectedButtonIndex = -1;
 
 		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
@@ -135,14 +136,18 @@ namespace scene {
 		}
 
 		if (_raylib.isGamepadAvailable(0)) {
-			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
+				_selectingRooms = false;
+				_selectedRoomIndex = -1;
 				if (_selectedButtonIndex >= buttonCount - 1) {
 					_selectedButtonIndex = 0;
 					return;
 				}
 				_selectedButtonIndex++;
 			}
-			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
+				_selectingRooms = false;
+				_selectedRoomIndex = -1;
 				if (_selectedButtonIndex <= 0) {
 					_selectedButtonIndex = buttonCount - 1;
 					return;
@@ -150,18 +155,50 @@ namespace scene {
 				_selectedButtonIndex--;
 			}
 
-			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
-				if (_selectedButtonIndex == -1 || _selectedButtonIndex >= buttonCount)
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+				_selectedButtonIndex = -1;
+				_selectingRooms = true;
+				if (_selectedRoomIndex >= _rooms.size() - 1) {
+					_selectedRoomIndex = 0;
 					return;
-				handleButtonClick(clickable[_selectedButtonIndex + 1]->id);
+				}
+				_selectedRoomIndex++;
 			}
-			if (_selectedButtonIndex != -1 && _selectedButtonIndex < buttonCount)
-				hoverable[_selectedButtonIndex + 1]->isHovered = true;
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+				_selectedButtonIndex = -1;
+				_selectingRooms = true;
+				if (_selectedRoomIndex <= 0) {
+					_selectedRoomIndex = _rooms.size() - 1;
+					return;
+				}
+				_selectedRoomIndex--;
+			}
+
+			// Button action
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+				if (_selectingRooms) {
+					if (_selectedRoomIndex == -1 || _selectedRoomIndex >= _rooms.size())
+						return;
+					handleRoomJoinButton(_selectedRoomIndex);
+				} else {
+					if (_selectedButtonIndex == -1 || _selectedButtonIndex >= buttonCount)
+						return;
+					handleButtonClick(clickable[_selectedButtonIndex + 1]->id);
+				}
+			}
+			if (_selectingRooms) {
+				if (_selectedRoomIndex != -1 && _selectedRoomIndex < _rooms.size())
+					_rooms[_selectedRoomIndex].button.isHovered = true;
+			} else {
+				if (_selectedButtonIndex != -1 && _selectedButtonIndex < buttonCount)
+					hoverable[_selectedButtonIndex + 1]->isHovered = true;
+			}
 		}
 	}
 
 	void RoomSelectScene::onClose() {
 		_registry.clear();
+		_rooms.clear();
 		_raylib.unloadFont(_font);
 	}
 
@@ -235,6 +272,8 @@ namespace scene {
 	void RoomSelectScene::handleButtonClick(std::string const &id) {
 		if (id == "button_refresh") {
 			refreshRooms();
+		} else if (id == "button_create_room") {
+			//TODO: do something
 		} else if (id == "button_back") {
 			_game.getSceneHandler().open("menu");
 		}

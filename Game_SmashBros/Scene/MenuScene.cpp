@@ -23,6 +23,7 @@ namespace scene {
 		_isOpen = true;
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
+		_selectedButtonIndex = -1;
 
 		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
@@ -206,6 +207,7 @@ namespace scene {
 	}
 
 	void MenuScene::onClose() {
+		_selectedButtonIndex = -1;
 		_raylib.unloadFont(_font);
 	}
 

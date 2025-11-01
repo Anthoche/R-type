@@ -96,6 +96,8 @@ class RoomSelectScene: public AScene {
 
         // Buttons
         int _selectedButtonIndex = -1; ///< Currently selected button index.
+        int _selectedRoomIndex = -1; ///< Currently selected room index.
+        bool _selectingRooms = false; ///< Indicates if user is selecting rooms or not
         Color const _accentColor{26, 170, 177, 255}; ///< Accent color for buttons.
         Vector2 const _buttonSize{160.f, 50.f}; ///< Size of general buttons.
         int const _buttonTextSize = 23; ///< Font size for general buttons.
