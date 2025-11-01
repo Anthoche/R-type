@@ -1,111 +1,109 @@
-/**
- * @file WaitingScene.hpp
- * @brief Multiplayer lobby waiting scene for player synchronization
- * 
- * EPITECH PROJECT, 2025
- * rtype
- */
+/*
+** EPITECH PROJECT, 2025
+** rtype
+** File description:
+** WaitingScene
+*/
 
 #ifndef RTYPE_WAITINGSCENE_HPP
 	#define RTYPE_WAITINGSCENE_HPP
 
     #include "../../../Engine/Rendering/scene/Include/AScene.hpp"
     #include "../Game.hpp"
+    #include <vector>
     #include <string>
 
 namespace scene {
 
 /**
  * @class WaitingScene
- * @brief Lobby waiting scene for multiplayer game preparation
+ * @brief Represents the waiting scene of the game.
  *
- * Manages the pre-game lobby state where players gather before match start:
- * - Displays connected players and their ready status
- * - Handles player ready/unready state confirmation
- * - Waits for all players to confirm ready before starting
- * - Provides real-time updates on player connections
- * - Allows players to leave the lobby
- * - Shows game start conditions and countdown
+ * The waiting scene handles:
+ * - Server await
+ * - Player connections await
  */
 class WaitingScene: public AScene {
     public:
         /**
-         * @brief Constructs the waiting lobby scene
-         * @param game Reference to the main game instance
+         * @brief Construct a WaitingScene with a reference to the game.
+         * @param game The game instance.
          */
         WaitingScene(Game &game);
 
         /**
-         * @brief Default destructor
+         * @brief Default destructor.
          */
         ~WaitingScene() override = default;
 
         // --- Overridden lifecycle methods ---
 
         /**
-         * @brief Initializes the waiting lobby UI and network listeners
-         * 
-         * Sets up fonts, player list display, ready button,
-         * and registers for player connection updates.
+         * @brief Initialize the menu scene (UI, buttons, resources).
          */
         void init() override;
 
         /**
-         * @brief Renders the lobby interface with player status
-         * 
-         * Draws the player list, ready states, current player count,
-         * ready button, and any countdown or status messages.
+         * @brief Render the menu scene (draw UI elements).
          */
         void render() override;
 
         /**
-         * @brief Processes user input and network updates
-         * 
-         * Handles ready button clicks, leave button interactions,
-         * and processes incoming player status updates from server.
+         * @brief Handle input and events in the menu.
          */
         void handleEvents() override;
 
         /**
-         * @brief Cleans up resources when leaving the lobby
-         * 
-         * Unregisters network listeners, releases fonts,
-         * and notifies server of departure if needed.
+         * @brief Called when the menu scene is closed (cleanup).
          */
         void onClose() override;
 
     private:
-        Game &_game; ///< Reference to the main game instance
+        Game &_game; ///< Reference to the game instance.
 
-        Font _font{}; ///< Font used for text rendering
+        Font _font{};
 
-        bool _ignoreInitialClick{false};  ///< Flag to prevent accidental clicks during scene initialization
-        bool _hasConfirmedReady{false};   ///< Whether the local player has confirmed ready status
+        struct SkinOption {
+            std::string name;
+            std::string path;
+            std::string filename;
+            Texture2D texture{};
+            Rectangle source{0.f, 0.f, 0.f, 0.f};
+        };
 
-        /**
-         * @brief Resets all button interaction states to default
-         * 
-         * Clears hover and click states for all interactive buttons,
-         * typically called at the start of event processing each frame.
-         */
+        struct WeaponOption {
+            std::string name;
+            std::string path;
+            std::string id;
+            Texture2D texture{};
+            Rectangle source{0.f, 0.f, 0.f, 0.f};
+        };
+
+        std::vector<SkinOption> _skinOptions;
+        std::size_t _currentSkinIndex{0};
+        std::vector<WeaponOption> _weaponOptions;
+        std::size_t _currentWeaponIndex{0};
+        Vector2 _previewCenter{0.f, 0.f};
+        Vector2 _previewBounds{220.f, 140.f};
+        Vector2 _weaponPreviewCenter{0.f, 0.f};
+        Vector2 _weaponPreviewBounds{120.f, 70.f};
+        bool _ignoreInitialClick{false};
+        bool _hasConfirmedReady{false};
+
         void resetButtonStates();
-        
-        /**
-         * @brief Handles action button click events
-         * @param id Unique identifier of the clicked button
-         * 
-         * Processes clicks for ready/unready toggle, leave lobby,
-         * or other lobby interaction buttons.
-         */
         void handleButtonClick(std::string const &id);
-        
-        /**
-         * @brief Checks if the game can start based on current conditions
-         * @return True if all players are ready and minimum requirements are met
-         * 
-         * Validates that enough players are connected and all players
-         * have confirmed their ready status before allowing game start.
-         */
+        void loadSkinOptions();
+        void loadWeaponOptions();
+        void unloadSkinTextures();
+        void unloadWeaponTextures();
+        void selectSkin(std::size_t index);
+        void selectNextSkin();
+        void selectPreviousSkin();
+        void selectWeapon(std::size_t index);
+        void selectNextWeapon();
+        void selectPreviousWeapon();
+        void drawSkinPreview();
+        void drawWeaponPreview();
         bool canJoin();
 };
 
