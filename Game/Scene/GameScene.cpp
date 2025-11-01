@@ -11,53 +11,21 @@
 #include <tuple>
 #include <algorithm>
 #include <string>
-#include <filesystem>
+#include <nlohmann/json.hpp>
+#include "../../Engine/Utils/Include/serializer.hpp"
 #include <vector>
+#include "WeaponDefinition.hpp"
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
-        : AScene(1920, 1080, "Smash bros"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib) {
+        : AScene(1920, 1080, "R-Type"), _player(ecs::entity_t{0}), _game(game), _ui(*this, _registry, _raylib), _chat(_raylib) {
         _raylib = Raylib();
         _game_running = true;
         _startTime = 0.f;
     }
 
-    void GameScene::initialize_player_sprite_frames() {
-        _rightFrames.idle = Rectangle{15.f, 13.f, 104.f, 137.f};
-        _rightFrames.attack = Rectangle{145.f, 18.f, 112.f, 135.f};
-        _rightFrames.hit = Rectangle{274.f, 18.f, 113.f, 124.f};
-        _rightFrames.jump = Rectangle{405.f, 16.f, 113.f, 130.f};
-        _rightFrames.fall = _rightFrames.jump;
-
-        _leftFrames.idle = Rectangle{20.f, 172.f, 104.f, 138.f};
-        _leftFrames.attack = Rectangle{143.f, 177.f, 112.f, 135.f};
-        _leftFrames.hit = Rectangle{274.f, 178.f, 113.f, 123.f};
-        _leftFrames.jump = Rectangle{408.f, 171.f, 109.f, 139.f};
-        _leftFrames.fall = _leftFrames.jump;
-    }
-
-    const Rectangle &GameScene::get_player_source_rect(PlayerAnimState state, PlayerFacing facing) const {
-        static Rectangle fallback{0.f, 0.f, 0.f, 0.f};
-        const PlayerSpriteFrames &frames = (facing == PlayerFacing::Right) ? _rightFrames : _leftFrames;
-        switch (state) {
-            case PlayerAnimState::Idle:
-                return frames.idle.width > 0.f ? frames.idle : fallback;
-            case PlayerAnimState::Attack:
-                return frames.attack.width > 0.f ? frames.attack : fallback;
-            case PlayerAnimState::Hit:
-                return frames.hit.width > 0.f ? frames.hit : fallback;
-            case PlayerAnimState::Jump:
-                return frames.jump.width > 0.f ? frames.jump : fallback;
-            case PlayerAnimState::Fall:
-                return frames.fall.width > 0.f ? frames.fall : fallback;
-        }
-        return fallback;
-    }
-
     void GameScene::init() {
         _registry.clear();
-        initialize_player_sprite_frames();
-        _playerVisualStates.clear();
         _isOpen = true;
         _startTime = _raylib.getTime();
         _raylib.disableCursor();
@@ -85,7 +53,10 @@ namespace game::scene {
         _registry.register_component<component::hitbox_link>();
         _registry.register_component<component::type>();
         _registry.register_component<component::client_id>();
+        _registry.register_component<component::pattern_element>();
         _ui.init();
+        _chat.init();
+        _chat.setUsername(_game.getGameClient().getClientName());
         _game.getGameClient().sendSceneState(SceneState::GAME, &_registry);
 
         setup_movement_system();
@@ -96,20 +67,21 @@ namespace game::scene {
         game::entities::setup_hitbox_sync_system(_registry);
 
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
-        game::entities::create_sound(_registry, "../Game/Assets/sounds/Level11.mp3", 0.8f, true, true);
+        game::entities::create_sound(_registry, "../Game/Assets/sounds/BATTLE-PRESSURE.wav", 0.8f, true, true);
         
-        index_existing_entities();
-        load_entity_textures();
+        if (!processPendingFullRegistry()) {
+            std::cerr << "[WARN] Aucun full registry disponible lors de l'initialisation." << std::endl;
+        }
+        load_projectile_textures();
         load_music();
     }
 
     void GameScene::index_existing_entities() {
         _player = ecs::entity_t{0};
         _obstacles.clear();
-        _platforms.clear();
-        _decorations.clear();
+        _enemys.clear();
+        _elements.clear();
         _playerEntities.clear();
-        _playerVisualStates.clear();
 
         auto &types = _registry.get_components<component::type>();
         auto &clientIds = _registry.get_components<component::client_id>();
@@ -130,29 +102,56 @@ namespace game::scene {
                     }
                     break;
 
+                case component::entity_type::ENEMY:
+                    _enemys.push_back(entity);
+                    break;
+                case component::entity_type::RANDOM_ELEMENT:
+                    _elements.push_back(entity);
+                    break;
                 case component::entity_type::OBSTACLE:
                     _obstacles.push_back(entity);
-                    break;
-
-                case component::entity_type::PLATFORM:
-                    _platforms.push_back(entity);
-                    break;
-
-                case component::entity_type::DECORATION:
-                    _decorations.push_back(entity);
                     break;
 
                 default:
                     break;
             }
         }
+
+        std::cout << "[DEBUG] Indexed entities: "
+                << "Players=" << _playerEntities.size()
+                << ", Enemies=" << _enemys.size()
+                << ", Elements=" << _elements.size()
+                << ", Obstacles=" << _obstacles.size() << std::endl;
+    }
+
+    void GameScene::load_projectile_textures() {
+        _projectileTextures["player_missile"] = _raylib.loadTexture("../Game/Assets/sprites/r-typesheet1.png");
+        _projectileTextures["enemy_missile"] = _raylib.loadTexture("../Game/Assets/sprites/r-typesheet1.png");
     }
 
     void GameScene::load_entity_textures() {
         auto &sprites = _registry.get_components<component::sprite>();
+        auto &types = _registry.get_components<component::type>();
+        auto &clientIds = _registry.get_components<component::client_id>();
+
+        const std::string &selectedSkin = _game.getSelectedSkinPath();
+        uint32_t localClientId = _game.getGameClient().clientId;
 
         for (std::size_t i = 0; i < sprites.size(); ++i) {
-            if (sprites[i] && !sprites[i]->image_path.empty()) {
+            if (sprites[i]) {
+                if (!selectedSkin.empty() &&
+                    i < types.size() && types[i] &&
+                    types[i]->value == component::entity_type::PLAYER &&
+                    i < clientIds.size() && clientIds[i] &&
+                    clientIds[i]->id == localClientId &&
+                    sprites[i]->image_path != selectedSkin) {
+                    sprites[i]->image_path = selectedSkin;
+                }
+
+                if (sprites[i]->image_path.empty()) {
+                    continue;
+                }
+
                 ecs::entity_t entity = _registry.entity_from_index(i);
                 
                 if (_entityTextures.find(entity.value()) == _entityTextures.end()) {
@@ -168,6 +167,14 @@ namespace game::scene {
                 }
             }
         }
+    }
+
+    void GameScene::unload_projectile_textures() {
+        for (auto &pair : _projectileTextures) {
+            _raylib.unloadTexture(pair.second);
+        }
+        _projectileTextures.clear();
+        std::cout << "[DEBUG] Unloaded all projectile textures" << std::endl;
     }
 
     void GameScene::unload_entity_textures() {
@@ -206,80 +213,455 @@ namespace game::scene {
         return nullptr;
     }
 
-    void GameScene::update() {
-        if (!_game_running) return;
+void GameScene::update() {
+    if (!_game_running) return;
 
-        std::unordered_map<uint32_t, std::tuple<float, float, float>> netPlayers;
-        std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> netHealth;
-        {
-            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
-            netPlayers = _game.getGameClient().players;
-            netHealth = _game.getGameClient().playerHealth;
+    std::unordered_map<uint32_t, std::tuple<float, float, float>> netPlayers;
+    std::unordered_map<uint32_t, std::string> skinSelections;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netPlayers = _game.getGameClient().players;
+        skinSelections = _game.getGameClient().playerSkins;
+    }
+
+    for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
+        if (netPlayers.find(it->first) == netPlayers.end()) {
+            _registry.kill_entity(it->second);
+            it = _playerEntities.erase(it);
+        } else {
+            ++it;
         }
+    }
 
-        for (auto it = _playerEntities.begin(); it != _playerEntities.end(); ) {
-            if (netPlayers.find(it->first) == netPlayers.end()) {
-                _registry.kill_entity(it->second);
-                _playerVisualStates.erase(it->first);
-                it = _playerEntities.erase(it);
-            } else {
-                ++it;
+    auto &positions = _registry.get_components<component::position>();
+    const std::string &selectedSkinPath = _game.getSelectedSkinPath();
+    uint32_t myClientId = _game.getGameClient().clientId;
+    const std::string assetsPlayerDir = std::string(ASSETS_PATH) + "/sprites/player/";
+    const std::string fallbackPlayerSkin = assetsPlayerDir + "r-typesheet42.png";
+    for (auto const &kv : netPlayers) {
+        uint32_t id = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        auto f = _playerEntities.find(id);
+        if (f == _playerEntities.end()) {
+            bool isLocalPlayer = (id == myClientId);
+            std::string spritePath = fallbackPlayerSkin;
+            auto skinIt = skinSelections.find(id);
+            if (skinIt != skinSelections.end() && !skinIt->second.empty()) {
+                spritePath = assetsPlayerDir + skinIt->second;
+            }
+            if (isLocalPlayer && !selectedSkinPath.empty()) {
+                spritePath = selectedSkinPath;
+            }
+
+            ecs::entity_t e = game::entities::create_player(_registry, x, y, z, 32.f, 32.f, 0.f, spritePath, "", id);
+            _playerEntities.emplace(id, e);
+        } else {
+            ecs::entity_t e = f->second;
+            auto skinIt = skinSelections.find(id);
+            std::string desiredPath = fallbackPlayerSkin;
+            if (skinIt != skinSelections.end() && !skinIt->second.empty()) {
+                desiredPath = assetsPlayerDir + skinIt->second;
+            }
+            if (id == myClientId && !selectedSkinPath.empty()) {
+                desiredPath = selectedSkinPath;
+            }
+
+            auto &sprites = _registry.get_components<component::sprite>();
+            if (e.value() < sprites.size() && sprites[e.value()]) {
+                if (sprites[e.value()]->image_path != desiredPath && !desiredPath.empty()) {
+                    auto texIt = _entityTextures.find(e.value());
+                    if (texIt != _entityTextures.end()) {
+                        _raylib.unloadTexture(texIt->second);
+                        _entityTextures.erase(texIt);
+                    }
+                    sprites[e.value()]->image_path = desiredPath;
+                }
+            }
+
+            if (e.value() < positions.size() && positions[e.value()]) {
+                positions[e.value()]->x = x;
+                positions[e.value()]->y = y;
+                positions[e.value()]->z = z;
             }
         }
-
-        auto &positions = _registry.get_components<component::position>();
-        for (auto const &kv : netPlayers) {
-            uint32_t id = kv.first;
-            float x = std::get<0>(kv.second);
-            float y = std::get<1>(kv.second);
-            float z = std::get<2>(kv.second);
-            auto f = _playerEntities.find(id);
-            if (f == _playerEntities.end()) {
-                ecs::entity_t e = game::entities::create_player(_registry, x, y, z);
-                _playerEntities.emplace(id, e);
-                PlayerVisualState &visual = _playerVisualStates[id];
-                visual = PlayerVisualState{};
-                visual.facing = PlayerFacing::Right;
-                visual.previousPosition = Vector2{x, y};
-                visual.hasPrevious = true;
-                auto healthIt = netHealth.find(id);
-                if (healthIt != netHealth.end()) {
-                    visual.lastKnownHealth = healthIt->second.first;
-                }
-            } else {
-                ecs::entity_t e = f->second;
-                if (e.value() < positions.size() && positions[e.value()]) {
-                    positions[e.value()]->x = x;
-                    positions[e.value()]->y = y;
-                    positions[e.value()]->z = z;
-                }
-                auto &visual = _playerVisualStates[id];
-                if (!visual.hasPrevious) {
-                    visual.previousPosition = Vector2{x, y};
-                    visual.hasPrevious = true;
-                }
-                auto healthIt = netHealth.find(id);
-                if (healthIt != netHealth.end() && visual.lastKnownHealth < 0) {
-                    visual.lastKnownHealth = healthIt->second.first;
-                }
-            }
+    }
+    
+    auto myPlayerIt = _playerEntities.find(myClientId);
+    if (myPlayerIt != _playerEntities.end())
+        _player = myPlayerIt->second;
+    
+    auto &pp = _registry.get_components<component::previous_position>();
+    for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) {
+        if (positions[i] && pp[i]) {
+            pp[i]->x = positions[i]->x; 
+            pp[i]->y = positions[i]->y;
+            pp[i]->z = positions[i]->z;
         }
+    }
+
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> netEnemies;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netEnemies = _game.getGameClient().enemies;
+    }
+
+    for (auto it = _enemyMap.begin(); it != _enemyMap.end(); ) {
+        uint32_t serverId = it->first;
         
-        uint32_t myClientId = _game.getGameClient().clientId;
-        auto myPlayerIt = _playerEntities.find(myClientId);
-        if (myPlayerIt != _playerEntities.end())
-            _player = myPlayerIt->second;
+        if (netEnemies.find(serverId) == netEnemies.end()) {
+            ecs::entity_t clientEntity = it->second;
+            _registry.kill_entity(clientEntity);
+            _enemys.erase(
+                std::remove(_enemys.begin(), _enemys.end(), clientEntity),
+                _enemys.end()
+            );
+            it = _enemyMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    auto &velocities = _registry.get_components<component::velocity>();
+
+    for (auto const &kv : netEnemies) {
+        uint32_t serverId = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        float vz = std::get<5>(kv.second);
+        float width = std::get<6>(kv.second);
+        float height = std::get<7>(kv.second);
         
-        auto &pp = _registry.get_components<component::previous_position>();
-        for (std::size_t i = 0; i < positions.size() && i < pp.size(); ++i) {
-            if (positions[i] && pp[i]) {
-                pp[i]->x = positions[i]->x; 
-                pp[i]->y = positions[i]->y;
-                pp[i]->z = positions[i]->z;
+        auto it = _enemyMap.find(serverId);
+        
+        if (it == _enemyMap.end()) {
+            std::string spritePath = "../Game/Assets/sprites/ennemies/r-typesheet19.png";
+            
+            auto spriteIt = _enemySpriteMap.find(serverId);
+            if (spriteIt != _enemySpriteMap.end()) {
+                spritePath = spriteIt->second;
+            }
+            ecs::entity_t newEnemy = game::entities::create_enemy(_registry, x, y, z, spritePath, width, height);
+            _enemyMap.emplace(serverId, newEnemy);
+            _enemys.push_back(newEnemy);
+            if (newEnemy.value() < positions.size() && positions[newEnemy.value()]) {
+                positions[newEnemy.value()]->x = x;
+                positions[newEnemy.value()]->y = y;
+                positions[newEnemy.value()]->z = z;
+            }
+            if (newEnemy.value() < velocities.size() && velocities[newEnemy.value()]) {
+                velocities[newEnemy.value()]->vx = vx;
+                velocities[newEnemy.value()]->vy = vy;
+                velocities[newEnemy.value()]->vz = vz;
+            }
+        } else {
+            ecs::entity_t clientEnemy = it->second;
+            if (clientEnemy.value() < positions.size() && positions[clientEnemy.value()]) {
+                positions[clientEnemy.value()]->x = x;
+                positions[clientEnemy.value()]->y = y;
+                positions[clientEnemy.value()]->z = z;
+            }
+            if (clientEnemy.value() < velocities.size() && velocities[clientEnemy.value()]) {
+                velocities[clientEnemy.value()]->vx = vx;
+                velocities[clientEnemy.value()]->vy = vy;
+                velocities[clientEnemy.value()]->vz = vz;
             }
         }
-        update_player_visual_states(netPlayers, netHealth, 1.f / 60.f);
-        _registry.run_systems();
+    }
+
+    std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float, float>> netObstacles;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netObstacles = _game.getGameClient().obstacles;
+    }
+
+    for (auto it = _obstacleMap.begin(); it != _obstacleMap.end(); ) {
+        uint32_t serverId = it->first;
+        
+        if (netObstacles.find(serverId) == netObstacles.end()) {
+            ecs::entity_t clientEntity = it->second;
+            _registry.kill_entity(clientEntity);
+            _obstacles.erase(
+                std::remove(_obstacles.begin(), _obstacles.end(), clientEntity),
+                _obstacles.end()
+            );
+            it = _obstacleMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto const &kv : netObstacles) {
+        uint32_t serverId = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        float width = std::get<3>(kv.second);
+        float height = std::get<4>(kv.second);
+        float depth = std::get<5>(kv.second);
+        float vx = std::get<6>(kv.second);
+        float vy = std::get<7>(kv.second);
+        float vz = std::get<8>(kv.second);
+        
+        auto it = _obstacleMap.find(serverId);
+        
+        if (it == _obstacleMap.end()) {
+            std::string spritePath = "../Game/Assets/sprites/obstacles/default_obstacle.png";
+            
+            auto spriteIt = _obstacleSpriteMap.find(serverId);
+            if (spriteIt != _obstacleSpriteMap.end()) {
+                spritePath = spriteIt->second;
+            }
+            
+            ecs::entity_t newObstacle = game::entities::create_obstacle(
+                _registry, x, y, z, spritePath, "", vx, width, height
+            );
+            
+            _obstacleMap.emplace(serverId, newObstacle);
+            _obstacles.push_back(newObstacle);
+            
+            if (newObstacle.value() < positions.size() && positions[newObstacle.value()]) {
+                positions[newObstacle.value()]->x = x;
+                positions[newObstacle.value()]->y = y;
+                positions[newObstacle.value()]->z = z;
+            }
+            if (newObstacle.value() < velocities.size() && velocities[newObstacle.value()]) {
+                velocities[newObstacle.value()]->vx = vx;
+                velocities[newObstacle.value()]->vy = vy;
+                velocities[newObstacle.value()]->vz = vz;
+            }
+        } else {
+            ecs::entity_t clientObstacle = it->second;
+
+            if (clientObstacle.value() < velocities.size() && velocities[clientObstacle.value()]) {
+                velocities[clientObstacle.value()]->vx = vx;
+                velocities[clientObstacle.value()]->vy = vy;
+                velocities[clientObstacle.value()]->vz = vz;
+            }
+        }
+    }
+
+       std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, float, float>> netElements;
+    {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        netElements = _game.getGameClient().elements;
+    }
+
+    if (!netElements.empty() && _elementMap.empty()) {
+        std::cout << "[DEBUG] Received " << netElements.size() << " elements from network" << std::endl;
+    }
+
+    for (auto it = _elementMap.begin(); it != _elementMap.end(); ) {
+        uint32_t serverId = it->first;
+        
+        if (netElements.find(serverId) == netElements.end()) {
+            ecs::entity_t clientEntity = it->second;
+            std::cout << "[DEBUG] Removing element serverId=" << serverId << std::endl;
+            _registry.kill_entity(clientEntity);
+            _elements.erase(
+                std::remove(_elements.begin(), _elements.end(), clientEntity),
+                _elements.end()
+            );
+            it = _elementMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto const &kv : netElements) {
+        uint32_t serverId = kv.first;
+        float x = std::get<0>(kv.second);
+        float y = std::get<1>(kv.second);
+        float z = std::get<2>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        float vz = std::get<5>(kv.second);
+        float width = std::get<6>(kv.second);
+        float height = std::get<7>(kv.second);
+        
+        auto it = _elementMap.find(serverId);
+        
+        if (it == _elementMap.end()) {
+            std::string spritePath = "";
+
+            auto spriteIt = _elementSpriteMap.find(serverId);
+            if (spriteIt != _elementSpriteMap.end()) {
+                spritePath = spriteIt->second;
+            }
+            
+            ecs::entity_t newElement = game::entities::create_random_element(
+                _registry, x, y, z, spritePath, width, height, "powerup", 0.0f
+            );
+
+            auto texIt = _entityTextures.find(newElement.value());
+            if (texIt != _entityTextures.end()) {
+                std::cout << "[DEBUG] Clearing old texture for entity " << newElement.value() << std::endl;
+                _raylib.unloadTexture(texIt->second);
+                _entityTextures.erase(texIt);
+            }
+            
+            _elementMap.emplace(serverId, newElement);
+            _elements.push_back(newElement);
+                
+            if (newElement.value() < positions.size() && positions[newElement.value()]) {
+                positions[newElement.value()]->x = x;
+                positions[newElement.value()]->y = y;
+                positions[newElement.value()]->z = z;
+            }
+            if (newElement.value() < velocities.size() && velocities[newElement.value()]) {
+                velocities[newElement.value()]->vx = vx;
+                velocities[newElement.value()]->vy = vy;
+                velocities[newElement.value()]->vz = vz;
+            }
+        } else {
+            ecs::entity_t clientElement = it->second;
+            if (clientElement.value() < positions.size() && positions[clientElement.value()]) {
+                positions[clientElement.value()]->x = x;
+                positions[clientElement.value()]->y = y;
+                positions[clientElement.value()]->z = z;
+            }
+            if (clientElement.value() < velocities.size() && velocities[clientElement.value()]) {
+                velocities[clientElement.value()]->vx = vx;
+                velocities[clientElement.value()]->vy = vy;
+                velocities[clientElement.value()]->vz = vz;
+            }
+        }
+    }
+
+    _registry.run_systems();
+}
+
+    void GameScene::clearLevelEntitiesForReload() {
+        auto &types = _registry.get_components<component::type>();
+        std::vector<ecs::entity_t> toKill;
+
+        for (std::size_t i = 0; i < types.size(); ++i) {
+            if (!types[i])
+                continue;
+
+            switch (types[i]->value) {
+                case component::entity_type::ENEMY:
+                case component::entity_type::OBSTACLE:
+                case component::entity_type::PROJECTILE:
+                case component::entity_type::RANDOM_ELEMENT:
+                case component::entity_type::BACKGROUND:
+                case component::entity_type::PLAYER:
+                    toKill.push_back(_registry.entity_from_index(i));
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        for (auto entity : toKill) {
+            auto texIt = _entityTextures.find(entity.value());
+            if (texIt != _entityTextures.end()) {
+                _raylib.unloadTexture(texIt->second);
+                _entityTextures.erase(texIt);
+            }
+            _registry.kill_entity(entity);
+        }
+
+        _enemyMap.clear();
+        _obstacleMap.clear();
+        _elementMap.clear();
+        _enemys.clear();
+        _obstacles.clear();
+        _elements.clear();
+        _playerEntities.clear();
+        moovePlayer.clear();
+        _player = ecs::entity_t{0};
+    }
+
+    void GameScene::removeEntitiesOfType(component::entity_type type) {
+        auto &types = _registry.get_components<component::type>();
+        std::vector<ecs::entity_t> toKill;
+
+        for (std::size_t i = 0; i < types.size(); ++i) {
+            if (types[i] && types[i]->value == type) {
+                toKill.push_back(_registry.entity_from_index(i));
+            }
+        }
+
+        for (auto entity : toKill) {
+            auto texIt = _entityTextures.find(entity.value());
+            if (texIt != _entityTextures.end()) {
+                _raylib.unloadTexture(texIt->second);
+                _entityTextures.erase(texIt);
+            }
+            _registry.kill_entity(entity);
+        }
+    }
+
+    void GameScene::buildSpriteMapsFromRegistry(const nlohmann::json &registryJson) {
+        _enemySpriteMap.clear();
+        _obstacleSpriteMap.clear();
+        _elementSpriteMap.clear();
+
+        if (registryJson.is_null())
+            return;
+
+        const nlohmann::json &entities = registryJson.contains("entities")
+            ? registryJson.at("entities")
+            : registryJson;
+
+        if (!entities.is_array())
+            return;
+
+        for (const auto &entity : entities) {
+            if (!entity.contains("entity_id") || !entity.contains("type"))
+                continue;
+
+            uint32_t serverEntityId = entity.at("entity_id").get<uint32_t>();
+            int typeValue = entity.at("type").get<int>();
+            auto imageIt = entity.find("image_path");
+            if (imageIt == entity.end() || !imageIt->is_string())
+                continue;
+
+            std::string imagePath = imageIt->get<std::string>();
+
+            switch (static_cast<component::entity_type>(typeValue)) {
+                case component::entity_type::ENEMY:
+                    if (!imagePath.empty())
+                        _enemySpriteMap[serverEntityId] = imagePath;
+                    break;
+                case component::entity_type::OBSTACLE:
+                    if (!imagePath.empty())
+                        _obstacleSpriteMap[serverEntityId] = imagePath;
+                    break;
+                case component::entity_type::RANDOM_ELEMENT:
+                    if (!imagePath.empty())
+                        _elementSpriteMap[serverEntityId] = imagePath;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    bool GameScene::processPendingFullRegistry() {
+        auto registryOpt = _game.getGameClient().consumeFullRegistry();
+        if (!registryOpt.has_value())
+            return false;
+
+        const nlohmann::json &fullRegistry = registryOpt.value();
+
+        if (_hasLevelData) {
+            clearLevelEntitiesForReload();
+            game::serializer::deserialize_entities(_registry, fullRegistry);
+        }
+
+        buildSpriteMapsFromRegistry(fullRegistry);
+        removeEntitiesOfType(component::entity_type::ENEMY);
+        removeEntitiesOfType(component::entity_type::OBSTACLE);
+        load_entity_textures();
+        index_existing_entities();
+        _hasLevelData = true;
+        return true;
     }
 
     void GameScene::render() {
@@ -287,18 +669,29 @@ namespace game::scene {
         _raylib.clearBackground(GRAY);
         if (!_isWin)
             _isDead = (_game.getGameClient().players.find(_game.getGameClient().clientId) == _game.getGameClient().players.end());
-        _isWin = (30 <= _game.getGameClient().globalScore);
+        _isWin = _isWin = _game.getGameClient().bossDefeated.load();
+        _lastBoss = _game.getGameClient()._lastBoss;
         
         _raylib.updateMusicStream(_music);
         render_entities();
-        render_network_obstacles();
+        render_network_projectiles();
+        render_network_enemy_projectiles();
         
         _ui.render();
         if (_isDead) {
             render_death_screen();
-        } else if (_isWin) {
+        } else if (_isWin && !_lastBoss) {
             render_win_screen();
+        } else if (_isWin && _lastBoss) {
+            render_final_win_screen();
         }
+        {
+            auto newMessages = _game.getGameClient().consumeChatMessages();
+            for (auto &msg : newMessages) {
+                _chat.addMessage(msg.first, msg.second);
+            }
+        }
+        _chat.render();
         if (_isDead && !_defeatSoundPlayed) {
             _raylib.stopMusicStream(_music);
             if (_game.isSoundEnabled()) {
@@ -312,8 +705,31 @@ namespace game::scene {
                 _raylib.playSound(_victorySound);
             }
             _victorySoundPlayed = true;
+            _victoryStartTime = _raylib.getTime();
+            _stopShoot = true;
         }
-        render_player_portrait();
+
+        if (_isWin && _victorySoundPlayed) {
+            float currentTime = _raylib.getTime();
+            float timeSinceVictory = currentTime - _victoryStartTime;
+            
+            if (timeSinceVictory >= 6.0f && !_lastBoss) {
+                _isWin = false;
+                _stopShoot = false;
+                _victorySoundPlayed = false;
+                _game.getGameClient().bossDefeated.store(false);
+                _levelReloadPending = true;
+            }
+        }
+
+        if (_levelReloadPending) {
+            if (processPendingFullRegistry()) {
+                _levelReloadPending = false;
+                if (_game.isSoundEnabled()) {
+                    _raylib.playMusicStream(_music);
+                }
+            }
+        }
         _raylib.endDrawing();
     }
 
@@ -331,39 +747,29 @@ namespace game::scene {
             }
         }
         
-        std::vector<std::size_t> playerIndices;
-        playerIndices.reserve(types.size());
-
         for (std::size_t i = 0; i < positions.size() && i < drawables.size() && i < types.size(); ++i) {
             if (!positions[i] || !drawables[i] || !types[i]) continue;
 
             ecs::entity_t entity = _registry.entity_from_index(i);
 
             switch (types[i]->value) {
-                case component::entity_type::DECORATION:
-                    render_decoration(entity, *positions[i], *drawables[i]);
-                    break;
-                case component::entity_type::PLATFORM:
-                    render_platform(entity, *positions[i], *drawables[i]);
-                    break;
                 case component::entity_type::OBSTACLE:
                     render_obstacle(entity, *positions[i], *drawables[i]);
                     break;
-                case component::entity_type::POWERUP:
+                case component::entity_type::ENEMY:
+                    render_enemy(entity, *positions[i], *drawables[i]);
+                    break;
+                case component::entity_type::RANDOM_ELEMENT:
                     render_powerup(entity, *positions[i], *drawables[i]);
                     break;
+                case component::entity_type::PROJECTILE:
+                    render_projectile(entity, *positions[i], *drawables[i]);
+                    break;
                 case component::entity_type::PLAYER:
-                    playerIndices.push_back(i);
+                    render_player(entity, *positions[i], *drawables[i]);
                     break;
                 default:
                     break;
-            }
-        }
-
-        for (std::size_t idx : playerIndices) {
-            if (idx < positions.size() && positions[idx] && idx < drawables.size() && drawables[idx]) {
-                ecs::entity_t entity = _registry.entity_from_index(idx);
-                render_player(entity, *positions[idx], *drawables[idx]);
             }
         }
     }
@@ -396,69 +802,116 @@ namespace game::scene {
         _raylib.setSoundVolume(_defeatSound, 0.8f);
     }
 
+    void GameScene::render_network_projectiles() {
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>>  projs;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            projs = _game.getGameClient().projectiles;
+        }
+        
+        auto it = _projectileTextures.find("player_missile");
+        bool hasTexture = (it != _projectileTextures.end());
+        
+        for (auto &kv : projs) {
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
+            
+            if (hasTexture) {
+                Texture2D &texture = it->second;
+                
+                Rectangle sourceRec = {
+                    170.0f, 135.0f, 50.0f, 15.0f 
+                };
+                
+                Rectangle destRec = {
+                    x - 23.0f, y - 5.0f, 50.0f, 15.0f
+                };
+                
+                Vector2 origin = {0.0f, 0.0f};
+                float rotation = 0.0f;
+                
+                _raylib.drawTexturePro(texture, sourceRec, destRec, origin, rotation, WHITE);
+            } else {
+                _raylib.drawRectangle((int)(x - 8), (int)(y - 2), 16, 5, WHITE);
+            }
+        }
+    }
+
     void GameScene::render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
         Texture2D* texture = get_entity_texture(entity);
 
-        uint32_t clientId = 0;
-        for (auto const &kv : _playerEntities) {
-            if (kv.second == entity) {
-                clientId = kv.first;
-                break;
-            }
-        }
-
-        const PlayerVisualState *visualState = nullptr;
-        if (clientId != 0) {
-            auto it = _playerVisualStates.find(clientId);
-            if (it != _playerVisualStates.end()) {
-                visualState = &it->second;
-            }
-        }
-
         if (texture != nullptr) {
-            auto &sprites = _registry.get_components<component::sprite>();
-            const component::sprite *spriteComp = nullptr;
-            if (entity.value() < sprites.size()) {
-                auto &spriteOpt = sprites[entity.value()];
-                if (spriteOpt.has_value()) {
-                    spriteComp = &spriteOpt.value();
+            uint32_t clientId = 0;
+            for (auto const &kv : _playerEntities) {
+                if (kv.second == entity) {
+                    clientId = kv.first;
+                    break;
                 }
             }
-
-            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
-            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
-
-            Rectangle sourceRec;
-            bool hasCustomRect = false;
-            if (visualState) {
-                PlayerFacing renderFacing = visualState->facing;
-                if (visualState->state == PlayerAnimState::Hit) {
-                    renderFacing = (visualState->facing == PlayerFacing::Right)
-                        ? PlayerFacing::Left
-                        : PlayerFacing::Right;
-                }
-                const Rectangle &candidate = get_player_source_rect(visualState->state, renderFacing);
-                if (candidate.width > 0.f && candidate.height > 0.f) {
-                    sourceRec = candidate;
-                    hasCustomRect = true;
-                }
+            float spriteOffsetX = 0.0f;
+            if (moovePlayer.find(clientId) != moovePlayer.end()) {
+                spriteOffsetX = moovePlayer[clientId];
             }
-            if (!hasCustomRect) {
-                sourceRec = Rectangle{0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
-            }
-
-            float baseWidth = (draw.width > 0.0f) ? draw.width : sourceRec.width;
-            float baseHeight = (draw.height > 0.0f) ? draw.height : sourceRec.height;
-            float destWidth = baseWidth * scale;
-            float destHeight = baseHeight * scale;
-
-            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
-
+            float spriteOffsetY = 0.0f + (17.0f * (clientId % 4));
+            Rectangle sourceRec = {66.0f + spriteOffsetX, spriteOffsetY, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), (float)_width / 40.0f, (float)_height / 40.0f};
             Vector2 origin = {0.0f, 0.0f};
+            
+            auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
+            float scale = 1.0f;
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                scale = sprites[entity.value()]->scale;
+                rotation = sprites[entity.value()]->rotation;
+            }
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
-            Color playerColor = get_color_for_id(clientId);
+            uint32_t idForColor = 0;
+            for (auto const &kv : _playerEntities) {
+                if (kv.second == entity) {
+                    idForColor = kv.first;
+                    break;
+                }
+            }
+            Color playerColor = get_color_for_id(idForColor);
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, playerColor);
+        }
+    }
+
+    void GameScene::render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
+        Texture2D* texture = get_entity_texture(entity);
+
+        static std::unordered_map<uint32_t, float> spriteOffsets;
+        static std::unordered_map<uint32_t, float> lastFrameTime;
+        
+        if (texture != nullptr) {
+            uint32_t entityId = entity.value();
+            if (spriteOffsets.find(entityId) == spriteOffsets.end()) {
+                spriteOffsets[entityId] = 0.0f;
+                lastFrameTime[entityId] = 0.0f;
+            }
+            float currentTime = _raylib.getTime();
+            const float FRAME_DURATION = 0.3f;
+            const int NUM_FRAMES = 3;
+            if (currentTime - lastFrameTime[entityId] >= FRAME_DURATION) {
+                spriteOffsets[entityId] += draw.width;
+                if (spriteOffsets[entityId] >= draw.width * NUM_FRAMES) {
+                    spriteOffsets[entityId] = 0.0f;
+                }
+                lastFrameTime[entityId] = currentTime;
+            }
+            Rectangle sourceRec = {spriteOffsets[entityId], 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Vector2 origin = {0.0f, 0.0f};
+            
+            auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+        } else {
+            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, YELLOW);
         }
     }
 
@@ -466,83 +919,18 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            auto &sprites = _registry.get_components<component::sprite>();
-            const component::sprite *spriteComp = nullptr;
-            if (entity.value() < sprites.size()) {
-                auto &spriteOpt = sprites[entity.value()];
-                if (spriteOpt.has_value()) {
-                    spriteComp = &spriteOpt.value();
-                }
-            }
-            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
-            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
-
-            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
-            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
-
-            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
-            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-
+            
+            auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
             _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GRAY);
-        }
-    }
-
-    void GameScene::render_platform(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
-        Texture2D* texture = get_entity_texture(entity);
-
-        if (texture != nullptr) {
-            auto &sprites = _registry.get_components<component::sprite>();
-            const component::sprite *spriteComp = nullptr;
-            if (entity.value() < sprites.size()) {
-                auto &spriteOpt = sprites[entity.value()];
-                if (spriteOpt.has_value()) {
-                    spriteComp = &spriteOpt.value();
-                }
-            }
-            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
-            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
-
-            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
-            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
-
-            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
-            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
-            Vector2 origin = {0.0f, 0.0f};
-
-            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
-        } else {
-            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, BROWN);
-        }
-    }
-
-    void GameScene::render_decoration(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
-        Texture2D* texture = get_entity_texture(entity);
-
-        if (texture != nullptr) {
-            auto &sprites = _registry.get_components<component::sprite>();
-            const component::sprite *spriteComp = nullptr;
-            if (entity.value() < sprites.size()) {
-                auto &spriteOpt = sprites[entity.value()];
-                if (spriteOpt.has_value()) {
-                    spriteComp = &spriteOpt.value();
-                }
-            }
-            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
-            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
-
-            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
-            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
-
-            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
-            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
-            Vector2 origin = {0.0f, 0.0f};
-
-            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
-        } else {
-            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, PURPLE);
         }
     }
 
@@ -550,38 +938,61 @@ namespace game::scene {
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
-            Rectangle destRec = {0.0f, 0.0f, (float)_width, (float)_height};
+            _backgroundScrollX -= 0.2f;
+            if (_backgroundScrollX <= -(float)_width)
+                _backgroundScrollX = 0.0f;
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {_backgroundScrollX, 0.0f, (float)_width, (float)_height};
             Vector2 origin = {0.0f, 0.0f};
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, 0.0f, WHITE);
+            Rectangle destRec2 = {_backgroundScrollX + _width, 0.0f, (float)_width, (float)_height};
+            _raylib.drawTexturePro(*texture, sourceRec, destRec2, origin, 0.0f, WHITE);
         }
     }
 
     void GameScene::render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
+        
         Texture2D* texture = get_entity_texture(entity);
 
         if (texture != nullptr) {
-            auto &sprites = _registry.get_components<component::sprite>();
-            const component::sprite *spriteComp = nullptr;
-            if (entity.value() < sprites.size()) {
-                auto &spriteOpt = sprites[entity.value()];
-                if (spriteOpt.has_value()) {
-                    spriteComp = &spriteOpt.value();
-                }
-            }
-            float scale = (spriteComp && spriteComp->scale > 0.0f) ? spriteComp->scale : 1.0f;
-            float rotation = spriteComp ? spriteComp->rotation : 0.0f;
-
-            float destWidth = draw.width > 0.0f ? draw.width * scale : static_cast<float>(texture->width) * scale;
-            float destHeight = draw.height > 0.0f ? draw.height * scale : static_cast<float>(texture->height) * scale;
-
-            Rectangle sourceRec = {0.0f, 0.0f, static_cast<float>(texture->width), static_cast<float>(texture->height)};
-            Rectangle destRec = {pos.x - (destWidth / 2.0f), pos.y - (destHeight / 2.0f), destWidth, destHeight};
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
             Vector2 origin = {0.0f, 0.0f};
-
+            
+            auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
             _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
         } else {
-            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, GOLD);
+            std::cout << "[WARNING] Element has NO texture, drawing fallback rectangle" << std::endl;
+            _raylib.drawRectangle(
+                (int)(pos.x - draw.width / 2), 
+                (int)(pos.y - draw.height / 2), 
+                (int)draw.width, 
+                (int)draw.height, 
+                GOLD
+            );            
+        }
+    }
+
+    void GameScene::render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw) {
+        Texture2D* texture = get_entity_texture(entity);
+
+        if (texture != nullptr) {
+            Rectangle sourceRec = {0.0f, 0.0f, (float)draw.width, (float)draw.height};
+            Rectangle destRec = {pos.x - (draw.width / 2), pos.y - (draw.height / 2), draw.width, draw.height};
+            Vector2 origin = {0.0f, 0.0f};
+            
+            auto &sprites = _registry.get_components<component::sprite>();
+            float rotation = 0.0f;
+            if (entity.value() < sprites.size() && sprites[entity.value()]) {
+                rotation = sprites[entity.value()]->rotation;
+            }
+            _raylib.drawTexturePro(*texture, sourceRec, destRec, origin, rotation, WHITE);
+        } else {
+            _raylib.drawRectangle((int)(pos.x - draw.width / 2), (int)(pos.y - draw.height / 2), (int)draw.width, (int)draw.height, YELLOW);
         }
     }
 
@@ -601,11 +1012,50 @@ namespace game::scene {
         }
     }
 
+    void GameScene::render_network_enemy_projectiles() {
+        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjs;
+        {
+            std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+            enemyProjs = _game.getGameClient().enemyProjectiles;
+        }
+        
+        auto it = _projectileTextures.find("enemy_missile");
+        bool hasTexture = (it != _projectileTextures.end());
+        
+        for (auto &kv : enemyProjs) {
+            float x = std::get<0>(kv.second);
+            float y = std::get<1>(kv.second);
+            
+            if (hasTexture) {
+                Texture2D &texture = it->second;
+                
+                Rectangle sourceRec = {
+                    170.0f, 135.0f, 50.0f, 15.0f 
+                };
+                
+                Rectangle destRec = {
+                    x - 23.0f, y - 5.0f, 50.0f, 15.0f
+                };
+                
+                Vector2 origin = {0.0f, 0.0f};
+                float rotation = 180.0f;
+                
+                _raylib.drawTexturePro(texture, sourceRec, destRec, origin, rotation, RED);
+            } else {
+                _raylib.drawRectangle((int)(x - 8), (int)(y - 2), 16, 5, RED);
+            }
+        }
+    }
+
     void GameScene::render_death_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{255, 0, 0, 100});
         bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+        bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
-        const char* deathText = isFrench ? "VOUS ÊTES MORT!" : "YOU DIED!";
+        const char* deathText = 
+            isFrench ? "VOUS ÊTES MORT!" :
+            isItalian ? "SEI MORTO!"
+            : "YOU ARE DEAD!";
         int fontSize = 72;
         int textWidth = _raylib.measureText(deathText, fontSize);
         _raylib.drawText(
@@ -619,8 +1069,13 @@ namespace game::scene {
 
     void GameScene::render_win_screen() {
         _raylib.drawRectangle(0, 0, _width, _height, Color{0, 255, 0, 100});
-        
-        const char* winText = "YOU WIN!";
+        bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
+        bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
+
+        const char* winText = 
+            isFrench ? "NIVEAU TERMINÉ !" :
+            isItalian ? "LIVELLO SUPERATO !"
+            : "LEVEL CLEARED !";
         int fontSize = 72;
         int textWidth = _raylib.measureText(winText, fontSize);
         _raylib.drawText(
@@ -632,6 +1087,21 @@ namespace game::scene {
         );
     }
 
+    void GameScene::render_final_win_screen() {
+        _raylib.drawRectangle(0, 0, _width, _height, Color{255, 255, 0, 100});
+        
+        const char* winText = "YOU WIN!";
+        int fontSize = 72;
+        int textWidth = _raylib.measureText(winText, fontSize);
+        _raylib.drawText(
+            winText,
+            (_width - textWidth) / 2,
+            _height / 2 - fontSize / 2,
+            fontSize,
+            YELLOW
+        );
+    }
+
     Color GameScene::get_color_for_id(uint32_t id) {
         static Color palette[] = {
             RAYWHITE, BLUE, GREEN, YELLOW, ORANGE,
@@ -640,202 +1110,10 @@ namespace game::scene {
         return palette[id % (sizeof(palette)/sizeof(palette[0]))];
     }
 
-    void GameScene::render_player_portrait() {
-        uint32_t myClientId = _game.getGameClient().clientId;
-        if (myClientId == 0)
-            return;
-
-        auto entityIt = _playerEntities.find(myClientId);
-        if (entityIt == _playerEntities.end())
-            return;
-
-        ecs::entity_t entity = entityIt->second;
-        Texture2D* texture = get_entity_texture(entity);
-        if (texture == nullptr)
-            return;
-
-        PlayerFacing facing = PlayerFacing::Right;
-        auto visualIt = _playerVisualStates.find(myClientId);
-        if (visualIt != _playerVisualStates.end()) {
-            facing = visualIt->second.facing;
-        }
-
-        Rectangle sourceRec = get_player_source_rect(PlayerAnimState::Idle, facing);
-        if (sourceRec.width <= 0.f || sourceRec.height <= 0.f) {
-            sourceRec = {
-                0.f,
-                0.f,
-                static_cast<float>(texture->width),
-                static_cast<float>(texture->height)
-            };
-        }
-
-        const float outerRadius = 40.f;
-        const float innerRadius = 34.f;
-        Vector2 center = {
-            outerRadius + 28.f,
-            outerRadius + 28.f
-        };
-
-        _raylib.drawCircle(static_cast<int>(center.x), static_cast<int>(center.y), outerRadius, Color{20, 28, 46, 200});
-        _raylib.drawCircle(static_cast<int>(center.x), static_cast<int>(center.y), innerRadius, Color{8, 12, 20, 255});
-
-        const float targetDiameter = innerRadius * 1.5f;
-        float scale = 1.f;
-        if (sourceRec.width > 0.f && sourceRec.height > 0.f) {
-            float fitW = targetDiameter / sourceRec.width;
-            float fitH = targetDiameter / sourceRec.height;
-            scale = std::min(fitW, fitH);
-        }
-
-        Rectangle destRec = {
-            center.x - (sourceRec.width * scale) / 2.f,
-            center.y - (sourceRec.height * scale) / 2.f,
-            sourceRec.width * scale,
-            sourceRec.height * scale
-        };
-
-        _raylib.drawTexturePro(*texture, sourceRec, destRec, {0.f, 0.f}, 0.f, WHITE);
-    }
-
-    void GameScene::update_player_visual_states(
-        const std::unordered_map<uint32_t, std::tuple<float, float, float>> &netPlayers,
-        const std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> &netHealth,
-        float dt) {
-
-        float effectiveDt = (dt > 0.0001f) ? dt : (1.f / 60.f);
-        constexpr float horizontalEpsilon = 1.0f;
-        constexpr float jumpVelocityThreshold = 140.f;
-        constexpr float fallVelocityThreshold = 140.f;
-        constexpr float landingVelocityThreshold = 40.f;
-        constexpr float landingDisplacementThreshold = 0.6f;
-        constexpr float airborneHoldTime = 0.08f;
-        constexpr float hitDisplayTime = 0.45f;
-
-        for (auto it = _playerVisualStates.begin(); it != _playerVisualStates.end(); ) {
-            if (netPlayers.find(it->first) == netPlayers.end()) {
-                it = _playerVisualStates.erase(it);
-            } else {
-                ++it;
-            }
-        }
-
-        for (auto const &kv : netPlayers) {
-            uint32_t id = kv.first;
-            float x = std::get<0>(kv.second);
-            float y = std::get<1>(kv.second);
-
-            PlayerVisualState &visual = _playerVisualStates[id];
-            Vector2 currentPos{x, y};
-
-            if (!visual.hasPrevious) {
-                visual.previousPosition = currentPos;
-                visual.hasPrevious = true;
-            }
-
-            float dx = currentPos.x - visual.previousPosition.x;
-            float dy = currentPos.y - visual.previousPosition.y;
-            float vy = dy / effectiveDt;
-
-            if (dx > horizontalEpsilon)
-                visual.facing = PlayerFacing::Right;
-            else if (dx < -horizontalEpsilon)
-                visual.facing = PlayerFacing::Left;
-
-            visual.verticalVelocity = vy;
-
-            auto healthIt = netHealth.find(id);
-            if (healthIt != netHealth.end()) {
-                int currentHealth = healthIt->second.first;
-                if (visual.lastKnownHealth >= 0 && currentHealth < visual.lastKnownHealth) {
-                    visual.hitTimer = hitDisplayTime;
-                    visual.attackTimer = 0.f;
-                }
-                visual.lastKnownHealth = currentHealth;
-            }
-
-            if (visual.hitTimer > 0.f) {
-                visual.hitTimer = std::max(0.f, visual.hitTimer - effectiveDt);
-            }
-            if (visual.attackTimer > 0.f) {
-                visual.attackTimer = std::max(0.f, visual.attackTimer - effectiveDt);
-            }
-
-            PlayerAnimState newState = visual.state;
-            if (visual.hitTimer > 0.f) {
-                newState = PlayerAnimState::Hit;
-            } else if (visual.attackTimer > 0.f) {
-                newState = PlayerAnimState::Attack;
-            } else {
-                bool goingUp = vy < -jumpVelocityThreshold;
-                bool goingDown = vy > fallVelocityThreshold;
-                bool slowDescent = dy > landingDisplacementThreshold * 0.5f && vy > landingVelocityThreshold * 0.5f;
-                bool canLand = std::fabs(vy) < landingVelocityThreshold &&
-                               std::fabs(dy) < landingDisplacementThreshold;
-
-                if (goingUp) {
-                    visual.airborne = true;
-                    visual.airborneTimer = 0.f;
-                    newState = PlayerAnimState::Jump;
-                } else if (goingDown || (visual.airborne && slowDescent)) {
-                    visual.airborne = true;
-                    visual.airborneTimer = 0.f;
-                    newState = PlayerAnimState::Fall;
-                } else if (visual.airborne) {
-                    visual.airborneTimer += effectiveDt;
-                    if (visual.state == PlayerAnimState::Fall) {
-                        newState = PlayerAnimState::Fall;
-                    } else {
-                        newState = PlayerAnimState::Jump;
-                    }
-
-                    if (canLand && visual.airborneTimer > airborneHoldTime) {
-                        visual.airborne = false;
-                        visual.airborneTimer = 0.f;
-                        newState = PlayerAnimState::Idle;
-                    }
-                } else {
-                    visual.airborne = false;
-                    visual.airborneTimer = 0.f;
-                    newState = PlayerAnimState::Idle;
-                }
-            }
-
-            if (newState != visual.state) {
-                visual.state = newState;
-                visual.stateTimer = 0.f;
-            } else {
-                visual.stateTimer += effectiveDt;
-            }
-
-            visual.previousPosition = currentPos;
-        }
-    }
-
-    void GameScene::apply_local_attack_state(uint32_t clientId, bool triggerAttack, bool faceLeft, bool faceRight) {
-        auto it = _playerVisualStates.find(clientId);
-        if (it == _playerVisualStates.end())
-            return;
-
-        PlayerVisualState &visual = it->second;
-
-        if (faceLeft)
-            visual.facing = PlayerFacing::Left;
-        else if (faceRight)
-            visual.facing = PlayerFacing::Right;
-
-        if (triggerAttack) {
-            constexpr float attackDisplayTime = 0.35f;
-            visual.attackTimer = attackDisplayTime;
-            if (visual.hitTimer <= 0.f) {
-                visual.state = PlayerAnimState::Attack;
-                visual.stateTimer = 0.f;
-            }
-        }
-    }
-
     void GameScene::handleEvents() {
         update();
+        float deltaTime = _raylib.getFrameTime();
+        _chat.update(deltaTime);
         int globalScore = 0;
         uint32_t myClientId = 0;
         {
@@ -843,33 +1121,73 @@ namespace game::scene {
             globalScore = _game.getGameClient().globalScore;
             myClientId = _game.getGameClient().clientId;
         }
-        float t = std::clamp(globalScore / 50.0f, 0.0f, 1.0f);
-        float SHOOT_COOLDOWN = 0.8f - t * (0.8f - 0.10f);
+        const auto &weaponDef = weapon::getDefinition(_game.getSelectedWeaponId());
+        float progress = std::clamp(globalScore / 150.0f, 0.0f, 1.0f);
+        float SHOOT_COOLDOWN = weaponDef.fireCooldown - progress * (weaponDef.fireCooldown - weaponDef.minCooldown);
+        SHOOT_COOLDOWN = std::clamp(SHOOT_COOLDOWN, weaponDef.minCooldown, weaponDef.fireCooldown);
+
         bool upPressed = _raylib.isKeyDown(KEY_W) || _raylib.isKeyDown(KEY_UP);
         bool downPressed = _raylib.isKeyDown(KEY_S) || _raylib.isKeyDown(KEY_DOWN);
         bool leftPressed = _raylib.isKeyDown(KEY_A) || _raylib.isKeyDown(KEY_LEFT);
         bool rightPressed = _raylib.isKeyDown(KEY_D) || _raylib.isKeyDown(KEY_RIGHT);
-        bool jPressed = _raylib.isKeyDown(KEY_J);
-        bool kPressed = _raylib.isKeyDown(KEY_K);
 
-        switch (_raylib.getKeyPressed()) {
+        int keyPressed = _raylib.getKeyPressed();
+
+        bool shootRequested = _raylib.isKeyDown(KEY_SPACE);
+
+        switch (keyPressed) {
+            case KEY_F1:
+                _chat.toggleFocus();
+                break;
             case KEY_F11:
                 toggleFullScreen();
                 break;
             default:
                 break;
         }
+
+        if (_chat.isFocused()) {
+            if (keyPressed == KEY_ENTER) {
+                if (auto submitted = _chat.submitMessage()) {
+                    _game.getGameClient().sendChatMessage(*submitted);
+                }
+            } else if (keyPressed == KEY_BACKSPACE) {
+                _chat.removeLastCharacter();
+            } else if (keyPressed == KEY_ESCAPE) {
+                _chat.toggleFocus();
+                dispatch_input_events(false, false, false, false);
+                if (myClientId != 0) {
+                    moovePlayer[myClientId] = 0.0f;
+                }
+                return;
+            }
+
+            int codepoint = 0;
+            while ((codepoint = _raylib.getCharPressed()) != 0) {
+                _chat.appendCharacter(codepoint);
+            }
+
+            dispatch_input_events(false, false, false, false);
+            if (myClientId != 0) {
+                moovePlayer[myClientId] = 0.0f;
+            }
+            return;
+        }
+
         if (_raylib.isGamepadAvailable(0)) {
             float leftStickX = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
             float leftStickY = _raylib.getGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
+
             if (leftStickY < -0.2f)
                 upPressed = true;
             else if (leftStickY > 0.2f)
                 downPressed = true;
+
             if (leftStickX < -0.2f)
                 leftPressed = true;
             else if (leftStickX > 0.2f)
                 rightPressed = true;
+
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
                 downPressed = true;
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
@@ -878,22 +1196,24 @@ namespace game::scene {
                 rightPressed = true;
             if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                 leftPressed = true;
+
+            if (_raylib.isGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
+                shootRequested = true;
         }
-        bool wasJDown = _inputState.j;
-        bool wasKDown = _inputState.k;
-        dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed, jPressed, kPressed);  // MODIFIÉ
-        if (myClientId != 0) {
-            bool attackTriggered = (jPressed && !wasJDown) || (kPressed && !wasKDown);
-            bool faceLeft = leftPressed && !rightPressed;
-            bool faceRight = rightPressed && !leftPressed;
-            apply_local_attack_state(myClientId, attackTriggered, faceLeft, faceRight);
+
+        if (shootRequested && !_stopShoot && !_chat.isFocused()) {
+            handle_shoot(weaponDef, SHOOT_COOLDOWN);
         }
+
+        dispatch_input_events(upPressed, downPressed, leftPressed, rightPressed);
+
         float input_x = 0.f;
         float input_y = 0.f;
         if (leftPressed != rightPressed)
             input_x = leftPressed ? -1.f : 1.f;
         if (upPressed != downPressed)
             input_y = upPressed ? -1.f : 1.f;
+
         if (myClientId != 0) {
             if (input_y < 0.f)
                 moovePlayer[myClientId] = 33.0f;
@@ -902,10 +1222,73 @@ namespace game::scene {
             else
                 moovePlayer[myClientId] = 0.0f;
         }
-        handle_input(input_x, input_y, downPressed);
+
+        handle_input(input_x, input_y);
     }
 
-    void GameScene::handle_input(float input_x, float input_y, bool downPressed) {
+    void GameScene::handle_shoot(const weapon::WeaponDefinition &weaponDef, float cooldown) {
+        const std::string weaponId = !weaponDef.id.empty() ? weaponDef.id : _game.getSelectedWeaponId();
+        auto &state = _weaponUsage[weaponId];
+        float currentTime = _raylib.getTime();
+        bool usesBurst = weaponDef.burstDuration > 0.f && weaponDef.burstCooldown > 0.f;
+
+        if (!weaponDef.infiniteAmmo && state.remainingAmmo < 0) {
+            state.remainingAmmo = weaponDef.ammoCapacity;
+        }
+
+        if (usesBurst) {
+            if (state.inBurst) {
+                float elapsed = currentTime - state.burstStartTime;
+                if (elapsed >= weaponDef.burstDuration) {
+                    state.inBurst = false;
+                    state.lastBurstEndTime = currentTime;
+                }
+            }
+
+            if (!state.inBurst) {
+                if (state.lastBurstEndTime >= 0.f) {
+                    float cooldownElapsed = currentTime - state.lastBurstEndTime;
+                    if (cooldownElapsed < weaponDef.burstCooldown) {
+                        return;
+                    }
+                }
+                state.inBurst = true;
+                state.burstStartTime = currentTime;
+                if (!weaponDef.infiniteAmmo) {
+                    state.remainingAmmo = weaponDef.ammoCapacity;
+                }
+            }
+        } else {
+            state.inBurst = false;
+        }
+
+        if (currentTime - state.lastShotTime < cooldown) {
+            return;
+        }
+
+        if (!weaponDef.infiniteAmmo) {
+            if (state.remainingAmmo <= 0) {
+                if (usesBurst) {
+                    state.inBurst = false;
+                    state.lastBurstEndTime = currentTime;
+                }
+                return;
+            }
+            state.remainingAmmo--;
+        }
+
+        _game.getGameClient().sendShoot();
+        state.lastShotTime = currentTime;
+        if (usesBurst && !weaponDef.infiniteAmmo && state.remainingAmmo <= 0) {
+            state.inBurst = false;
+            state.lastBurstEndTime = currentTime;
+        }
+        if (_game.isSoundEnabled()) {
+            _raylib.playSound(_shootSound);
+        }
+    }
+
+    void GameScene::handle_input(float input_x, float input_y) {
         if (_isDead)
             return;
         auto &positions = _registry.get_components<component::position>();
@@ -934,8 +1317,7 @@ namespace game::scene {
 
                 if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
                     ix = 0.f;
-                bool allowDrop = downPressed && iy > 0.f;
-                if (!allowDrop && collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
+                if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
                     iy = 0.f;
                 if (ix != 0.f || iy != 0.f) {
                     playerPos.x += ix * speed * dt;
@@ -945,7 +1327,7 @@ namespace game::scene {
         }
     }
 
-    void GameScene::dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed, bool jPressed, bool kPressed) {
+    void GameScene::dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed) {
         auto sendIfChanged = [this](InputCode code, bool newState, bool &cachedState) {
             if (newState == cachedState)
                 return;
@@ -957,8 +1339,6 @@ namespace game::scene {
         sendIfChanged(InputCode::Down, downPressed, _inputState.down);
         sendIfChanged(InputCode::Left, leftPressed, _inputState.left);
         sendIfChanged(InputCode::Right, rightPressed, _inputState.right);
-        sendIfChanged(InputCode::J, jPressed, _inputState.j);
-        sendIfChanged(InputCode::K, kPressed, _inputState.k);
     }
 
     void GameScene::setup_movement_system() {
@@ -1028,5 +1408,6 @@ namespace game::scene {
         _game_running = false;
         _ui.unload();
         unload_entity_textures();
+        unload_projectile_textures();
     }
 } // namespace game::scene

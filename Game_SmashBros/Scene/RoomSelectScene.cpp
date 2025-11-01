@@ -36,11 +36,13 @@ namespace scene {
 
 		refreshRooms();
 
-		game::entities::create_text(_registry, TOP_LEFT, Vector2{0, 0}, "Rooms", RAYWHITE, -0.5f, _titleSize, _font);
+		Vector2 titleSize = _raylib.measureTextEx(_font, "Rooms", static_cast<float>(_titleSize), -0.5f);
+		Vector2 titlePos = {(_width - titleSize.x) / 2.f, 40.f};
+		game::entities::create_text(_registry, titlePos, "Rooms", RAYWHITE, -0.5f, _titleSize, _font);
 		game::entities::create_button(_registry, "button_back", "< Back", BOTTOM_LEFT, Vector2{0, 0},
-									{_buttonSize.x - 10, _buttonSize.y}, _accentColor, RAYWHITE, _buttonTextSize);
+									{_buttonSize.x - 10, _buttonSize.y}, _accentColor, BLACK, _buttonTextSize);
 		game::entities::create_button(_registry, "button_refresh", "Refresh", BOTTOM_RIGHT, Vector2{0, 0},
-									{_buttonSize.x + 20, _buttonSize.y}, _accentColor, RAYWHITE, _buttonTextSize);
+									{_buttonSize.x + 20, _buttonSize.y}, _accentColor, BLACK, _buttonTextSize);
 	}
 
 	void RoomSelectScene::render() {
@@ -74,7 +76,7 @@ namespace scene {
 				int fontSize = text[i]->font_size;
 				float spacing = text[i]->spacing;
 				Color textColor = text[i]->color;
-				drawButton(_raylib, pos, size, content, _font, fontSize, spacing, _accentColor, textColor, hoverable[i]->isHovered,
+				drawButton(_raylib, pos, size, content, _font, fontSize, spacing, drawables[i]->color, textColor, hoverable[i]->isHovered,
 							clickable[i]->isClicked, clickable[i]->enabled);
 			}
 		}
@@ -198,7 +200,7 @@ namespace scene {
 			room.second.button.rect.x = buttonPos.x;
 			room.second.button.rect.y = buttonPos.y;
 			_raylib.drawRectangleRounded(room.second.background, 0.5, 10, _roomBackgroundColor);
-			drawButton(_raylib, buttonPos, _roomJoinButtonSize, "Join", _font, _roomButtonTextSize, 0.75f, _accentColor, RAYWHITE,
+			drawButton(_raylib, buttonPos, _roomJoinButtonSize, "Join", _font, _roomButtonTextSize, 0.75f, _accentColor, BLACK,
 						room.second.button.isHovered, room.second.button.isClicked, true, 0.75f);
 			_raylib.drawTextEx(_font, room.second.name, namePos, _roomNameSize, 0.75f, RAYWHITE);
 			_raylib.drawTextEx(_font, room.second.playersCount, playersPos, _playerCountSize, 0.75, RAYWHITE);

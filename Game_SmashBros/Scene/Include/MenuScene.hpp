@@ -74,7 +74,7 @@ class MenuScene: public AScene {
         float _titleCenterY;
 
         //Buttons
-        Color const _accentColor{26, 170, 177, 255};
+        Color const _accentColor{46, 204, 113, 255};
         Vector2 const _buttonSize{280.f, 70.f};
         int const _buttonTextSize = 35;
         int const _buttonSpacing = 35;

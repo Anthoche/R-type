@@ -89,7 +89,7 @@ namespace scene {
 		float buttonWidth = std::max(120.f, textWidth + padding);
 
 		game::entities::create_button(_registry, "button_endless", endlessValue,
-			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+			pos.x, pos.y, 0.f, buttonWidth, 40.f, _accentColor, BLACK, _buttonTextSize - 4
 		);		
 		_values[0] = endlessValue;
 	}
@@ -100,7 +100,7 @@ namespace scene {
 		float buttonWidth = std::max(100.f, textWidth + padding);
 
 		game::entities::create_button(_registry, "button_lives", _values[i],
-			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+			pos.x, pos.y, 0.f, buttonWidth, 40.f, _accentColor, BLACK, _buttonTextSize - 4
 		);
 	}
 
@@ -110,13 +110,13 @@ namespace scene {
 		float buttonWidth = std::max(100.f, textWidth + padding);
 
 		game::entities::create_button(_registry, "button_sound", _values[i],
-			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+			pos.x, pos.y, 0.f, buttonWidth, 40.f, _accentColor, BLACK, _buttonTextSize - 4
 		);
 	}
 
 	void SettingsScene::createLanguageButton(Vector2 pos, std::size_t i) {
 		game::entities::create_button(_registry, "button_language", _values[i],
-			pos.x, pos.y, 0.f, 150.f, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
+			pos.x, pos.y, 0.f, 150.f, 40.f, _accentColor, BLACK, _buttonTextSize - 4
 		);
 	}
 
@@ -143,6 +143,8 @@ namespace scene {
 				float textWidth = _raylib.measureTextEx(_font, label.c_str(), texts[i]->font_size, texts[i]->spacing).x;
 				float padding = 40.f;
 				drawables[i]->width = std::max(150.f, textWidth + padding);
+				drawables[i]->color = _accentColor;
+				texts[i]->color = BLACK;
 
 				found = true;
 				break;
@@ -158,7 +160,7 @@ namespace scene {
 			Vector2 backSize = {buttonWidth, 50.f};
 
 			game::entities::create_button(_registry, "button_back", label, backPos.x, backPos.y, 0.f,
-				buttonWidth, backSize.y, DARKGRAY, RAYWHITE, 23);
+				buttonWidth, backSize.y, _accentColor, BLACK, 23);
 		}
 	}
 

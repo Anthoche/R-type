@@ -8,40 +8,102 @@
 
 #pragma once
 
-#include "../../Engine/Rendering/scene/Include/AScene.hpp"
-#include "../Game.hpp"
-#include "../../Shared/protocol.hpp"
 #include <unordered_map>
-#include <tuple>
+#include <nlohmann/json_fwd.hpp>
 #include "UI.hpp"
+#include "../Game.hpp"
+#include "ChatSystem.hpp"
+#include "../../Engine/Rendering/scene/Include/AScene.hpp"
+#include "../../Engine/Core/Entities/Include/components.hpp"
+#include "../../Shared/protocol.hpp"
+#include "../../Shared/WeaponDefinition.hpp"
 
 namespace game::scene {
+    /**
+     * @class GameScene
+     * @brief Represents the main game scene for R-Type.
+     *
+     * This scene manages the game loop logic, including:
+     * - Initialization and rendering.
+     * - Handling player input and events.
+     * - Managing entities (player, enemies, obstacles).
+     * - Setting up ECS systems (movement, rendering, collision, health).
+     * - Collision detection and game state updates.
+     */
     class GameScene : public AScene {
     public:
-        Game &_game;
+        Game &_game; ///< Reference to the game instance.
 
+        /**
+         * @brief Construct a GameScene with a reference to the Game instance.
+         * @param game Reference to the game instance.
+         */
         GameScene(Game &game);
 
+        /**
+         * @brief Default destructor.
+         */
         ~GameScene() override = default;
 
+        // --- Overridden lifecycle methods ---
+        /**
+         * @brief Initialize the scene (entities, systems, state).
+         */
         void init() override;
 
+        /**
+         * @brief Render the scene (draw entities/components).
+         */
         void render() override;
 
+        /**
+         * @brief Handle input and system events.
+         */
         void handleEvents() override;
 
+        /**
+         * @brief Called when the scene is closed.
+         */
         void onClose() override;
 
-        void handle_input(float input_x, float input_y, bool downPressed);
+        // --- Event handling ---
 
+        /**
+         * @brief handle shoot input.
+         * @param cooldown Cooldown for shoot
+         */
+        void handle_shoot(const weapon::WeaponDefinition &weaponDef, float cooldown);
+
+        /**
+         * @brief Handle player input.
+         * @param input_x Horizontal input (movement).
+         * @param input_y Vertical input (movement).
+         */
+        void handle_input(float input_x, float input_y);
+
+        // --- Accessors ---
+        /**
+         * @brief getter to send registry
+         * @return return the current registry.
+         */
         ecs::registry &get_registry() { return _registry; }
 
+        /**
+         * @brief getter to send player
+         * @return return the current player.
+         */
         ecs::entity_t get_player() const { return _player; }
 
+        /**
+         * @brief getter to send obstacles
+         * @return return tje current obstacles.
+         */
         const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
-        
-        const std::vector<ecs::entity_t> &get_platforms() const { return _platforms; }
 
+        /**
+         * @brief Provides access to the main Game instance.
+         * @return A reference to the current Game object.
+         */
         Game &getGame() { return _game; }
 
     private:
@@ -50,109 +112,210 @@ namespace game::scene {
             bool down{false};
             bool left{false};
             bool right{false};
-            bool j{false};
-            bool k{false};
         };
 
-        enum class PlayerAnimState {
-            Idle,
-            Attack,
-            Hit,
-            Jump,
-            Fall
-        };
-
-        enum class PlayerFacing {
-            Right,
-            Left
-        };
-
-        struct PlayerSpriteFrames {
-            Rectangle idle{};
-            Rectangle attack{};
-            Rectangle hit{};
-            Rectangle jump{};
-            Rectangle fall{};
-        };
-
-        struct PlayerVisualState {
-            PlayerAnimState state{PlayerAnimState::Idle};
-            PlayerFacing facing{PlayerFacing::Right};
-            float stateTimer{0.f};
-            float attackTimer{0.f};
-            float hitTimer{0.f};
-            Vector2 previousPosition{0.f, 0.f};
-            bool hasPrevious{false};
-            float verticalVelocity{0.f};
-            int lastKnownHealth{-1};
-            bool airborne{false};
-            float airborneTimer{0.f};
-        };
-
+        // --- Game logic ---
+        /**
+         * @brief Update the game state (called every frame).
+         */
         void update();
 
+        // --- Game systems ---
+        /**
+         * @brief Setup the movement system for entities.
+         */
         void setup_movement_system();
 
+        /**
+         * @brief Setup the rendering system for entities.
+         */
         void setup_render_system();
 
+        /**
+         * @brief Setup the collision detection system (custom).
+         */
+        void setup_collision_system();
+
+        /**
+         * @brief Setup the ECS collision system (engine-defined).
+         */
+        void setup_ecs_collision_system();
+
+        /**
+         * @brief Setup the enemy AI system for entities.
+         */
+        void setup_enemy_ai_system();
+
+        /**
+         * @brief Setup the health system for entities.
+         */
         void setup_health_system();
 
+        // --- Entity creation ---
+        /**
+         * @brief Create enemy entities that move horizontally.
+         */
+        void create_enemies();
+
+        /**
+         * @brief Create the player entity and initialize components.
+         */
+        void create_player();
+
+        /**
+         * @brief Create obstacles in the scene.
+         */
+        void create_obstacles();
+
+        // --- Collision management ---
+        /**
+         * @brief Check and resolve collisions for all entities.
+         */
+        void check_collisions();
+
+        /**
+         * @brief Check and resolve collisions for projectile on enemy.
+         */
+        void check_projectile_enemy_collisions();
+
+        /**
+         * @brief Synchronize hitboxes with their parent entity immediately.
+         */
+        void sync_hitboxes_immediate();
+
+        // --- Texture management ---
+        /**
+         * @brief Load all textures for entities that have a sprite component.
+         * Creates a mapping between entity IDs and their loaded textures.
+         */
         void load_entity_textures();
 
+        /**
+         * @brief Unload all loaded textures.
+         */
         void unload_entity_textures();
 
+        /**
+         * @brief Load all textures for projectiles.
+         */
+        void load_projectile_textures();
+
+        /**
+         * @brief Unload all loaded projectile textures.
+         */
+        void unload_projectile_textures();
+
+        /**
+         * @brief Get the texture associated with an entity.
+         * @param entity The entity to get the texture for.
+         * @return Pointer to the texture if found, nullptr otherwise.
+         */
         Texture2D* get_entity_texture(ecs::entity_t entity);
 
+        
+        bool processPendingFullRegistry();
+        void clearLevelEntitiesForReload();
+        void removeEntitiesOfType(component::entity_type type);
+        void buildSpriteMapsFromRegistry(const nlohmann::json &registryJson);
+        
         void toggleFullScreen();
 
-        ecs::entity_t _player;
-        Music _music;
-        Sound _shootSound;
-        Sound _victorySound;
-        Sound _defeatSound;
-        bool _victorySoundPlayed = false;
-        bool _defeatSoundPlayed = false;
-        std::vector<ecs::entity_t> _obstacles;
-        std::vector<ecs::entity_t> _platforms;
-        std::vector<ecs::entity_t> _decorations;
-        std::unordered_map<uint32_t, ecs::entity_t> _playerEntities;
-        bool _isDead = false;
-        bool _isWin = false;
-        std::unordered_map<uint32_t, Texture2D> _entityTextures;
-        std::unordered_map<uint32_t, float> moovePlayer;
+        // --- Entities ---
+        ecs::entity_t _player; ///< Local player entity.
+        Music _music; ///< Background music instance.
+        Sound _shootSound; ///< Sound effect for shooting.
+        Sound _victorySound; ///< Sound effect for victory.
+        Sound _defeatSound; ///< Sound effect for defeat.
+        bool _victorySoundPlayed = false; ///< Flag to track if victory sound has been played.
+        bool _defeatSoundPlayed = false; ///< Flag to track if defeat sound has been played.
+        std::vector<ecs::entity_t> _obstacles; ///< List of active obstacle entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _obstacleMap;  // Map serverId -> client entity
+        std::unordered_map<uint32_t, std::string> _obstacleSpriteMap;  // Map serverId -> sprite path
+        std::vector<ecs::entity_t> _enemys; ///< List of active enemy entities.
+        std::vector<ecs::entity_t> _elements; ///< List of active random element entities.
+        std::unordered_map<uint32_t, ecs::entity_t> _elementMap; ///< Map: network element ID -> ECS entity.
+        std::unordered_map<uint32_t, std::string> _elementSpriteMap;  // Map serverId -> sprite path
+        std::unordered_map<uint32_t, ecs::entity_t> _enemyMap; ///< Map: network enemy ID -> ECS entity.
+        std::unordered_map<uint32_t, std::string> _enemySpriteMap; ///< Map: network enemy ID -> sprite path.
+        std::unordered_map<uint32_t, ecs::entity_t> _playerEntities; ///< Map: network player ID -> ECS entity.
+        bool _isDead = false; ///< Flag indicating if the local player is dead.
+        bool _isWin = false; ///< Flag indicating if the local player has won.
+        std::unordered_map<uint32_t, Texture2D> _entityTextures; ///< Map: entity ID -> loaded texture.
+        std::unordered_map<std::string, Texture2D> _projectileTextures; ///< Map: projectile type -> loaded texture.
+        std::unordered_map<uint32_t, float> moovePlayer; ///< Map: client ID -> movement offset for sprite rendering.
+        float _backgroundScrollX = 0.0f; ///< Background scrolling offset.
+        float _victoryStartTime = 0.0f;
+        float _stopShoot = false;
+        bool _hasLevelData = false;
+        bool _levelReloadPending = false;
+        struct WeaponUsageState {
+            float lastShotTime{0.f};
+            float burstStartTime{0.f};
+            float lastBurstEndTime{-1.f};
+            int remainingAmmo{-1};
+            bool inBurst{false};
+        };
+        std::unordered_map<std::string, WeaponUsageState> _weaponUsage;
+        bool _lastBoss = false;
 
-        bool _game_running;
-        double _startTime;
-        UI _ui;
+        // --- Game state ---
+        bool _game_running; ///< Indicates whether the game is running.
+        double _startTime; ///< Start time of the scene.
+        UI _ui; ///< UI instance for game overlay
+        ChatSystem _chat; ///< Chat overlay manager
 
+        // --- Helpers ---
+        /**
+         * @brief Synchronize ECS state with network messages.
+         */
+        void sync_network_state();
+
+        /**
+         * @brief Render ECS entities organized by layer.
+         */
+        void draw_ecs_layers();
+
+        /**
+         * @brief Extract enemy sprite paths from the registry to the enemy sprite map.
+         */
+        void extract_enemy_sprite_paths();
+
+        /**
+        * @brief Index existing entities in the registry for quick access.
+        */
         void index_existing_entities();
 
+        /**
+        * @brief Render all entities in the scene.
+        */
         void render_entities();
         void render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
         void render_obstacle(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
         void render_background(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_text(ecs::entity_t entity, const component::position &pos);
         void render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
-        void render_platform(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
-        void render_decoration(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+        void render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
         void load_music();
 
+        /**
+        * @brief Render obstacles received from the network.
+        */
         void render_network_obstacles();
+        void render_network_enemies();
+        void render_network_projectiles();
+        void render_network_enemy_projectiles();
         void render_death_screen();
         void render_win_screen();
+        void render_final_win_screen();
 
+        /**
+        * @brief Get a unique color for a given client ID.
+        * @param id The client ID.
+        * @return A unique Color associated with the client ID.
+        */
         Color get_color_for_id(uint32_t id);
-        void render_player_portrait();
-        void initialize_player_sprite_frames();
-        const Rectangle &get_player_source_rect(PlayerAnimState state, PlayerFacing facing) const;
-        void update_player_visual_states(
-            const std::unordered_map<uint32_t, std::tuple<float, float, float>> &netPlayers,
-            const std::unordered_map<uint32_t, std::pair<int16_t, int16_t>> &netHealth,
-            float dt);
-        void apply_local_attack_state(uint32_t clientId, bool triggerAttack, bool faceLeft, bool faceRight);
-        void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed, bool jPressed, bool kPressed);
+        void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed);
         InputState _inputState;
-        PlayerSpriteFrames _rightFrames{};
-        PlayerSpriteFrames _leftFrames{};
-        std::unordered_map<uint32_t, PlayerVisualState> _playerVisualStates;
     };
 } // namespace game::scene

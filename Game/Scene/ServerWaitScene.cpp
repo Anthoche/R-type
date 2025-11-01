@@ -64,7 +64,7 @@ namespace scene {
 		playButtonPos.x -= 110;
 		quitButtonPos.x += 110;
 
-		Color accentColor = Color{46, 204, 113, 255};
+		Color accentColor = Color{26, 170, 177, 255};
 
 		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title,
 			RAYWHITE, -0.75f, titleFontSize, _font);
@@ -72,7 +72,7 @@ namespace scene {
 			RAYWHITE, -0.5f, subtitleFontSize, _font);
 
 		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
-			playButtonPos.x, playButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, BLACK);
+			playButtonPos.x, playButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, RAYWHITE);
 
 		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
 			quitButtonPos.x, quitButtonPos.y, 0.f, buttonSize.x, buttonSize.y, RED, RAYWHITE);
