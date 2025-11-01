@@ -14,7 +14,40 @@
 #include <nlohmann/json.hpp>
 #include "../../Engine/Utils/Include/serializer.hpp"
 #include <vector>
+#include <filesystem>
 #include "WeaponDefinition.hpp"
+
+namespace {
+    std::string normalizeNetworkAssetPath(const std::string &rawPath)
+    {
+        if (rawPath.empty())
+            return rawPath;
+
+        std::filesystem::path inputPath(rawPath);
+        std::string generic = inputPath.generic_string();
+
+        try {
+            if (std::filesystem::exists(inputPath))
+                return generic;
+        } catch (const std::exception &) {
+            // ignore errors from invalid paths and continue normalization
+        }
+
+        const std::string marker = "assets/";
+        auto pos = generic.find(marker);
+        if (pos != std::string::npos) {
+            std::string relative = generic.substr(pos + marker.size());
+            if (!relative.empty() && relative.front() == '/')
+                relative.erase(relative.begin());
+            return std::string(ASSETS_PATH) + "/" + relative;
+        }
+
+        if (!generic.empty() && generic.front() == '/')
+            generic.erase(generic.begin());
+
+        return std::string(ASSETS_PATH) + "/" + generic;
+    }
+}
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -627,15 +660,15 @@ void GameScene::update() {
             switch (static_cast<component::entity_type>(typeValue)) {
                 case component::entity_type::ENEMY:
                     if (!imagePath.empty())
-                        _enemySpriteMap[serverEntityId] = imagePath;
+                        _enemySpriteMap[serverEntityId] = normalizeNetworkAssetPath(imagePath);
                     break;
                 case component::entity_type::OBSTACLE:
                     if (!imagePath.empty())
-                        _obstacleSpriteMap[serverEntityId] = imagePath;
+                        _obstacleSpriteMap[serverEntityId] = normalizeNetworkAssetPath(imagePath);
                     break;
                 case component::entity_type::RANDOM_ELEMENT:
                     if (!imagePath.empty())
-                        _elementSpriteMap[serverEntityId] = imagePath;
+                        _elementSpriteMap[serverEntityId] = normalizeNetworkAssetPath(imagePath);
                     break;
                 default:
                     break;
