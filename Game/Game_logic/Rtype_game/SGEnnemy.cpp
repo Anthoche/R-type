@@ -6,7 +6,7 @@
 */
 
 
-#include "../Rungame.hpp"
+#include "../Rtype_game.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>
@@ -206,15 +206,15 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt, float rapidfire) {
     
     auto currentTime = std::chrono::high_resolution_clock::now();
     
-    float cooldown = 10.0f / rapidfire;
     if (!initialized[id]) {
+        float cooldown = 10.0f / rapidfire;
         float randomOffset = (static_cast<float>(rand() % 1000) / 1000.0f) * cooldown;
         lastShootTime[id] = currentTime - std::chrono::milliseconds(
             static_cast<int>(randomOffset * 1000)
         );
+        shootCooldowns[id] = cooldown;
         initialized[id] = true;
     }
-    shootCooldowns[id] = cooldown;
     
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
         currentTime - lastShootTime[id]
@@ -233,44 +233,19 @@ void ServerGame::update_enemy_turret(uint32_t id, float dt, float rapidfire) {
 }
 
 void ServerGame::update_enemy_boss(uint32_t id, float dt) {
-    ecs::entity_t entity = static_cast<ecs::entity_t>(id);
+ecs::entity_t entity = static_cast<ecs::entity_t>(id);
     auto pos = get_component_ptr<component::position>(registry_server, entity);
     auto vel = get_component_ptr<component::velocity>(registry_server, entity);
     if (!pos) return;
 
-    static std::unordered_map<uint32_t, float> bossTime;
-    static std::unordered_map<uint32_t, float> initialY;
-    static std::unordered_map<uint32_t, bool> bossActive;
-    if (bossTime.find(id) == bossTime.end()) {
-        bossTime[id] = 0.0f;
-        initialY[id] = pos->y;
-        bossActive[id] = false;
-    }
-    bossTime[id] += dt;
+    float baseVx = -80.f;
+    if (vel) baseVx = vel->vx;
 
-    const float right_side_x = 1700.0f;
-    float approachVx = -30.0f;
-    if (vel)
-        approachVx = (vel->vx != 0.f) ? vel->vx : -30.0f;
-    if (!bossActive[id]) {
-        pos->x += approachVx * dt;
-        if (pos->x <= right_side_x) {
-            pos->x = right_side_x;
-            initialY[id] = pos->y;
-            bossActive[id] = true;
-            bossTime[id] = 0.0f;
-        } else {
-            return;
-        }
-    }
-    pos->x = right_side_x;
-    const float verticalAmplitude = 300.0f;
-    const float verticalFrequency = 0.25f;
-    pos->y = initialY[id] + std::sin(bossTime[id] * 2.0f * 3.14159265f * verticalFrequency) * verticalAmplitude;
-    const float baseRapidfire = 12.0f;
-    float turretRapidfire = baseRapidfire * (1 + (currentLevel - 1));
-
-    update_enemy_turret(id, dt, turretRapidfire);
+    const float amplitude = 230.f;
+    const float wavelength = 50.f;
+    pos->x += baseVx * dt;
+    pos->y += std::sin(pos->x / wavelength) * amplitude * dt;
+    update_enemy_turret(id, dt, 6.0f);
 }
 
 void ServerGame::check_player_enemy_collisions() {
