@@ -10,7 +10,6 @@
 
     #include "../../../Engine/Rendering/scene/Include/AScene.hpp"
     #include "../Game.hpp"
-    #include <vector>
     #include <string>
 
 namespace scene {
@@ -63,47 +62,11 @@ class WaitingScene: public AScene {
 
         Font _font{};
 
-        struct SkinOption {
-            std::string name;
-            std::string path;
-            std::string filename;
-            Texture2D texture{};
-            Rectangle source{0.f, 0.f, 0.f, 0.f};
-        };
-
-        struct WeaponOption {
-            std::string name;
-            std::string path;
-            std::string id;
-            Texture2D texture{};
-            Rectangle source{0.f, 0.f, 0.f, 0.f};
-        };
-
-        std::vector<SkinOption> _skinOptions;
-        std::size_t _currentSkinIndex{0};
-        std::vector<WeaponOption> _weaponOptions;
-        std::size_t _currentWeaponIndex{0};
-        Vector2 _previewCenter{0.f, 0.f};
-        Vector2 _previewBounds{220.f, 140.f};
-        Vector2 _weaponPreviewCenter{0.f, 0.f};
-        Vector2 _weaponPreviewBounds{120.f, 70.f};
         bool _ignoreInitialClick{false};
         bool _hasConfirmedReady{false};
 
         void resetButtonStates();
         void handleButtonClick(std::string const &id);
-        void loadSkinOptions();
-        void loadWeaponOptions();
-        void unloadSkinTextures();
-        void unloadWeaponTextures();
-        void selectSkin(std::size_t index);
-        void selectNextSkin();
-        void selectPreviousSkin();
-        void selectWeapon(std::size_t index);
-        void selectNextWeapon();
-        void selectPreviousWeapon();
-        void drawSkinPreview();
-        void drawWeaponPreview();
         bool canJoin();
 };
 

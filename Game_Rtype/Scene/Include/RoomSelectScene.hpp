@@ -96,7 +96,7 @@ class RoomSelectScene: public AScene {
 
         // Buttons
         int _selectedButtonIndex = -1;
-        Color const _accentColor{46, 204, 113, 255};
+        Color const _accentColor{26, 170, 177, 255};
         Vector2 const _buttonSize{160.f, 50.f};
         int const _buttonTextSize = 23;
 
