@@ -189,11 +189,15 @@ git submodule update --init --recursive
 - 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**<br>
 Visual representations of system architecture.
 
-- 📕 **[Wiki](https://github.com/Anthoche/R-type/wiki)**<br>
-Simple wiki to explain some technical details of the project.
-
 - 🖥️ **[Mirror Repository](https://github.com/Anthoche/R-type)**<br>
 Repository to run CI.
+
+## 📕 Wiki
+
+- [Comparative Study](https://github.com/Anthoche/R-type/wiki/Comparative-Study)
+- [Protocol](https://github.com/Anthoche/R-type/wiki/Protocol)
+- [User Guide](https://github.com/Anthoche/R-type/wiki/User-Guide)
+
 
 ## 👥 Team
 
