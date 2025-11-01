@@ -493,7 +493,7 @@ namespace game::parsing
         }
     }
 
-    ecs::entity_t parse_png(ecs::registry &reg, const nlohmann::json &data)
+    void parse_png(ecs::registry &reg, const nlohmann::json &data)
     {
         try {
             float x = data.value("x", 0.f);

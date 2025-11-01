@@ -137,7 +137,6 @@ namespace scene {
 		}
 
 		if (_raylib.isGamepadAvailable(0)) {
-			// Button selection
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
 				_selectingRooms = false;
 				_selectedRoomIndex = -1;
@@ -157,7 +156,6 @@ namespace scene {
 				_selectedButtonIndex--;
 			}
 
-			//Room selection
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
 				_selectedButtonIndex = -1;
 				_selectingRooms = true;
@@ -177,7 +175,6 @@ namespace scene {
 				_selectedRoomIndex--;
 			}
 
-			// Button action
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
 				if (_selectingRooms) {
 					if (_selectedRoomIndex == -1 || _selectedRoomIndex >= _rooms.size())
@@ -274,8 +271,6 @@ namespace scene {
 	void RoomSelectScene::handleButtonClick(std::string const &id) {
 		if (id == "button_refresh") {
 			refreshRooms();
-		} else if (id == "button_create_room") {
-			//TODO: do something
 		} else if (id == "button_back") {
 			_game.getSceneHandler().open("menu");
 		}

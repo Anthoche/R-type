@@ -30,7 +30,6 @@ GameClient::~GameClient() {
 }
 
 void GameClient::run() {
-    LOG_INFO("Client started.");
     running = true;
     rxThread = std::thread(&GameClient::recvLoop, this);
     while (_game.getGameStatus() != GameStatus::RUNNING) {
@@ -60,7 +59,6 @@ void GameClient::sendRoomAsk(uint32_t room_id) {
     msg.type = MessageType::ClientRoomIdAsk;
     msg.clientId = clientId;
     msg.roomId = room_id;
-    LOG_DEBUG(std::format("Envoi de la demande de roomId={}", room_id));
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
@@ -68,7 +66,6 @@ void GameClient::sendRoomsFetch() {
     ClientFetchRoomsMessage msg;
     msg.type = MessageType::ClientFetchRooms;
     msg.clientId = clientId;
-    LOG_DEBUG("Envoi de la demande de rooms list");
     {
         std::lock_guard<std::mutex> lock(roomsMutex);
         rooms.clear();
@@ -109,7 +106,6 @@ void GameClient::initTcpConnection() {
     tcpClient = std::make_unique<TCP_socket>();
 
     if (!tcpClient->connectToServer(serverIpStr, tcpPort)) {
-        LOG_ERROR("Client: Impossible de se connecter en TCP");
         return;
     }
 }
@@ -139,10 +135,6 @@ void GameClient::sendInputEvent(InputCode code, bool pressed) {
     m.inputCode = static_cast<uint8_t>(code);
     m.isPressed = pressed ? 1 : 0;
     socket.sendTo(&m, sizeof(m), serverEndpoint);
-    std::cout << "[Client][Input] send "
-              << (pressed ? "PRESS" : "RELEASE")
-              << " (" << inputCodeToString(code) << ")"
-              << " to server" << std::endl;
 }
 
 void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
@@ -150,25 +142,20 @@ void GameClient::sendSceneState(SceneState scene, ecs::registry* registry) {
     msg.type = MessageType::SceneState;
     msg.clientId = htonl(clientId);
     msg.scene = htonl(static_cast<uint32_t>(scene));
-    std::cout << "Le jeu commence, envoie de la scene" << std::endl;
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 
     if (scene == SceneState::GAME) {
         if (!tcpClient) {
             initTcpConnection();
             if (!tcpClient) {
-                std::cerr << "[ERROR] Impossible de se connecter au serveur TCP pour récupérer le full registry" << std::endl;
                 return;
             }
         }
-        std::cout << "[INFO] En attente du full registry du serveur..." << std::endl;
         nlohmann::json fullRegistry = tcpClient->receiveJson();
         if (fullRegistry.is_null()) {
-            std::cerr << "[ERROR] Réception du JSON échouée" << std::endl;
             return;
         }
         storeFullRegistry(fullRegistry, true);
-        std::cout << "[DEBUG] JSON reçu du serveur: " << fullRegistry.dump() << std::endl;
         if (registry) {
             game::serializer::deserialize_entities(*registry, fullRegistry);
         }

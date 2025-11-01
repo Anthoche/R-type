@@ -5,7 +5,6 @@
 ** GameScene
 */
 
-
 #pragma once
 
 #include <unordered_map>
@@ -47,12 +46,12 @@ namespace game::scene {
 
         // --- Overridden lifecycle methods ---
         /**
-         * @brief Initialize the scene (entities, systems, state).
+         * @brief Initialize the scene with entities, systems, and state.
          */
         void init() override;
 
         /**
-         * @brief Render the scene (draw entities/components).
+         * @brief Render the scene, including all entities and components.
          */
         void render() override;
 
@@ -62,92 +61,92 @@ namespace game::scene {
         void handleEvents() override;
 
         /**
-         * @brief Called when the scene is closed.
+         * @brief Perform cleanup when the scene is closed.
          */
         void onClose() override;
 
         // --- Event handling ---
-
         /**
-         * @brief handle shoot input.
-         * @param cooldown Cooldown for shoot
+         * @brief Handle shooting action from the player.
+         * @param weaponDef Weapon definition for the shot.
+         * @param cooldown Time interval between shots.
          */
         void handle_shoot(const weapon::WeaponDefinition &weaponDef, float cooldown);
 
         /**
-         * @brief Handle player input.
-         * @param input_x Horizontal input (movement).
-         * @param input_y Vertical input (movement).
+         * @brief Handle movement input from the player.
+         * @param input_x Horizontal input (-1.0 to 1.0).
+         * @param input_y Vertical input (-1.0 to 1.0).
          */
         void handle_input(float input_x, float input_y);
 
         // --- Accessors ---
         /**
-         * @brief getter to send registry
-         * @return return the current registry.
+         * @brief Get the ECS registry.
+         * @return Reference to the ECS registry.
          */
         ecs::registry &get_registry() { return _registry; }
 
         /**
-         * @brief getter to send player
-         * @return return the current player.
+         * @brief Get the local player entity.
+         * @return Player entity ID.
          */
         ecs::entity_t get_player() const { return _player; }
 
         /**
-         * @brief getter to send obstacles
-         * @return return tje current obstacles.
+         * @brief Get the current obstacles in the scene.
+         * @return Vector of obstacle entity IDs.
          */
         const std::vector<ecs::entity_t> &get_obstacles() const { return _obstacles; }
 
         /**
-         * @brief Provides access to the main Game instance.
-         * @return A reference to the current Game object.
+         * @brief Get the main Game instance.
+         * @return Reference to the Game object.
          */
         Game &getGame() { return _game; }
 
     private:
         struct InputState {
-            bool up{false};
-            bool down{false};
-            bool left{false};
-            bool right{false};
-        };
+            bool up{false};    ///< Is up key pressed
+            bool down{false};  ///< Is down key pressed
+            bool left{false};  ///< Is left key pressed
+            bool right{false}; ///< Is right key pressed
+        } _inputState;
 
         // --- Game logic ---
         /**
-         * @brief Update the game state (called every frame).
+         * @brief Update the game state; called every frame.
          */
         void update();
 
         // --- Game systems ---
         /**
-         * @brief Setup the movement system for entities.
+         * @brief Setup movement system for entities.
          */
         void setup_movement_system();
 
         /**
-         * @brief Setup the rendering system for entities.
+         * @brief Setup rendering system for entities.
          */
         void setup_render_system();
 
         /**
-         * @brief Setup the collision detection system (custom).
+         * @brief Setup custom collision detection system.
          */
         void setup_collision_system();
 
         /**
-         * @brief Setup the ECS collision system (engine-defined).
+         * @brief Setup engine-defined ECS collision system.
          */
         void setup_ecs_collision_system();
 
         /**
-         * @brief Setup the enemy AI system for entities.
+         * @brief Setup AI system for enemy entities.
          */
         void setup_enemy_ai_system();
 
         /**
-         * @brief Setup the health system for entities.
+         * @brief Setup health system for all entities.
          */
         void setup_health_system();
 
@@ -158,12 +157,12 @@ namespace game::scene {
         void create_enemies();
 
         /**
-         * @brief Create the player entity and initialize components.
+         * @brief Create the player entity and initialize its components.
          */
         void create_player();
 
         /**
-         * @brief Create obstacles in the scene.
+         * @brief Create obstacle entities in the scene.
          */
         void create_obstacles();
 
@@ -174,53 +173,185 @@ namespace game::scene {
         void check_collisions();
 
         /**
-         * @brief Check and resolve collisions for projectile on enemy.
+         * @brief Check collisions of projectiles on enemies.
          */
         void check_projectile_enemy_collisions();
 
         /**
-         * @brief Synchronize hitboxes with their parent entity immediately.
+         * @brief Synchronize hitboxes immediately with their parent entities.
          */
         void sync_hitboxes_immediate();
 
         // --- Texture management ---
         /**
-         * @brief Load all textures for entities that have a sprite component.
-         * Creates a mapping between entity IDs and their loaded textures.
+         * @brief Load textures for entities that have sprite components.
          */
         void load_entity_textures();
 
         /**
-         * @brief Unload all loaded textures.
+         * @brief Unload all loaded entity textures.
          */
         void unload_entity_textures();
 
         /**
-         * @brief Load all textures for projectiles.
+         * @brief Load textures for projectile entities.
          */
         void load_projectile_textures();
 
         /**
-         * @brief Unload all loaded projectile textures.
+         * @brief Unload all projectile textures.
          */
         void unload_projectile_textures();
 
         /**
-         * @brief Get the texture associated with an entity.
-         * @param entity The entity to get the texture for.
-         * @return Pointer to the texture if found, nullptr otherwise.
+         * @brief Get the texture associated with a given entity.
+         * @param entity Entity to get texture for.
+         * @return Pointer to Texture2D or nullptr if not found.
          */
         Texture2D* get_entity_texture(ecs::entity_t entity);
 
-        
+        /**
+         * @brief Process a full ECS registry received from the network.
+         * @return True if processing succeeded.
+         */
         bool processPendingFullRegistry();
+
+        /**
+         * @brief Clear all level entities for reloading the level.
+         */
         void clearLevelEntitiesForReload();
+
+        /**
+         * @brief Remove entities of a specific type from the scene.
+         * @param type Type of entity to remove.
+         */
         void removeEntitiesOfType(component::entity_type type);
+
+        /**
+         * @brief Build sprite maps from a JSON representation of the registry.
+         * @param registryJson JSON object representing the registry.
+         */
         void buildSpriteMapsFromRegistry(const nlohmann::json &registryJson);
-        
+
+        /**
+         * @brief Toggle fullscreen mode for the game window.
+         */
         void toggleFullScreen();
 
-        // --- Entities ---
+        // --- Rendering helpers ---
+        /**
+         * @brief Synchronize ECS state with network messages.
+         */
+        void sync_network_state();
+
+        /**
+         * @brief Draw ECS entities in layer order.
+         */
+        void draw_ecs_layers();
+
+        /**
+         * @brief Extract enemy sprite paths from registry.
+         */
+        void extract_enemy_sprite_paths();
+
+        /**
+         * @brief Index existing entities in the ECS registry for fast access.
+         */
+        void index_existing_entities();
+
+        /**
+         * @brief Render all entities in the scene.
+         */
+        void render_entities();
+
+        /**
+         * @brief Render a single player entity.
+         */
+        void render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+
+        /**
+         * @brief Render a single enemy entity.
+         */
+        void render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+
+        /**
+         * @brief Render a single obstacle entity.
+         */
+        void render_obstacle(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+
+        /**
+         * @brief Render a background entity.
+         */
+        void render_background(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+
+        /**
+         * @brief Render a text component.
+         */
+        void render_text(ecs::entity_t entity, const component::position &pos);
+
+        /**
+         * @brief Render a powerup entity.
+         */
+        void render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+
+        /**
+         * @brief Render a projectile entity.
+         */
+        void render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
+
+        /**
+         * @brief Load and initialize background music.
+         */
+        void load_music();
+
+        /**
+         * @brief Render obstacles received from the network.
+         */
+        void render_network_obstacles();
+
+        /**
+         * @brief Render enemies received from the network.
+         */
+        void render_network_enemies();
+
+        /**
+         * @brief Render projectiles received from the network.
+         */
+        void render_network_projectiles();
+
+        /**
+         * @brief Render enemy projectiles received from the network.
+         */
+        void render_network_enemy_projectiles();
+
+        /**
+         * @brief Render the death screen when the player dies.
+         */
+        void render_death_screen();
+
+        /**
+         * @brief Render the victory screen when the player wins.
+         */
+        void render_win_screen();
+
+        /**
+         * @brief Render the final victory screen.
+         */
+        void render_final_win_screen();
+
+        /**
+         * @brief Get a unique color associated with a client ID.
+         * @param id Client ID.
+         * @return Color associated with the client.
+         */
+        Color get_color_for_id(uint32_t id);
+
+        /**
+         * @brief Dispatch input events to the InputState struct.
+         */
+        void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed);
+
+        // --- Game state ---
         ecs::entity_t _player; ///< Local player entity.
         Music _music; ///< Background music instance.
         Sound _shootSound; ///< Sound effect for shooting.
@@ -263,59 +394,6 @@ namespace game::scene {
         double _startTime; ///< Start time of the scene.
         UI _ui; ///< UI instance for game overlay
         ChatSystem _chat; ///< Chat overlay manager
+};
 
-        // --- Helpers ---
-        /**
-         * @brief Synchronize ECS state with network messages.
-         */
-        void sync_network_state();
-
-        /**
-         * @brief Render ECS entities organized by layer.
-         */
-        void draw_ecs_layers();
-
-        /**
-         * @brief Extract enemy sprite paths from the registry to the enemy sprite map.
-         */
-        void extract_enemy_sprite_paths();
-
-        /**
-        * @brief Index existing entities in the registry for quick access.
-        */
-        void index_existing_entities();
-
-        /**
-        * @brief Render all entities in the scene.
-        */
-        void render_entities();
-        void render_player(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
-        void render_enemy(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
-        void render_obstacle(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
-        void render_background(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
-        void render_text(ecs::entity_t entity, const component::position &pos);
-        void render_powerup(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
-        void render_projectile(ecs::entity_t entity, const component::position &pos, const component::drawable &draw);
-        void load_music();
-
-        /**
-        * @brief Render obstacles received from the network.
-        */
-        void render_network_obstacles();
-        void render_network_enemies();
-        void render_network_projectiles();
-        void render_network_enemy_projectiles();
-        void render_death_screen();
-        void render_win_screen();
-        void render_final_win_screen();
-
-        /**
-        * @brief Get a unique color for a given client ID.
-        * @param id The client ID.
-        * @return A unique Color associated with the client ID.
-        */
-        Color get_color_for_id(uint32_t id);
-        void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed);
-        InputState _inputState;
-    };
 } // namespace game::scene

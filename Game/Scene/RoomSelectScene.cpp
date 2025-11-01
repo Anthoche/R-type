@@ -136,7 +136,6 @@ namespace scene {
 		}
 
 		if (_raylib.isGamepadAvailable(0)) {
-			// Button selection
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
 				_selectingRooms = false;
 				_selectedRoomIndex = -1;
@@ -156,7 +155,6 @@ namespace scene {
 				_selectedButtonIndex--;
 			}
 
-			//Room selection
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
 				_selectedButtonIndex = -1;
 				_selectingRooms = true;
