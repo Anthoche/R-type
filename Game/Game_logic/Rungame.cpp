@@ -346,7 +346,9 @@ void ServerGame::load_next_level() {
             return;
         }
     }
+        // Ensure all entities are properly cleared before loading new level
     clear_level_entities();
+
     std::string levelPath = ASSETS_PATH "/Config_assets/Levels/level_0" 
                           + std::to_string(currentLevel) + ".json";
     try {
@@ -380,7 +382,13 @@ void ServerGame::clear_level_entities() {
         
         switch (types[i]->value) {
             case component::entity_type::ENEMY:
+                   broadcast_enemy_despawn(entity);
+                   entitiesToKill.push_back(entity);
+                   break;
             case component::entity_type::OBSTACLE:
+                   broadcast_obstacle_despawn(entity);
+                   entitiesToKill.push_back(entity);
+                   break;
             case component::entity_type::PROJECTILE:
             case component::entity_type::RANDOM_ELEMENT:
             case component::entity_type::BACKGROUND:
