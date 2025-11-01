@@ -152,6 +152,11 @@ add_executable(r-type_client
     ${CLIENT_DIR}/main.cpp
     ${CLIENT_DIR}/client.cpp
     ${CLIENT_DIR}/Handler/ClientHandler.cpp
+    ${CLIENT_DIR}/Handler/CHPlayer.cpp
+    ${CLIENT_DIR}/Handler/CHEnemy.cpp
+    ${CLIENT_DIR}/Handler/CHObstacle.cpp
+    ${CLIENT_DIR}/Handler/CHElement.cpp
+    ${CLIENT_DIR}/Handler/CHProjectile.cpp
     ${ENGINE_DIR}/Game.cpp
     ${ENGINE_ENTITIES_DIR}/background.cpp
     ${ENGINE_ENTITIES_DIR}/button.cpp
