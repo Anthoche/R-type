@@ -15,16 +15,9 @@
 #include <iostream>
 #include <cmath>
 #include <chrono>
+#include "../../../Shared/Logger.hpp"
 
-#define RESET_COLOR   "\033[0m"
-#define RED_COLOR     "\033[31m"
-#define GREEN_COLOR   "\033[32m"
-#define YELLOW_COLOR  "\033[33m"
-#define BLUE_COLOR    "\033[34m"
-#define LOG_ERROR(msg)   std::cerr << RED_COLOR << "[ERROR] " << msg << RESET_COLOR << std::endl
-#define LOG_INFO(msg)    std::cout << GREEN_COLOR << "[INFO] " << msg << RESET_COLOR << std::endl
-#define LOG_DEBUG(msg)   std::cout << YELLOW_COLOR << "[DEBUG] " << msg << RESET_COLOR << std::endl
-#define LOG(msg)         std::cout << BLUE_COLOR << msg << RESET_COLOR << std::endl
+
 
 template <typename Component>
 inline Component* get_component_ptr(ecs::registry &registry, ecs::entity_t entity) {
