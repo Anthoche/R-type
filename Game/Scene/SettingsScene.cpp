@@ -247,6 +247,13 @@ namespace scene {
 				}
 			}
 		}
+
+		if (_raylib.isGamepadAvailable(0)) {
+			// Button action
+			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) {
+				handleButtonClick("button_back");
+			}
+		}
 	}
 
 	void SettingsScene::handleButtonClick(std::string const &id) {

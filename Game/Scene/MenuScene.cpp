@@ -23,6 +23,7 @@ namespace scene {
 		_isOpen = true;
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
+		_selectedButtonIndex = -1;
 
 		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
@@ -114,7 +115,7 @@ namespace scene {
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				_selectedButtonIndex = -1;
 				hoverable[i]->isHovered = true;
-				if (_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+				if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
@@ -174,6 +175,7 @@ namespace scene {
 	}
 
 	void MenuScene::onClose() {
+		_selectedButtonIndex = -1;
 		_raylib.unloadFont(_font);
 	}
 
@@ -193,10 +195,9 @@ namespace scene {
 		if (id == "button_play") {
 			_game.getSceneHandler().open("room_select");
 		} else if (id == "button_settings") {
-			 _game.getSceneHandler().open("settings");
+			_game.getSceneHandler().open("settings");
 		} else if (id == "button_quit") {
 			close();
 		}
 	}
-
 }
