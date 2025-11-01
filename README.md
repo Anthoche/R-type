@@ -68,7 +68,6 @@ r-type/
 ```
 
 ## 🔧 Development
-
 ### Available Scripts
 
 #### 1. Install dependencies
@@ -82,7 +81,10 @@ sudo dnf install libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel 
 git submodule update --init --recursive
 ```
 
-#### 2. Build the project
+---
+
+#### 2. Build the project (Linux)
+
 ```bash
 mkdir build
 cd build
@@ -90,23 +92,54 @@ cmake ..
 make
 ```
 
-### 2.1. Build Unit Tests of the project
-``` bash
+##### 2.1. Build Unit Tests of the project
+```bash
 make tu
 ```
 
-#### 3. Launch the project
-3.1 server:
+---
 
+#### 🪟 2.2. Build the project (Windows)
+
+If you are building with **Visual Studio 2022** and **CMake**, follow these steps:
+
+```bash
+mkdir build
+cd build
+cmake .. -G "Visual Studio 17 2022"
+cmake --build . --config Debug
+cd Debug
+```
+
+Then launch the executables:
+
+```bash
+./rtype_server.exe [PORT]
+./rtype_client.exe [IP ADDRESS] [PORT] [NAME]
+```
+
+📝 Example:
+```bash
+./rtype_server.exe 4242
+./rtype_client.exe 127.0.0.1 4242 Paco
+```
+
+> ⚠️ On Windows, make sure `raylib`, `asio`, and other dependencies are properly installed via **vcpkg** and that your Visual Studio environment is correctly configured (x64 build tools).
+
+---
+
+#### 3. Launch the project (Linux)
+
+3.1 server:
 ```bash
 ./rtype_server [PORT]
 ```
 
 3.2 client:
-
 ```bash
-./rtype_client [IP ADRESS] [PORT] [NAME]
+./rtype_client [IP ADDRESS] [PORT] [NAME]
 ```
+
 📝 Example:
 ```bash
 ./rtype_server 4242
