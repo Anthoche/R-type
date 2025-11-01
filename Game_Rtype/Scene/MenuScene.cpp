@@ -12,10 +12,10 @@
 #include "RenderUtils.hpp"
 
 namespace scene {
-	MenuScene::MenuScene(Game &game) : AScene(960, 540, "BrawlGetto - Menu"), _game(game) {
-		_titleCenterY = 80.f;
-		_buttonCenterY = static_cast<float>(_height) * 0.45f;
-		_buttonPosition = {0.f, 0.f};
+	MenuScene::MenuScene(Game &game) : AScene(960, 540, "R-Type - Menu"), _game(game) {
+		_titleCenterY = getElementCenter(_height, _titleSize);
+		_buttonCenterY = static_cast<float>(getButtonsCenterY(_height, 3, _buttonSize.y, _buttonSpacing));
+		_buttonPosition = {600.f, _buttonCenterY};
 	}
 
 	void MenuScene::init() {
@@ -34,60 +34,25 @@ namespace scene {
 		_registry.register_component<component::hoverable>();
 		_registry.register_component<component::type>();
 
-		Vector2 titleSize = _raylib.measureTextEx(_font, "R-Type", _titleSize, -0.5f);
-		float titleX = (_width - titleSize.x) / 2.f;
-		game::entities::create_text(_registry, {titleX, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
+		_buttonPosition = {600.f, _buttonCenterY};
+
+		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
 
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
 		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
-		const float columnSpacing = 40.f;
-		const float rowY = _buttonCenterY;
-		const float totalWidth = _buttonSize.x * 2.f + columnSpacing;
-		const float rowStartX = (_width - totalWidth) / 2.f;
-		const float leftX = rowStartX;
-		const float rightX = rowStartX + _buttonSize.x + columnSpacing;
-		const float bottomY = rowY + _buttonSize.y + (_buttonSpacing * 1.2f);
-		const float centerX = (_width - _buttonSize.x) / 2.f;
+		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
-		game::entities::create_button(
-			_registry,
-			"button_play",
-			isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
-			leftX,
-			rowY,
-			0.f,
-			_buttonSize.x,
-			_buttonSize.y,
-			_accentColor,
-			BLACK
-		);
+		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
-		game::entities::create_button(
-			_registry,
-			"button_settings",
-			isFrench ? "Options" : isItalian ? "Opzioni" : "Settings",
-			rightX,
-			rowY,
-			0.f,
-			_buttonSize.x,
-			_buttonSize.y,
-			_accentColor,
-			BLACK
-		);
+		game::entities::create_button(_registry, "button_settings", isFrench ? "Options" : isItalian ? "Opzioni" : "Settings",
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
-		game::entities::create_button(
-			_registry,
-			"button_quit",
-			isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
-			centerX,
-			bottomY,
-			0.f,
-			_buttonSize.x,
-			_buttonSize.y,
-			_accentColor,
-			BLACK
-		);
+		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
+
+		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
 		if (!_game.getGameClient().isConnected())
 			_game.getGameClient().sendHello();
@@ -116,7 +81,7 @@ namespace scene {
 				int fontSize = text[i]->font_size;
 				float spacing = text[i]->spacing;
 				Color textColor = text[i]->color;
-				drawButton(pos, size, content, fontSize, spacing, drawables[i]->color, textColor, hoverable[i]->isHovered, clickable[i]->isClicked);
+				drawButton(pos, size, content, fontSize, spacing, _accentColor, textColor, hoverable[i]->isHovered, clickable[i]->isClicked);
 			}
 			if (types[i]->value == component::entity_type::TEXT) {
 				_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
@@ -150,7 +115,7 @@ namespace scene {
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				_selectedButtonIndex = -1;
 				hoverable[i]->isHovered = true;
-				if (_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+				if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
@@ -173,6 +138,7 @@ namespace scene {
 				}
 				_selectedButtonIndex--;
 			}
+
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
 				if (_selectedButtonIndex == -1 || _selectedButtonIndex >= buttonCount)
 					return;
@@ -227,10 +193,9 @@ namespace scene {
 		if (id == "button_play") {
 			_game.getSceneHandler().open("room_select");
 		} else if (id == "button_settings") {
-			 _game.getSceneHandler().open("settings");
+			_game.getSceneHandler().open("settings");
 		} else if (id == "button_quit") {
 			close();
 		}
 	}
-
 }

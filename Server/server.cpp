@@ -18,10 +18,10 @@
 #include "WeaponDefinition.hpp"
 
 GameServer::GameServer(uint16_t port) : connexion(ioContext, port), roomManager(4) {
-	roomManager.addRoom(Room(connexion, 4, 2, "Rtype"));
-	roomManager.addRoom(Room(connexion, 4, 4, "Rtype 2"));
-	roomManager.addRoom(Room(connexion, 6, 4, "Test Game"));
-	roomManager.addRoom(Room(connexion, 2, 2, "Test Duo"));
+	roomManager.addRoom(Room(connexion, 4, 4, "Room00"));
+	roomManager.addRoom(Room(connexion, 4, 4, "Room01"));
+	roomManager.addRoom(Room(connexion, 6, 4, "Room02"));
+	roomManager.addRoom(Room(connexion, 2, 2, "Romm03"));
 	roomManager.addRoom(Room(connexion, 12, 10, "Test bonjour")); // Normally, this room should not be created.
 }
 
