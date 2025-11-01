@@ -21,7 +21,13 @@ void Game::run() {
 		_client.run();
 	});
 	_sceneHandler.openMenu();
-	_networkThread.join();
+
+	if (_client.roomId >= 0)
+		_client.sendClientLeaveRoom();
+
+	_client.disconnect();
+	if (_networkThread.joinable())
+		_networkThread.join();
 }
 
 bool GameClient::isConnected() const { 

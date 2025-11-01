@@ -4,4 +4,5 @@ cd build
 
 ./r-type_client localhost 4242 test1 &
 ./r-type_client localhost 4242 test2 &
+./r-type_client localhost 4242 test3 &
 ./r-type_client localhost 4242 test4

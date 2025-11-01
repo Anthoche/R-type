@@ -68,7 +68,6 @@ r-type/
 ```
 
 ## 🔧 Development
-
 ### Available Scripts
 
 #### 1. Install dependencies
@@ -82,7 +81,10 @@ sudo dnf install libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel 
 git submodule update --init --recursive
 ```
 
-#### 2. Build the project
+---
+
+#### 2. Build the project (Linux)
+
 ```bash
 mkdir build
 cd build
@@ -90,23 +92,54 @@ cmake ..
 make
 ```
 
-### 2.1. Build Unit Tests of the project
-``` bash
+##### 2.1. Build Unit Tests of the project
+```bash
 make tu
 ```
 
-#### 3. Launch the project
-3.1 server:
+---
 
+#### 🪟 2.2. Build the project (Windows)
+
+If you are building with **Visual Studio 2022** and **CMake**, follow these steps:
+
+```bash
+mkdir build
+cd build
+cmake .. -G "Visual Studio 17 2022"
+cmake --build . --config Debug
+cd Debug
+```
+
+Then launch the executables:
+
+```bash
+./rtype_server.exe [PORT]
+./rtype_client.exe [IP ADDRESS] [PORT] [NAME]
+```
+
+📝 Example:
+```bash
+./rtype_server.exe 4242
+./rtype_client.exe 127.0.0.1 4242 Paco
+```
+
+> ⚠️ On Windows, make sure `raylib`, `asio`, and other dependencies are properly installed via **vcpkg** and that your Visual Studio environment is correctly configured (x64 build tools).
+
+---
+
+#### 3. Launch the project (Linux)
+
+3.1 server:
 ```bash
 ./rtype_server [PORT]
 ```
 
 3.2 client:
-
 ```bash
-./rtype_client [IP ADRESS] [PORT] [NAME]
+./rtype_client [IP ADDRESS] [PORT] [NAME]
 ```
+
 📝 Example:
 ```bash
 ./rtype_server 4242
@@ -156,11 +189,16 @@ git submodule update --init --recursive
 - 🧠 **[Lucispark Diagrams](https://lucid.app/lucidchart/4633408f-cba8-48c3-a0b8-c60bfb79cc14/edit?viewport_loc=-582%2C-133%2C3079%2C1520%2C0_0&invitationId=inv_87f07e72-7bc2-49f5-ad85-d82292c0f6f7)**<br>
 Visual representations of system architecture.
 
-- 📕 **[Wiki](https://github.com/Anthoche/R-type/wiki)**<br>
-Simple wiki to explain some technical details of the project.
-
 - 🖥️ **[Mirror Repository](https://github.com/Anthoche/R-type)**<br>
 Repository to run CI.
+
+## 📕 Wiki
+
+- [Comparative Study](https://github.com/Anthoche/R-type/wiki/Comparative-Study)
+- [How to create a new game](https://github.com/Anthoche/R-type/wiki/How-to-create-a-new-game)
+- [Protocol](https://github.com/Anthoche/R-type/wiki/Protocol)
+- [User Guide](https://github.com/Anthoche/R-type/wiki/User-Guide)
+
 
 ## 👥 Team
 

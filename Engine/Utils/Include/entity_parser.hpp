@@ -137,7 +137,7 @@ namespace game::parsing
      * @param png_data JSON object containing PNG configuration.
      * @return The unique identifier of the created PNG entity.
      */
-    ecs::entity_t parse_png(ecs::registry &reg, const json &png_data);
+    void parse_png(ecs::registry &reg, const json &png_data);
 
     /**
      * @brief Parses JSON data and creates a platform entity.

@@ -174,7 +174,7 @@ void ChatSystem::appendCharacter(int codepoint)
 {
 	if (codepoint <= 0)
 		return;
-	if (codepoint == 9) // tab
+	if (codepoint == 9)
 		return;
 
 	if (codepoint >= 32 && codepoint <= 126) {

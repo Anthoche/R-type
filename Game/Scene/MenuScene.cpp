@@ -19,11 +19,12 @@ namespace scene {
 	}
 
 	void MenuScene::init() {
+		_registry.clear();
 		_isOpen = true;
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
+		_selectedButtonIndex = -1;
 
-		_registry = ecs::registry{};
 		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
 
 		_registry.register_component<component::position>();
@@ -53,7 +54,8 @@ namespace scene {
 		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
 			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
 
-		_game.getGameClient().sendHello();
+		if (!_game.getGameClient().isConnected())
+			_game.getGameClient().sendHello();
 	}
 
 
@@ -113,7 +115,7 @@ namespace scene {
 				mousePos.y > positions[i]->y && mousePos.y < positions[i]->y + drawables[i]->height) {
 				_selectedButtonIndex = -1;
 				hoverable[i]->isHovered = true;
-				if (_raylib.isMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+				if (_raylib.isMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 					clickable[i]->isClicked = true;
 					handleButtonClick(clickable[i]->id);
 				}
@@ -122,7 +124,6 @@ namespace scene {
 		}
 
 		if (_raylib.isGamepadAvailable(0)) {
-			// Button selection
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
 				if (_selectedButtonIndex >= buttonCount - 1) {
 					_selectedButtonIndex = 0;
@@ -138,7 +139,6 @@ namespace scene {
 				_selectedButtonIndex--;
 			}
 
-			// Button action
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
 				if (_selectedButtonIndex == -1 || _selectedButtonIndex >= buttonCount)
 					return;
@@ -173,6 +173,7 @@ namespace scene {
 	}
 
 	void MenuScene::onClose() {
+		_selectedButtonIndex = -1;
 		_raylib.unloadFont(_font);
 	}
 
@@ -192,10 +193,9 @@ namespace scene {
 		if (id == "button_play") {
 			_game.getSceneHandler().open("room_select");
 		} else if (id == "button_settings") {
-			 _game.getSceneHandler().open("settings");
+			_game.getSceneHandler().open("settings");
 		} else if (id == "button_quit") {
 			close();
 		}
 	}
-
 }

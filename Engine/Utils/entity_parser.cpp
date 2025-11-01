@@ -25,6 +25,50 @@
 #include "../Core/Entities/Include/triggerzone.hpp"
 #include <fstream>
 #include <stdexcept>
+#include <initializer_list>
+#include <cstring>
+#include <filesystem>
+
+// Normalize asset paths to the configured ASSETS_PATH at build time.
+static std::string resolve_asset_path(const std::string &path)
+{
+    if (path.empty()) return path;
+    // Detect absolute Windows (drive letter) or POSIX paths.
+    if ((path.size() > 1 && path[1] == ':') || (!path.empty() && (path[0] == '/' || path[0] == '\\'))) {
+        std::filesystem::path absolute(path);
+        try {
+            if (std::filesystem::exists(absolute)) {
+                return absolute.generic_string();
+            }
+        } catch (const std::exception &) {
+            // Ignore filesystem errors; we'll fall back to normalization below.
+        }
+
+        std::string generic = absolute.generic_string();
+        const std::string marker = "assets/";
+        auto pos = generic.find(marker);
+        if (pos != std::string::npos) {
+            std::string relative = generic.substr(pos + marker.size());
+            if (!relative.empty() && relative.front() == '/')
+                relative.erase(relative.begin());
+            return std::string(ASSETS_PATH) + "/" + relative;
+        }
+
+        if (!generic.empty() && generic.front() == '/')
+            generic.erase(generic.begin());
+        return std::string(ASSETS_PATH) + "/" + generic;
+    }
+    const char *legacyRoot = "../Game/Assets/";
+    if (path.rfind(legacyRoot, 0) == 0) {
+        return std::string(ASSETS_PATH) + "/" + path.substr(std::strlen(legacyRoot));
+    }
+    // If already starts with "assets/", strip the prefix to avoid duplicating
+    if (path.rfind("assets/", 0) == 0) {
+        return std::string(ASSETS_PATH) + "/" + path.substr(std::strlen("assets/"));
+    }
+    // Otherwise, treat as relative to assets root
+    return std::string(ASSETS_PATH) + "/" + path;
+}
 
 namespace game::parsing
 {
@@ -51,6 +95,19 @@ namespace game::parsing
         }
         return default_val;
     }
+
+    static float read_dimension(const nlohmann::json &data,
+                                std::initializer_list<const char*> keys,
+                                float default_val)
+    {
+        for (const auto *key : keys) {
+            auto it = data.find(key);
+            if (it != data.end() && (it->is_number_float() || it->is_number_integer() || it->is_number_unsigned())) {
+                return it->get<float>();
+            }
+        }
+        return default_val;
+    }
     
     ecs::entity_t parse_background(ecs::registry &reg, const nlohmann::json &bg_data)
     {
@@ -72,8 +129,8 @@ namespace game::parsing
             float height = bg_data.value("height", 200.0f);
             float depth  = bg_data.value("depth", 1.0f);
 
-            std::string image_path = bg_data.value("image_path", "");
-            std::string model_path = bg_data.value("model_path", "");
+            std::string image_path = resolve_asset_path(bg_data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(bg_data.value("model_path", ""));
             float scale = bg_data.value("scale", 1.0f);
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
@@ -105,10 +162,16 @@ namespace game::parsing
                 z = player_data.value("z", 0.0f);
             }
 
-            uint32_t clientId = player_data.value("client_id", 0u);
+            float width = read_dimension(player_data, {"width", "w"}, 33.0f);
+            float height = read_dimension(player_data, {"height", "h"}, 16.0f);
+            float depth = read_dimension(player_data, {"depth", "d"}, 16.0f);
 
-            std::string image_path = player_data.value("image_path", "");
-            std::string model_path = player_data.value("model_path", "");
+            uint32_t clientId = player_data.value("client_id", 0u);
+            int health = player_data.value("health", 100);
+            float speed = player_data.value("speed", 300.0f);
+
+            std::string image_path = resolve_asset_path(player_data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(player_data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Player image file not found: " << image_path << std::endl;
@@ -116,12 +179,14 @@ namespace game::parsing
             if (!model_path.empty() && !std::ifstream(model_path).good()) {
                 std::cerr << "[WARNING] Player model file not found: " << model_path << std::endl;
             }
-            return game::entities::create_player(reg, x, y, z, image_path, model_path, clientId);
+
+            return game::entities::create_player(reg, x, y, z, width, height, depth, image_path, model_path,  clientId, health, speed);
         }
         catch (const std::exception &e) {
             throw std::runtime_error(std::string("Failed to parse player: ") + e.what());
         }
     }
+
 
     ecs::entity_t parse_enemy(ecs::registry &reg, const nlohmann::json &enemy_data)
     {
@@ -144,8 +209,8 @@ namespace game::parsing
             velocity = enemy_data.value("speed", 0.0f);
             width = enemy_data.value("w", 0.0f);
             height = enemy_data.value("h", 0.0f);
-            std::string image_path = enemy_data.value("image_path", "");
-            std::string model_path = enemy_data.value("model_path", "");
+            std::string image_path = resolve_asset_path(enemy_data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(enemy_data.value("model_path", ""));
             std::string pattern = enemy_data.value("pattern", "");
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
@@ -177,11 +242,11 @@ namespace game::parsing
                 z = obstacle_data.value("z", 0.0f);
             }
 
-            std::string image_path = obstacle_data.value("image_path", "");
-            std::string model_path = obstacle_data.value("model_path", "");
+            std::string image_path = resolve_asset_path(obstacle_data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(obstacle_data.value("model_path", ""));
             velocity = obstacle_data.value("speed", 0.0f);
-            width = obstacle_data.value("w", 0.0f);
-            height = obstacle_data.value("h", 0.0f);
+            width = read_dimension(obstacle_data, {"width", "w"}, 0.0f);
+            height = read_dimension(obstacle_data, {"height", "h"}, 0.0f);
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Obstacle image file not found: " << image_path << std::endl;
@@ -214,8 +279,18 @@ namespace game::parsing
             velocity = element_data.value("speed", 0.0f);
             width = element_data.value("w", 0.0f);
             height = element_data.value("h", 0.0f);
-            std::string image_path = element_data.value("image_path", "");
-            std::string type = element_data.value("type", "");
+            std::string image_path = resolve_asset_path(element_data.value("image_path", ""));
+            std::string type;
+            if (element_data.contains("type")) {
+                if (element_data["type"].is_string())
+                    type = element_data["type"].get<std::string>();
+                else if (element_data["type"].is_number())
+                    type = std::to_string(element_data["type"].get<int>());
+                else
+                    type = "";
+            } else {
+                type = "";
+            }
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] element image file not found: " << image_path << std::endl;
@@ -230,7 +305,7 @@ namespace game::parsing
     ecs::entity_t parse_sound(ecs::registry &reg, const nlohmann::json &sound_data)
     {
         try {
-            std::string sound_path = sound_data.value("sound_path", "");
+            std::string sound_path = resolve_asset_path(sound_data.value("sound_path", ""));
             
             if (sound_path.empty()) {
                 throw std::runtime_error("Missing sound_path field");
@@ -270,7 +345,7 @@ namespace game::parsing
 
             std::string content = text_data.value("content", "");
             int font_size = text_data.value("font_size", 12);
-            std::string font_path = text_data.value("font_path", "");
+            std::string font_path = resolve_asset_path(text_data.value("font_path", ""));
 
             if (!font_path.empty() && !std::ifstream(font_path).good()) {
                 std::cerr << "[WARNING] Font file not found: " << font_path << std::endl;
@@ -292,8 +367,8 @@ namespace game::parsing
             float height = item_data.value("height", 32.f);
             float depth  = item_data.value("depth", 32.f);
 
-            std::string image_path = item_data.value("image_path", "");
-            std::string model_path = item_data.value("model_path", "");
+            std::string image_path = resolve_asset_path(item_data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(item_data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Item image file not found: " << image_path << std::endl;
@@ -321,8 +396,8 @@ namespace game::parsing
             float height = data.value("height", 32.f);
             float depth  = data.value("depth", 32.f);
 
-            std::string image_path = data.value("image_path", "");
-            std::string model_path = data.value("model_path", "");
+            std::string image_path = resolve_asset_path(data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Powerup image file not found: " << image_path << std::endl;
@@ -348,8 +423,8 @@ namespace game::parsing
             float height = data.value("height", 32.f);
             float depth  = data.value("depth", 32.f);
 
-            std::string image_path = data.value("image_path", "");
-            std::string model_path = data.value("model_path", "");
+            std::string image_path = resolve_asset_path(data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Trap image file not found: " << image_path << std::endl;
@@ -375,8 +450,8 @@ namespace game::parsing
             float height = data.value("height", 128.f);
             float depth  = data.value("depth", 32.f);
 
-            std::string image_path = data.value("image_path", "");
-            std::string model_path = data.value("model_path", "");
+            std::string image_path = resolve_asset_path(data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Gate image file not found: " << image_path << std::endl;
@@ -402,8 +477,8 @@ namespace game::parsing
             float height = data.value("height", 32.f);
             float depth  = data.value("depth", 32.f);
 
-            std::string image_path = data.value("image_path", "");
-            std::string model_path = data.value("model_path", "");
+            std::string image_path = resolve_asset_path(data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Weapon image file not found: " << image_path << std::endl;
@@ -418,7 +493,7 @@ namespace game::parsing
         }
     }
 
-    ecs::entity_t parse_png(ecs::registry &reg, const nlohmann::json &data)
+    void parse_png(ecs::registry &reg, const nlohmann::json &data)
     {
         try {
             float x = data.value("x", 0.f);
@@ -429,8 +504,8 @@ namespace game::parsing
             float height = data.value("height", 100.f);
             float depth  = data.value("depth", 10.f);
 
-            std::string image_path = data.value("image_path", "");
-            std::string model_path = data.value("model_path", "");
+            std::string image_path = resolve_asset_path(data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] PNG image file not found: " << image_path << std::endl;
@@ -452,12 +527,12 @@ namespace game::parsing
             float y = data.value("y", 0.f);
             float z = data.value("z", 0.f);
 
-            float width  = data.value("width", 200.f);
-            float height = data.value("height", 40.f);
-            float depth  = data.value("depth", 20.f);
+            float width  = read_dimension(data, {"width", "w"}, 200.f);
+            float height = read_dimension(data, {"height", "h"}, 40.f);
+            float depth  = read_dimension(data, {"depth", "d"}, 20.f);
 
-            std::string image_path = data.value("image_path", "");
-            std::string model_path = data.value("model_path", "");
+            std::string image_path = resolve_asset_path(data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Platform image file not found: " << image_path << std::endl;
@@ -485,8 +560,8 @@ namespace game::parsing
             float height = data.value("height", 50.f);
             float depth  = data.value("depth", 50.f);
 
-            std::string image_path = data.value("image_path", "");
-            std::string model_path = data.value("model_path", "");
+            std::string image_path = resolve_asset_path(data.value("image_path", ""));
+            std::string model_path = resolve_asset_path(data.value("model_path", ""));
 
             if (!image_path.empty() && !std::ifstream(image_path).good()) {
                 std::cerr << "[WARNING] Decoration image file not found: " << image_path << std::endl;
