@@ -34,7 +34,7 @@ namespace scene {
 		_registry.register_component<component::hoverable>();
 		_registry.register_component<component::type>();
 
-		Vector2 titleSize = _raylib.measureTextEx(_font, "R-Type", _titleSize, -0.5f);
+		Vector2 titleSize = _raylib.measureTextEx(_font, "Brawll", _titleSize, -0.5f);
 		float titleX = (_width - titleSize.x) / 2.f;
 		game::entities::create_text(_registry, {titleX, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
 
