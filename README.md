@@ -207,11 +207,11 @@ Repository to run CI.
 
 ## 📕 Wiki
 
-- [Comparative Study](https://github.com/Anthoche/R-type/wiki/Comparative-Study)
-- [How to create a new game](https://github.com/Anthoche/R-type/wiki/How-to-create-a-new-game)
-- [Protocol](https://github.com/Anthoche/R-type/wiki/Protocol)
-- [User Guide](https://github.com/Anthoche/R-type/wiki/User-Guide)
-- [Dictionary of Entities](https://github.com/Anthoche/R-type/wiki/Dictionary-of-Entities)
+- [Comparative Study](https://github.com/EpitechPGE3-2025/G-CPP-500-PAR-5-1-rtype-1/wiki/Comparative-Study)
+- [Dictionary of Entities](https://github.com/EpitechPGE3-2025/G-CPP-500-PAR-5-1-rtype-1/wiki/Dictionary-of-Entities)
+- [How to create a new game](https://github.com/EpitechPGE3-2025/G-CPP-500-PAR-5-1-rtype-1/wiki/How-to-create-a-new-game)
+- [Protocol](https://github.com/EpitechPGE3-2025/G-CPP-500-PAR-5-1-rtype-1/wiki/Protocol)
+- [User Guide](https://github.com/EpitechPGE3-2025/G-CPP-500-PAR-5-1-rtype-1/wiki/User-Guide)
 
 
 ## 👥 Team
