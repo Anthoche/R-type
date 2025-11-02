@@ -132,8 +132,14 @@ void UI::render() {
 
         switch (types[i]->value) {
             case component::entity_type::TEXT:
-                if (text[i]->content.starts_with("Players:"))
-                    text[i]->content = std::format("Players: {}", playerID);
+                if (text[i]->content.starts_with("Players:")) {
+                    int numPlayers = 0;
+                    {
+                        std::lock_guard<std::mutex> g(_scene._game.getGameClient().stateMutex);
+                        numPlayers = _scene._game.getGameClient().players.size();
+                    }
+                    text[i]->content = std::format("Players: {}", numPlayers);
+                }
                 if (text[i]->content.starts_with("Total:")) {
                     int globalScore = 0;
                     {
@@ -167,19 +173,19 @@ void UI::render() {
                 break;
         }
     }
-    {
-        std::string healthText = std::format("HP: {}/{}", playerHealth, maxHealth);
-        Vector2 healthPos = {_margin.x, _raylib.getRenderHeight() - _margin.y - 30.f};
-        Color healthColor = WHITE;
-        
-        if (playerHealth <= 25) {
-            healthColor = RED;
-        } else if (playerHealth <= 50) {
-            healthColor = ORANGE;
-        }
-        
-        _raylib.drawTextEx(_font, healthText, healthPos, _fontSize, _spacing, healthColor);
-    }
+
+	std::string healthText = std::format("HP: {}/{}", playerHealth, maxHealth);
+	Vector2 healthPos = {_margin.x, _raylib.getRenderHeight() - _margin.y - 40.f};
+	Color healthColor = WHITE;
+	
+	if (playerHealth <= 25) {
+		healthColor = RED;
+	} else if (playerHealth <= 50) {
+		healthColor = ORANGE;
+	}
+	
+	_raylib.drawTextEx(_font, healthText, healthPos, _fontSize, _spacing, healthColor);
+
 }
 
 void UI::unload() {

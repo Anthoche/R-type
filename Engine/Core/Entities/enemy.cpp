@@ -50,7 +50,6 @@ namespace game::entities {
             {
                 for (std::size_t i = 0; i < vel.size() && i < type.size(); ++i) {
                     if (vel[i] && type[i] && type[i]->value == component::entity_type::ENEMY) {
-                        // Simple AI: always move left
                         if (vel[i]->vx > -100.f) vel[i]->vx = -100.f;
                     }
                 }

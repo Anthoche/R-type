@@ -96,7 +96,7 @@ namespace game::scene {
         game::entities::setup_hitbox_sync_system(_registry);
 
         game::entities::create_text(_registry, {20.f, 30.f}, "R-Type", WHITE, 1.0f, 32);
-        game::entities::create_sound(_registry, "../Game/Assets/sounds/Level11.mp3", 0.8f, true, true);
+        game::entities::create_sound(_registry, std::string(ASSETS_PATH) + "/sounds/Level11.mp3", 0.8f, true, true);
         
         index_existing_entities();
         load_entity_textures();
@@ -388,11 +388,11 @@ namespace game::scene {
             _raylib.updateMusicStream(_music);
             break;
         }
-         _shootSound = _raylib.loadSound("../Game/Assets/sounds/shoot.wav");
+         _shootSound = _raylib.loadSound(std::string(ASSETS_PATH) + "/sounds/shoot.wav");
         _raylib.setSoundVolume(_shootSound, 0.8f);
-        _victorySound = _raylib.loadSound("../Game/Assets/sounds/victory.wav");
+        _victorySound = _raylib.loadSound(std::string(ASSETS_PATH) + "/sounds/victory.wav");
         _raylib.setSoundVolume(_victorySound, 0.8f);
-        _defeatSound = _raylib.loadSound("../Game/Assets/sounds/defeat.wav");
+        _defeatSound = _raylib.loadSound(std::string(ASSETS_PATH) + "/sounds/defeat.wav");
         _raylib.setSoundVolume(_defeatSound, 0.8f);
     }
 

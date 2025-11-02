@@ -29,11 +29,9 @@
 #include <cstring>
 #include <filesystem>
 
-// Normalize asset paths to the configured ASSETS_PATH at build time.
 static std::string resolve_asset_path(const std::string &path)
 {
     if (path.empty()) return path;
-    // Detect absolute Windows (drive letter) or POSIX paths.
     if ((path.size() > 1 && path[1] == ':') || (!path.empty() && (path[0] == '/' || path[0] == '\\'))) {
         std::filesystem::path absolute(path);
         try {
@@ -41,7 +39,6 @@ static std::string resolve_asset_path(const std::string &path)
                 return absolute.generic_string();
             }
         } catch (const std::exception &) {
-            // Ignore filesystem errors; we'll fall back to normalization below.
         }
 
         std::string generic = absolute.generic_string();
@@ -62,11 +59,9 @@ static std::string resolve_asset_path(const std::string &path)
     if (path.rfind(legacyRoot, 0) == 0) {
         return std::string(ASSETS_PATH) + "/" + path.substr(std::strlen(legacyRoot));
     }
-    // If already starts with "assets/", strip the prefix to avoid duplicating
     if (path.rfind("assets/", 0) == 0) {
         return std::string(ASSETS_PATH) + "/" + path.substr(std::strlen("assets/"));
     }
-    // Otherwise, treat as relative to assets root
     return std::string(ASSETS_PATH) + "/" + path;
 }
 
@@ -87,7 +82,6 @@ namespace game::parsing
         }
     }
 
-    // Helper to get float from JSON (handles both direct and nested formats)
     static float get_float_value(const nlohmann::json &data, const std::string &field, float default_val = 0.0f)
     {
         if (data.contains(field)) {
@@ -331,7 +325,6 @@ namespace game::parsing
     void parse_text(ecs::registry &reg, const nlohmann::json &text_data)
     {
         try {
-            // Support both formats
             float x, y;
             if (text_data.contains("position") && text_data["position"].is_object()) {
                 x = text_data["position"]["x"];

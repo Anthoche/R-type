@@ -29,6 +29,10 @@ inline Component* get_component_ptr(ecs::registry &registry, ecs::entity_t entit
 }
 
 void ServerGame::broadcast_element_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz, float width, float height) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ElementSpawnMessage msg{};
     msg.type = MessageType::ElementSpawn;
     msg.elementId = htonl(enemyId);
@@ -52,7 +56,7 @@ void ServerGame::broadcast_element_spawn(uint32_t enemyId, float x, float y, flo
     msg.width = htonl(w);
     msg.height = htonl(h);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_element_positions() {
@@ -85,6 +89,10 @@ void ServerGame::update_element(float dt) {
 }
 
 void ServerGame::broadcast_element_update(uint32_t elementId, float x, float y, float z) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ElementUpdateMessage msg{};
     msg.type = MessageType::ElementUpdate;
     msg.elementId = htonl(elementId);
@@ -111,7 +119,7 @@ void ServerGame::broadcast_element_update(uint32_t elementId, float x, float y, 
     msg.velXBits = htonl(vxb);
     msg.velYBits = htonl(vyb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::check_player_element_collisions() {
@@ -181,9 +189,13 @@ void ServerGame::check_player_element_collisions() {
     }
 }
 void ServerGame::broadcast_element_despawn(uint32_t elemId) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ElementDespawnMessage msg{};
     msg.type = MessageType::ElementDespawn;
     msg.elementId = htonl(elemId);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }

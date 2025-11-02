@@ -243,7 +243,7 @@ void ServerGame::apply_melee_damage(uint32_t attackerId, const MeleeTarget &targ
 
 void ServerGame::handle_jump_request(uint32_t clientId, bool onGround, float &velocity,
                                      PlayerInputState &state, int &jumpCount) {
-    constexpr float jumpForce = -700.f;
+    constexpr float jumpForce = -650.f;
     constexpr int maxJumps = 2;
     if (!state.up) {
         return;

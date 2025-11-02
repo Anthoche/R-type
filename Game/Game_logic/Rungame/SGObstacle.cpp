@@ -134,6 +134,10 @@ void ServerGame::broadcast_obstacle_positions() {
 
 void ServerGame::broadcast_obstacle_update(uint32_t obstacleId, float x, float y, float z,
                                           float vx, float vy, float vz) {
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
     ObstacleUpdateMessage msg{};
     msg.type = MessageType::ObstacleUpdate;
     msg.obstacleId = htonl(obstacleId);
@@ -153,5 +157,5 @@ void ServerGame::broadcast_obstacle_update(uint32_t obstacleId, float x, float y
     msg.vel.vyBits = htonl(vyb);
     msg.vel.vzBits = htonl(vzb);
 
-    connexion.broadcast(&msg, sizeof(msg));
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }

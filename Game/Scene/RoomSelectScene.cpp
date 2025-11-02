@@ -174,7 +174,6 @@ namespace scene {
 				_selectedRoomIndex--;
 			}
 
-			// Button action
 			if (_raylib.isGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
 				if (_selectingRooms) {
 					if (_selectedRoomIndex == -1 || _selectedRoomIndex >= _rooms.size())

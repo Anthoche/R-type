@@ -22,7 +22,7 @@ namespace game::entities {
         component::drawable draw;
         draw.width = 10.f;
         draw.height = 5.f;
-        draw.depth = 5.f; // small depth for 3D
+        draw.depth = 5.f;
         draw.color = YELLOW;
         reg.add_component<component::drawable>(projectile, std::move(draw));
 

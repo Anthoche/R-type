@@ -415,8 +415,11 @@ void ServerGame::broadcast_boss_death(uint32_t bossId) {
     msg.type = MessageType::BossDeath;
     msg.bossId = htonl(bossId);
     msg._lastBoss = (currentLevel >= MAX_LEVELS && !_isEndless);
-    
-    connexion.broadcast(&msg, sizeof(msg));
+
+    auto recipients = collectRoomClients();
+    if (!recipients.empty())
+        connexion.broadcastToClients(recipients, &msg, sizeof(msg));
+
     levelTransitionPending = true;
     levelTransitionTime = std::chrono::steady_clock::now();
 }

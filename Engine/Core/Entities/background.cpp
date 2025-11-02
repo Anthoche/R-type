@@ -13,10 +13,7 @@ namespace game::entities {
         float depth, const std::string &imagePath, const std::string &modelPath, float scale) {
         auto e = reg.spawn_entity();
 
-        // ====== Position ======
         reg.emplace_component<component::position>(e, x, y, z);
-
-        // ====== Drawable ======
         component::drawable drw;
         drw.width = width;
         drw.height = height;
@@ -24,10 +21,8 @@ namespace game::entities {
         drw.color = WHITE;
         reg.add_component<component::drawable>(e, std::move(drw));
 
-        // ====== Type ======
         reg.emplace_component<component::type>(e, component::entity_type::BACKGROUND);
 
-        // ====== Optional Sprite ======
         if (!imagePath.empty()) {
             component::sprite spr;
             spr.image_path = imagePath;
@@ -35,7 +30,6 @@ namespace game::entities {
             reg.add_component<component::sprite>(e, std::move(spr));
         }
 
-        // ====== Optional 3D Model ======
         if (!modelPath.empty()) {
             component::model3D model;
             model.model_path = modelPath;

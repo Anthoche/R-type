@@ -310,7 +310,7 @@ void ServerGame::apply_horizontal_knockback(uint32_t clientId, float dt, std::pa
         knockbackX = 0.f;
         return;
     }
-    constexpr float damping = 800.f;
+    constexpr float damping = 700.f;
     if (knockbackX > 0.f)
         knockbackX = std::max(0.f, knockbackX - damping * dt);
     else

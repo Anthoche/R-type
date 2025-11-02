@@ -30,7 +30,6 @@ namespace {
             if (std::filesystem::exists(inputPath))
                 return generic;
         } catch (const std::exception &) {
-            // ignore errors from invalid paths and continue normalization
         }
 
         const std::string marker = "assets/";
@@ -564,7 +563,24 @@ void GameScene::update() {
             }
         }
     }
-
+    float dt = _raylib.getFrameTime();
+    std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+    for (auto &kv : _game.getGameClient().projectiles) {
+        float &x = std::get<0>(kv.second);
+        float &y = std::get<1>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        x += vx * dt;
+        y += vy * dt;
+    }
+    for (auto &kv : _game.getGameClient().enemyProjectiles) {
+        float &x = std::get<0>(kv.second);
+        float &y = std::get<1>(kv.second);
+        float vx = std::get<3>(kv.second);
+        float vy = std::get<4>(kv.second);
+        x += vx * dt;
+        y += vy * dt;
+    }
     _registry.run_systems();
 }
 

@@ -346,8 +346,8 @@ void ServerGame::load_next_level() {
             return;
         }
     }
-        // Ensure all entities are properly cleared before loading new level
     clear_level_entities();
+    initialize_player_positions();
 
     std::string levelPath = ASSETS_PATH "/Config_assets/Levels/level_0" 
                           + std::to_string(currentLevel) + ".json";
@@ -852,8 +852,12 @@ void ServerGame::broadcast_global_health(int16_t health) {
     msg.type = MessageType::InitialHealth;
     msg.clientId = 0;
     msg.initialHealth = htons(health);
-    
-    connexion.broadcast(&msg, sizeof(msg));
+
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
     LOG_DEBUG("[Server] Broadcasted global health: " << health);
 }
 
@@ -862,8 +866,12 @@ void ServerGame::broadcast_endless_mode(bool isEndless) {
     msg.type = MessageType::EndlessMode;
     msg.clientId = 0;
     msg.isEndless = isEndless ? 1 : 0;
-    
-    connexion.broadcast(&msg, sizeof(msg));
+
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::broadcast_global_score() {
@@ -901,16 +909,27 @@ void ServerGame::broadcast_player_skin(uint32_t clientId, const std::string &fil
     msg.clientId = htonl(clientId);
     std::memset(msg.skinFilename, 0, sizeof(msg.skinFilename));
     std::strncpy(msg.skinFilename, filename.c_str(), sizeof(msg.skinFilename) - 1);
-    connexion.broadcast(&msg, sizeof(msg));
+
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::send_player_skins_to(uint32_t clientId) {
-    (void)clientId;
     if (_playerSkins.empty()) {
         return;
     }
+    std::vector<uint32_t> recipient{clientId};
+
     for (const auto &entry : _playerSkins) {
-        broadcast_player_skin(entry.first, entry.second);
+        PlayerSkinMessage msg{};
+        msg.type = MessageType::PlayerSkinUpdate;
+        msg.clientId = htonl(entry.first);
+        std::memset(msg.skinFilename, 0, sizeof(msg.skinFilename));
+        std::strncpy(msg.skinFilename, entry.second.c_str(), sizeof(msg.skinFilename) - 1);
+        connexion.broadcastToClients(recipient, &msg, sizeof(msg));
     }
 }
 
@@ -920,16 +939,27 @@ void ServerGame::broadcast_player_weapon(uint32_t clientId, const std::string &w
     msg.clientId = htonl(clientId);
     std::memset(msg.weaponId, 0, sizeof(msg.weaponId));
     std::strncpy(msg.weaponId, weaponId.c_str(), sizeof(msg.weaponId) - 1);
-    connexion.broadcast(&msg, sizeof(msg));
+
+    auto recipients = collectRoomClients();
+    if (recipients.empty())
+        return;
+
+    connexion.broadcastToClients(recipients, &msg, sizeof(msg));
 }
 
 void ServerGame::send_player_weapons_to(uint32_t clientId) {
-    (void)clientId;
     if (_playerWeapons.empty()) {
         return;
     }
+    std::vector<uint32_t> recipient{clientId};
+
     for (const auto &entry : _playerWeapons) {
-        broadcast_player_weapon(entry.first, entry.second);
+        PlayerWeaponMessage msg{};
+        msg.type = MessageType::PlayerWeaponUpdate;
+        msg.clientId = htonl(entry.first);
+        std::memset(msg.weaponId, 0, sizeof(msg.weaponId));
+        std::strncpy(msg.weaponId, entry.second.c_str(), sizeof(msg.weaponId) - 1);
+        connexion.broadcastToClients(recipient, &msg, sizeof(msg));
     }
 }
 

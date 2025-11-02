@@ -24,7 +24,7 @@ ecs::entity_t create_image(ecs::registry &reg, Texture2D texture, float x, float
 
     component::sprite sprite;
     sprite.texture = texture;
-    sprite.image_path = ""; // facultatif
+    sprite.image_path = "";
     sprite.scale = 1.f;
     reg.add_component<component::sprite>(e, std::move(sprite));
 
