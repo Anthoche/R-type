@@ -19,6 +19,10 @@ UDP_socket::UDP_socket() : socket(ioContext), isServerMode(false) {
         socket.open(udp::v4(), ec);
         if (ec) throw std::runtime_error("Failed to open UDP socket: " + ec.message());
 
+        // Bind to an ephemeral port in client mode so receive_from works on Windows
+        socket.bind(asio::ip::udp::endpoint(asio::ip::udp::v4(), 0), ec);
+        if (ec) throw std::runtime_error("Failed to bind UDP socket (client): " + ec.message());
+
         socket.non_blocking(true, ec);
         if (ec) throw std::runtime_error("Failed to set non-blocking mode: " + ec.message());
 
