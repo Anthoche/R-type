@@ -211,6 +211,7 @@ Repository to run CI.
 - [How to create a new game](https://github.com/Anthoche/R-type/wiki/How-to-create-a-new-game)
 - [Protocol](https://github.com/Anthoche/R-type/wiki/Protocol)
 - [User Guide](https://github.com/Anthoche/R-type/wiki/User-Guide)
+- [Dictionary of Entities](https://github.com/Anthoche/R-type/wiki/Dictionary-of-Entities)
 
 
 ## 👥 Team
