@@ -11,7 +11,6 @@
 #include "DynamicPosition.hpp"
 #include "../../../Engine/Game.hpp"
 #include "../../../Engine/Rendering/Raylib.hpp"
-#include <vector>
 
 namespace game::scene {
 	class GameScene;
@@ -106,13 +105,4 @@ class UI {
 
 		/** @brief Player's individual score (points earned by this player). */
 		int _playerScore = 0;
-
-		/** @brief Vertical spacing between the heart row and the HP text. */
-		float _healthTextGap;
-
-		/** @brief Cached heart entities used for rendering life icons. */
-		std::vector<ecs::entity_t> _heartEntities;
-
-		/** @brief Rebuilds the heart entities to match the desired number. */
-		void rebuildHearts(int desiredLives);
 };

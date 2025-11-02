@@ -1,9 +1,7 @@
-/*
-** EPITECH PROJECT, 2025
-** G-CPP-500-PAR-5-1-rtype-1
-** File description:
-** ServerGame
-*/
+/**
+ * @file ServerGame.hpp
+ * @brief Server-side game logic and state management for multiplayer sessions
+ */
 
 #pragma once
 
@@ -14,659 +12,605 @@
 #include <string>
 #include <chrono>
 #include <mutex>
-#include <queue>
 #include <vector>
+#include <queue>
+#include <map>
+#include <optional>
 
 /**
  * @class ServerGame
- * @brief Implementation of IServerGame for R-Type multiplayer gameplay.
+ * @brief Core server game instance managing multiplayer game sessions
  *
- * This class handles:
- * - The main server game loop (~60 FPS).
- * - Player management, movement, shooting, and death.
- * - Enemy spawning, movement patterns, and AI projectiles.
- * - Collision detection between all entities.
- * - Broadcasting of all gameplay updates to clients.
+ * Handles all server-side game logic including:
+ * - Player state synchronization and updates
+ * - Physics simulation (gravity, collisions, movement)
+ * - Combat system (attacks, damage, knockback)
+ * - Game rules (death, respawn, win conditions)
+ * - Network message processing and broadcasting
+ * - Entity management (players, obstacles, platforms)
+ * - Score tracking (individual and global)
+ * 
+ * The server runs a fixed-tick game loop that processes inputs,
+ * updates game state, and broadcasts changes to all clients.
  */
 class ServerGame : public IServerGame {
     public:
         /**
-         * @brief Constructs a ServerGame instance.
-         * @param conn Reference to the Connexion handler for network communication.
+         * @brief Constructs a server game instance
+         * @param conn Reference to the network connection handler
          */
         explicit ServerGame(Connexion &conn);
 
         /**
-         * @brief Main server game loop.
-         * @param roomId The id of the room to listen on
+         * @brief Starts the game loop for a specific room
+         * @param roomId Unique identifier of the game room
+         * 
+         * Initializes game state and begins the fixed-tick update loop
+         * that continues until the game ends or is interrupted.
          */
         void run(int roomId) override;
-
+        
         /**
-         * @brief Enqueues a received network packet for processing.
-         * @param data The raw packet data.
-         * @param from The sender's network endpoint.
+         * @brief Enqueues a network packet for processing
+         * @param data Raw packet data received from client
+         * @param from Endpoint address of the sender
+         * 
+         * Thread-safe method to queue incoming packets for processing
+         * in the game loop thread.
          */
         void enqueuePacket(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) override;
         
         /**
-         * @brief Sets the initial clients connected to the server.
-         * @param clients Map of client IDs to their connection status.
+         * @brief Sets the initial client list for the game session
+         * @param clients Map of client IDs to their ready status
+         * 
+         * Called before game start to establish which clients are
+         * participating in this game session.
          */
         void setInitialClients(const std::map<uint32_t, bool> &clients) override;
 
         /**
-         * @brief Loads player data from a JSON configuration file.
+         * @brief Loads player configurations from file
+         * @param path File path to player configuration data
+         * 
+         * Initializes player entities with stats, spawn positions,
+         * and other configuration from the specified file.
          */
         void load_players(const std::string &path);
 
         /**
-         * @brief Loads level entities from a JSON configuration file.
+         * @brief Loads level data from file
+         * @param path File path to level configuration data
+         * 
+         * Creates obstacles, platforms, and other level geometry
+         * from the specified level file.
          */
         void load_level(const std::string &path);
 
         /**
-         * @brief Sends the complete game registry state to a specific client.
+         * @brief Sends complete game state to a specific client
+         * @param clientId Target client identifier
+         * 
+         * Broadcasts all entities and their current states to a client,
+         * typically used for newly connected or reconnecting players.
          */
         void broadcast_full_registry_to(uint32_t clientId);
 
-        /**
-         * @brief Sets the initial player skins.
-         * @param skins Map of client IDs to their skin filenames.
-         */
-        void setInitialPlayerSkins(const std::unordered_map<uint32_t, std::string> &skins);
-        
-        /**
-         * @brief Sets the initial player weapons.
-         * @param weapons Map of client IDs to their weapon identifiers.
-         */
-        void setInitialPlayerWeapons(const std::unordered_map<uint32_t, std::string> &weapons);
-
     private:
+        Connexion &connexion; ///< Network connection handler
 
-        /** @brief Maximum number of levels in the game. */
-        static constexpr int MAX_LEVELS = 3;
+        ecs::registry registry_server; ///< Entity component system registry
 
-        /** @brief Indicates if the game is in endless mode. */
-        bool _isEndless = false;
+        std::unordered_map<uint32_t, SceneState> clientScenes; ///< Current scene state for each client
 
-        /** @brief Indicates if the game has been completed. */
-        bool gameCompleted = false;
+        std::unordered_map<uint32_t, std::pair<float, float>> playerPositions; ///< Player positions (x, y)
 
-        /** @brief Maps enemy projectile IDs to their (x,y,z,velX,velY,velZ,ownerId). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float, uint32_t>> enemyProjectiles;
+        std::unordered_map<uint32_t, float> playerVelocities; ///< Vertical velocities for gravity
+        std::unordered_map<uint32_t, float> playerHorizontalKnockback; ///< Active horizontal knockback values
+        std::unordered_map<uint32_t, float> playerVerticalKnockback; ///< Active vertical knockback values
+        std::unordered_map<uint32_t, int> playerLives; ///< Remaining lives for each player
+        std::unordered_map<uint32_t, std::pair<float, float>> playerSpawnPositions; ///< Respawn coordinates
 
-        /** @brief Counter for assigning unique enemy projectile IDs. */
-        uint32_t nextEnemyProjectileId = 100000;
-
-        /** @brief Reference to the network connection handler. */
-        Connexion &connexion;
-
-        /** @brief ECS registry containing all server-side game entities and components. */
-        ecs::registry registry_server;
-
-        /** @brief Maps client IDs to their current scene state (MENU or GAME). */
-        std::unordered_map<uint32_t, SceneState> clientScenes;
-
-        /** @brief Maps player IDs to their (x, y) positions. Note: keeping 2D for backward compat, add z if needed */
-        std::unordered_map<uint32_t, std::pair<float, float>> playerPositions;
-
-        /** @brief Maps obstacle IDs to their (x, y, z, width, height, depth). */
-        std::unordered_map<uint32_t, std::tuple<float, float, float, float, float, float>> obstacles;
-
-        /** @brief Maps projectile IDs to their (x, y, z, velX, velY, velZ, ownerId). */
-        struct ProjectileState {
-            float x;
-            float y;
-            float z;
-            float vx;
-            float vy;
-            float vz;
-            uint32_t ownerId;
-            float damage;
-            float width;
-            float height;
-        };
-
-        /** @brief Maps projectile IDs to their runtime state. */
-        std::unordered_map<uint32_t, ProjectileState> projectiles;
-
-        /** @brief Cooldown timestamps to avoid damage spam. */
-        std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown;
-
-        /** @brief Structure to represent a player's input event. */
-        struct InputEvent {
-            InputCode code;
-            bool pressed;
-        };
-
-        /** @brief Structure to represent the current input state of a player. */
-        struct PlayerInputState {
-            bool up{false};
-            bool down{false};
-            bool left{false};
-            bool right{false};
-        };
-
-        /** @brief Buffers of input events per player. */
-        std::unordered_map<uint32_t, std::vector<InputEvent>> playerInputBuffers;
-
-        /** @brief Current input states per player. */
-        std::unordered_map<uint32_t, PlayerInputState> playerInputStates;
-
-        /** @brief Counter for assigning unique projectile IDs. */
-        uint32_t nextProjectileId = 1;
-
-        /** @brief Mutex for thread-safe access. */
-        std::mutex mtx;
-
-        /** @brief Mutex for thread-safe packet queue access. */
-        std::mutex packetMutex;
-
-        /** @brief Mutex for thread-safe access to initial clients. */
-        mutable std::mutex initialClientsMutex;
-
-        /** @brief Map of initial clients connected to the server. */
-        std::map<uint32_t, bool> initialClients;
-
-        /** @brief Set of dead player IDs. */
-        std::unordered_set<uint32_t> deadPlayers;
-
-        /** @brief Counter for assigning unique enemy IDs. */
-        uint32_t nextEnemyId = 1;
-
-        /** @brief Individual scores per player. */
-        std::unordered_map<uint32_t, int> playerIndividualScores;
-
-        /** @brief Cached skin filename per client. */
-        std::unordered_map<uint32_t, std::string> _playerSkins;
-        
-        /** @brief Cached weapon identifier per client. */
-        std::unordered_map<uint32_t, std::string> _playerWeapons;
-        
-        /** @brief Cooldown tracker per player weapon. */
-        std::unordered_map<uint32_t, std::chrono::steady_clock::time_point> _playerLastShot;
-        
-        /** @brief Remaining ammo per player weapon (if applicable). */
-        std::unordered_map<uint32_t, int> _playerAmmo;
-        
-        /** @brief Burst state tracker per player weapon (if applicable). */
-        struct BurstState {
-            std::chrono::steady_clock::time_point burstStart;
-            std::chrono::steady_clock::time_point lastBurstEnd;
-            bool inBurst{false};
-        };
-        /** @brief Burst states per player weapon. */
-        std::unordered_map<uint32_t, BurstState> _playerBurstState;
-
-        /** @brief Total cumulative score. */
-        int totalScore = 0;
-
-        /** @brief Enemy movement pattern registry. */
-        std::unordered_map<uint32_t, std::string> enemyPatterns;
-
-        /** @brief Cached references for obstacles. */
-        std::vector<ecs::entity_t> _obstacles;
-
-        /** @brief Cached references for enemies. */
-        std::vector<ecs::entity_t> _enemies;
-
-        /** @brief Cached references for elements. */
-        std::vector<ecs::entity_t> _randomElements;
-
-        /** @brief Current level number. */
-        int currentLevel = 1;
-
-        /** @brief Indicates if a level transition is pending. */
-        bool levelTransitionPending = false;
-
-        /** @brief Timestamp when level transition was initiated. */
-        std::chrono::steady_clock::time_point levelTransitionTime;
-
-        /** @brief Delay before transitioning to the next level. */
-        const float LEVEL_TRANSITION_DELAY = 6.0f;
-
-        /** @brief The id of the room to listen on */
-        int _roomId;
-
-        /** @brief Structure representing a pending network packet. */
-        struct PendingPacket {
-            std::vector<uint8_t> data;
-            asio::ip::udp::endpoint endpoint;
-        };
-
-        /** @brief Queue of pending network packets to process. */
-        std::queue<PendingPacket> pendingPackets;
+        std::unordered_map<uint32_t, std::chrono::high_resolution_clock::time_point> playerDamageCooldown; ///< Invulnerability timer after taking damage
+        std::unordered_map<uint32_t, int> playerJumpCount; ///< Current jump count (for double/multi-jump)
 
         /**
-        * @brief Initializes player starting positions. 
-        */
+         * @struct InputEvent
+         * @brief Represents a single input state change
+         */
+        struct InputEvent {
+            InputCode code;  ///< The input key/button
+            bool pressed;    ///< Whether it was pressed (true) or released (false)
+        };
+
+        /**
+         * @struct PlayerInputState
+         * @brief Tracks the current state of all player inputs
+         */
+        struct PlayerInputState {
+            bool up{false};      ///< Up/jump input state
+            bool down{false};    ///< Down/crouch input state
+            bool left{false};    ///< Left movement input state
+            bool right{false};   ///< Right movement input state
+            bool j{false};       ///< J key action state
+            bool k{false};       ///< K key action state
+            int lastDirX{1};     ///< Last horizontal direction (-1 left, 1 right)
+            int lastDirY{0};     ///< Last vertical direction (-1 down, 0 neutral, 1 up)
+        };
+
+        std::unordered_map<uint32_t, std::vector<InputEvent>> playerInputBuffers; ///< Queued input events per player
+        std::unordered_map<uint32_t, PlayerInputState> playerInputStates; ///< Current input state per player
+
+        std::mutex mtx; ///< General purpose mutex for thread safety
+
+        std::unordered_set<uint32_t> deadPlayers; ///< Set of currently dead player IDs
+
+        std::unordered_map<uint32_t, int> playerIndividualScores; ///< Individual score per player
+
+        int totalScore = 0; ///< Combined team/global score
+
+        std::vector<ecs::entity_t> _obstacles; ///< List of obstacle entities
+        std::vector<ecs::entity_t> _platforms; ///< List of platform entities
+        int _roomId = -1; ///< Current room identifier
+
+        /**
+         * @brief Initializes starting positions for all players
+         */
         void initialize_player_positions();
         
-        /** 
-        * @brief Indexes existing entities in the ECS registry for quick access. 
-        */
+        /**
+         * @brief Sets up initial game state and entities
+         */
+        void setup_game_state();
+        
+        /**
+         * @brief Main game update loop iteration
+         * @param tickMs Milliseconds per tick
+         * @param dt Delta time in seconds
+         */
+        void game_loop(int tickMs, float dt);
+        
+        /**
+         * @brief Updates player-specific logic
+         * @param dt Delta time in seconds
+         */
+        void service_players(float dt);
+        
+        /**
+         * @brief Broadcasts player position updates to all clients
+         */
+        void broadcast_player_updates();
+        
+        /**
+         * @brief Indexes all existing entities for quick lookup
+         */
         void index_existing_entities();
-
+        
         /**
-        * @brief Processes all pending network messages.
-        */
-        void process_pending_messages();
-
-        /**
-         * @brief Handles an individual client message.
-         * @param data The raw packet data.
-         * @param from The sender's network endpoint.
-         */
-        void handle_client_message(const std::vector<uint8_t>& data, const asio::ip::udp::endpoint& from);
-
-        /** 
-         * @brief Broadcasts the current game states to all connected clients. 
-         */
-        void broadcast_states_to_clients();
-
-        /** 
-         * @brief Processes buffered player inputs and updates their states. 
-         * @param dt Delta time since last update.
-         */
-        void check_player_enemy_collisions();
-
-        /** 
-         * @brief Broadcasts a player's death.
-         * @param clientId The ID of the player who died.
-         */
-        void broadcast_player_death(uint32_t clientId);
-
-        /** 
-         * @brief Initializes obstacles in the game world. 
+         * @brief Initializes obstacle collision data
          */
         void initialize_obstacles();
 
-        /** 
-         * @brief Broadcasts obstacle spawn event to clients.
-         * @param obstacleId The unique ID of the obstacle.
-         * @param x X position.
-         * @param y Y position.
-         * @param z Z position.
-         * @param w Width.
-         * @param h Height.
-         * @param d Depth.
-         * @param vx Velocity in X.
-         * @param vy Velocity in Y.
-         * @param vz Velocity in Z.
+        /**
+         * @brief Processes all queued network packets
          */
-        void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d, float vx, float vy, float vz);
+        void process_pending_messages();
         
-        /** 
-         * @brief Broadcasts obstacle positions to clients.
+        /**
+         * @brief Handles a single client message
+         * @param data Raw message data
+         * @param from Sender endpoint
          */
-        void broadcast_obstacle_positions();
-
-        /** 
-         * @brief Broadcasts obstacle update event to clients.
-         * @param obstacleId The unique ID of the obstacle.
-         * @param x X position.
-         * @param y Y position.
-         * @param z Z position.
-         * @param vx Velocity in X.
-         * @param vy Velocity in Y.
-         * @param vz Velocity in Z.
-         */
-        void broadcast_obstacle_update(uint32_t obstacleId, float x, float y, float z,
-                                          float vx, float vy, float vz);
-
-        /** 
-         * @brief Broadcasts obstacle despawn event to clients.
-         * @param obstacleId The unique ID of the obstacle.
-         */
-        void broadcast_obstacle_despawn(uint32_t obstacleId);
-
-        /** 
-         * @brief Sleeps the thread to maintain a consistent tick rate.
-         * @param start The start time of the tick.
-         * @param tick_ms Desired tick duration in milliseconds.
-         */
-        void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point& start, int tick_ms);
-
-        /** 
-         * @brief Updates all projectiles on the server side.
-         * @param dt Delta time since last update.
-         */
-        void update_projectiles_server_only(float dt);
-
-        /** 
-         * @brief Broadcasts projectile positions to clients.
-         */
-        void broadcast_projectile_positions();
-
-        /** 
-         * @brief Checks for collisions between projectiles and other entities.
-         */
-        void check_projectile_collisions();
-
-        /** 
-         * @brief Broadcasts projectile spawn event to clients.
-         * @param projId The unique ID of the projectile.
-         * @param ownerId The ID of the entity that fired the projectile.
-         * @param x X position.
-         * @param y Y position.
-         * @param z Z position.
-         * @param vx Velocity in X.
-         * @param vy Velocity in Y.
-         * @param vz Velocity in Z.
-         */
-        void broadcast_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float z, float vx, float vy, float vz);
+        void handle_client_message(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
         
-        /** 
-         * @brief Broadcasts projectile despawn event to clients.
-         * @param projId The unique ID of the projectile.
+        /**
+         * @brief Processes client input message
+         * @param msg Parsed input message
          */
-        void broadcast_projectile_despawn(uint32_t projId);
-
-        /** 
-         * @brief Updates all enemies based on their movement patterns.
-         * @param dt Delta time since last update.
-         */
-        void update_enemies(float dt);
-
-        /** 
-         * @brief Updates enemy with default movement pattern.
-         * @param id The unique ID of the enemy.
-         * @param dt Delta time since last update.
-         */
-        void update_enemy_default(uint32_t id, float dt);
-
-        /** 
-         * @brief Updates enemy with straight movement pattern.
-         * @param id The unique ID of the enemy.
-         * @param dt Delta time since last update.
-         */
-        void update_enemy_straight(uint32_t id, float dt);
-
-        /** 
-         * @brief Updates enemy with zigzag movement pattern.
-         * @param id The unique ID of the enemy.
-         * @param dt Delta time since last update.
-         */
-        void update_enemy_zigzag(uint32_t id, float dt);
-
-        /** 
-         * @brief Updates enemy with circular movement pattern.
-         * @param id The unique ID of the enemy.
-         * @param dt Delta time since last update.
-         */
-        void update_enemy_circle(uint32_t id, float dt);
-
-        /** 
-         * @brief Updates enemy with turret behavior.
-         * @param id The unique ID of the enemy.
-         * @param dt Delta time since last update.
-         * @param rapidfire The rapidfire rate for the turret.
-         */
-        void update_enemy_turret(uint32_t id, float dt, float rapidfire);
-
-        /** 
-         * @brief Updates enemy with boss phase 1 behavior.
-         * @param id The unique ID of the enemy.
-         * @param dt Delta time since last update.
-         */
-        void update_enemy_boss(uint32_t id, float dt);
-
-        /** 
-         * @brief Updates enemy with figure-8 movement pattern.
-         * @param id The unique ID of the enemy.
-         * @param dt Delta time since last update.
-         */
-        void update_enemy_figure8(uint32_t id, float dt);
-
-        /** 
-         * @brief Updates enemy with spiral movement pattern.
-         * @param id The unique ID of the enemy.
-         * @param dt Delta time since last update.
-         */
-        void update_enemy_spiral(uint32_t id, float dt);
-
-        /** 
-         * @brief Updates all obstacles in the game world.
-         * @param dt Delta time since last update.
-         */
-        void update_obstacles(float dt);
-
-        /** 
-         * @brief Updates all random elements in the game world.
-         * @param dt Delta time since last update.
-         */
-        void update_element(float dt);
-
-        /** 
-         * @brief Broadcasts all element positions to clients.
-         */
-        void broadcast_element_positions();
-
-        /** 
-         * @brief Broadcasts element spawn event to clients.
-         * @param elementId The unique ID of the element.
-         * @param x X position.
-         * @param y Y position.
-         * @param z Z position.
-         * @param vx Velocity in X.
-         * @param vy Velocity in Y.
-         * @param vz Velocity in Z.
-         * @param width Element width.
-         * @param height Element height.
-         */
-        void broadcast_element_spawn(uint32_t elementId, float x, float y, float z, float vx, float vy, float vz, float width, float height);
+        void handle_client_input_message(const ClientInputMessage &msg);
         
-        /** 
-         * @brief Broadcasts element despawn event to clients.
-         * @param elementId The unique ID of the element.
+        /**
+         * @brief Processes client scene state change
+         * @param msg Parsed scene state message
          */
-        void broadcast_element_despawn(uint32_t elementId);
+        void handle_scene_state_message(const SceneStateMessage &msg);
         
-        /** 
-         * @brief Broadcasts element update event to clients.
-         * @param elementId The unique ID of the element.
-         * @param x X position.
-         * @param y Y position.
-         * @param z Z position.
+        /**
+         * @brief Processes initial health configuration message
+         * @param msg Parsed health message
          */
-        void broadcast_element_update(uint32_t elementId, float x, float y, float z);
-
-        /** 
-         * @brief Broadcasts enemy spawn event to clients.
-         * @param enemyId The unique ID of the enemy.
-         * @param x X position.
-         * @param y Y position.
-         * @param z Z position.
-         * @param vx Velocity in X.
-         * @param vy Velocity in Y.
-         * @param vz Velocity in Z.
-         * @param width Enemy width.
-         * @param height Enemy height.
-         */
-        void broadcast_enemy_spawn(uint32_t enemyId, float x, float y, float z, float vx, float vy, float vz, float width, float height);
+        void handle_initial_health_message(const InitialHealthMessage &msg);
         
-        /** 
-         * @brief Broadcasts enemy positions to clients.
+        /**
+         * @brief Checks if an input code should be tracked
+         * @param code Input code to check
+         * @return True if this input affects gameplay
          */
-        void broadcast_enemy_positions();
-
-        /** 
-         * @brief Broadcasts enemy update event to clients.
-         * @param enemyId The unique ID of the enemy.
-         * @param x X position.
-         * @param y Y position.
-         * @param z Z position.
-         */
-        void broadcast_enemy_update(uint32_t enemyId, float x, float y, float z);
-
-        /** 
-         * @brief Broadcasts enemy despawn event to clients.
-         * @param enemyId The unique ID of the enemy.
-         */
-        void broadcast_enemy_despawn(uint32_t enemyId);
-
-        /** 
-         * @brief Broadcasts boss death event to clients.
-         * @param bossId The unique ID of the boss.
-         */
-        void broadcast_boss_death(uint32_t bossId);
-
-        /** 
-         * @brief Enemy shoots a projectile.
-         * @param enemyId The unique ID of the enemy.
-         * @param x X position of the projectile spawn.
-         * @param y Y position of the projectile spawn.
-         * @param vx Velocity in X.
-         * @param vy Velocity in Y.
-         */
-        void shoot_enemy_projectile(uint32_t enemyId, float x, float y, float vx, float vy);
-
-        /** 
-         * @brief Updates all enemy projectiles on the server side.
-         * @param dt Delta time since last update.
-         */
-        void update_enemy_projectiles_server_only(float dt);
-
-        /** 
-         * @brief Checks for collisions between enemy projectiles and players.
-         */
-        void check_enemy_projectile_player_collisions();
-
-        /** 
-         * @brief Checks for collisions between players and game elements.
-         */
-        void check_player_element_collisions();
-
-        /** 
-         * @brief Broadcasts enemy projectile spawn event to clients.
-         * @param projId The unique ID of the projectile.
-         * @param ownerId The ID of the entity that fired the projectile.
-         * @param x X position.
-         * @param y Y position.
-         * @param z Z position.
-         * @param vx Velocity in X.
-         * @param vy Velocity in Y.
-         * @param vz Velocity in Z.
-         */
-        void broadcast_enemy_projectile_spawn(uint32_t projId, uint32_t ownerId, float x, float y, float z, float vx, float vy, float vz);
+        bool is_tracked_input(InputCode code) const;
         
-        /** 
-         * @brief Broadcasts enemy projectile positions to clients.
+        /**
+         * @brief Processes a single input event for a player
+         * @param clientId Player identifier
+         * @param state Current input state
+         * @param event Input event to process
          */
-        void broadcast_enemy_projectile_positions();
-
-        /** 
-         * @brief Broadcasts enemy projectile despawn event to clients.
-         * @param projId The unique ID of the projectile.
+        void process_input_event(uint32_t clientId, PlayerInputState &state, const InputEvent &event);
+        
+        /**
+         * @brief Updates last known direction for a player
+         * @param state Input state to update
+         * @param x Horizontal direction
+         * @param y Vertical direction
          */
-        void broadcast_enemy_projectile_despawn(uint32_t projId);
-
-        /** 
-         * @brief Broadcasts player health to all clients.
+        void set_last_direction(PlayerInputState &state, int x, int y);
+        
+        /**
+         * @brief Resolves attack input and triggers combat logic
+         * @param clientId Attacking player ID
+         * @param state Current input state
+         * @param code Attack input code
          */
-        void broadcast_player_health();
-
-        /** 
-         * @brief Broadcasts the global score to all clients.
+        void resolve_attack_input(uint32_t clientId, PlayerInputState &state, InputCode code);
+        
+        /**
+         * @brief Handles horizontal player movement
+         * @param clientId Player identifier
+         * @param dt Delta time
+         * @param state Input state
+         * @param pos Position to update (in/out)
+         * @param width Player width for collision
+         * @param height Player height for collision
          */
-        void broadcast_global_score();
-
-        /** 
-         * @brief Broadcasts endless mode status to all clients.
-         * @param isEndless True if endless mode is active, false otherwise.
+        void move_player_horizontally(uint32_t clientId, float dt, PlayerInputState &state,
+                                     std::pair<float, float> &pos, float width, float height);
+        
+        /**
+         * @brief Applies horizontal knockback physics
+         * @param clientId Player identifier
+         * @param dt Delta time
+         * @param pos Position to update (in/out)
+         * @param width Player width for collision
+         * @param height Player height for collision
          */
-        void broadcast_endless_mode(bool isEndless);
-
-        /** 
-         * @brief Broadcasts global health to all clients.
-         * @param health The global health value.
-         */
-        void broadcast_global_health(int16_t health);
-
-        /** 
-         * @brief Broadcasts individual player scores to all clients.
-         */
-        void broadcast_individual_scores();
-
-        /** 
-         * @brief Checks for collisions between projectiles and enemies.
-         */
-        void check_projectile_enemy_collisions();
-
-        /** 
-         * @brief Loads the next level in the game.
-         */
-        void load_next_level();
-
-        /** 
-         * @brief Clears all entities related to the current level.
-         */
-        void clear_level_entities();
-
-        /** 
-         * @brief Processes buffered player inputs and updates their states.
-         * @param dt Delta time since last update.
+        void apply_horizontal_knockback(uint32_t clientId, float dt, std::pair<float, float> &pos,
+                                        float width, float height);
+        
+        /**
+         * @brief Processes all queued player inputs
+         * @param dt Delta time
          */
         void process_player_inputs(float dt);
         
-        /** 
-         * @brief Checks for AABB overlap between two rectangles.
-         * @param left1 Left edge of rectangle 1.
-         * @param right1 Right edge of rectangle 1.
-         * @param top1 Top edge of rectangle 1.
-         * @param bottom1 Bottom edge of rectangle 1.
-         * @param left2 Left edge of rectangle 2.
-         * @param right2 Right edge of rectangle 2.
-         * @param top2 Top edge of rectangle 2.
-         * @param bottom2 Bottom edge of rectangle 2.
-         * @return True if the rectangles overlap, false otherwise.
+        /**
+         * @brief Applies gravity to all players
+         * @param dt Delta time
+         */
+        void apply_gravity(float dt);
+        
+        /**
+         * @brief Checks if any players have fallen into death zones
+         */
+        void check_death_zone();
+        
+        /**
+         * @brief Checks if win conditions are met
+         */
+        void check_win_condition();
+        
+        /**
+         * @brief Finds the last remaining alive player
+         * @return Client ID of last alive player, or nullopt if none/multiple
+         */
+        std::optional<uint32_t> find_last_alive_player();
+        
+        /**
+         * @brief Handles victory condition for a player
+         * @param winnerId Victorious player's client ID
+         */
+        void handle_victory(uint32_t winnerId);
+        
+        /**
+         * @brief Executes a melee attack
+         * @param attackerId Attacking player ID
+         * @param range Attack range
+         * @param damage Damage to deal
+         * @param baseKnockback Base knockback force
+         * @param knockbackScale Knockback scaling factor
+         * @param dirX Horizontal attack direction
+         * @param dirY Vertical attack direction
+         */
+        void handle_melee_attack(uint32_t attackerId, float range, int damage, float baseKnockback, float knockbackScale, int dirX, int dirY);
+        
+        /**
+         * @struct PlayerCombatInfo
+         * @brief Combat-relevant information for a player
+         */
+        struct PlayerCombatInfo {
+            float width{30.f};   ///< Player hitbox width
+            float height{30.f};  ///< Player hitbox height
+            std::size_t index{0}; ///< Registry index
+        };
+        
+        /**
+         * @struct MeleeTarget
+         * @brief Information about a melee attack target
+         */
+        struct MeleeTarget {
+            uint32_t id{0};       ///< Target client ID
+            std::size_t index{0}; ///< Target registry index
+            bool horizontal{true}; ///< Whether attack is primarily horizontal
+            float distance{0.f};  ///< Distance to target
+        };
+        
+        /**
+         * @brief Retrieves combat info for a player
+         * @param clientId Player identifier
+         * @return Combat info if player exists, nullopt otherwise
+         */
+        std::optional<PlayerCombatInfo> get_player_info(uint32_t clientId);
+        
+        /**
+         * @brief Selects the best target for a melee attack
+         * @param attackerId Attacking player ID
+         * @param range Attack range
+         * @param dirX Horizontal direction
+         * @param dirY Vertical direction
+         * @param attackerInfo Attacker's combat info
+         * @param attackerX Attacker's X position
+         * @param attackerY Attacker's Y position
+         * @return Target info if valid target found, nullopt otherwise
+         */
+        std::optional<MeleeTarget> select_melee_target(uint32_t attackerId, float range, int dirX, int dirY,
+                                                       const PlayerCombatInfo &attackerInfo, float attackerX, float attackerY);
+        
+        /**
+         * @brief Applies damage and knockback to a melee target
+         * @param attackerId Attacking player ID
+         * @param target Target information
+         * @param damage Damage to apply
+         * @param baseKnockback Base knockback force
+         * @param knockbackScale Knockback scaling
+         * @param dirX Horizontal direction
+         * @param dirY Vertical direction
+         */
+        void apply_melee_damage(uint32_t attackerId, const MeleeTarget &target, int damage,
+                                float baseKnockback, float knockbackScale, int dirX, int dirY);
+        
+        /**
+         * @brief Handles player defeat logic
+         * @param clientId Defeated player ID
+         * @param registryIndex Player's registry index
+         * @return True if player is permanently out, false if respawning
+         */
+        bool handle_player_defeat(uint32_t clientId, std::size_t registryIndex);
+        
+        /**
+         * @brief Respawns a player at their spawn point
+         * @param clientId Player identifier
+         * @param registryIndex Player's registry index
+         */
+        void respawn_player(uint32_t clientId, std::size_t registryIndex);
+        
+        /**
+         * @brief Ensures player has tracking data initialized
+         * @param clientId Player identifier
+         */
+        void ensure_player_tracking(uint32_t clientId);
+        
+        /**
+         * @brief Computes safe respawn position for a player
+         * @param clientId Player identifier
+         * @param playerWidth Player width
+         * @param playerHeight Player height
+         * @return Safe respawn coordinates (x, y)
+         */
+        std::pair<float, float> compute_respawn_position(uint32_t clientId, float playerWidth, float playerHeight);
+        
+        /**
+         * @brief Gets player dimensions
+         * @param clientId Player identifier
+         * @return Width and height pair
+         */
+        std::pair<float, float> get_player_dimensions(uint32_t clientId);
+
+        /**
+         * @brief Checks if player is standing on ground or platform
+         * @param clientId Player identifier
+         * @param x Player X position
+         * @param y Player Y position
+         * @param playerWidth Player width
+         * @param playerHeight Player height
+         * @return True if on solid ground
+         */
+        bool is_on_ground(uint32_t clientId, float x, float y, float playerWidth, float playerHeight);
+        
+        /**
+         * @brief Snaps player position to platform top
+         * @param x Player X position
+         * @param y Player Y position
+         * @param playerWidth Player width
+         * @param playerHeight Player height
+         * @return Adjusted Y position on platform top
+         */
+        float snap_to_platform_top(float x, float y, float playerWidth, float playerHeight);
+
+        /**
+         * @brief Checks for player-enemy collisions and applies damage
+         */
+        void check_player_enemy_collisions();
+        
+        /**
+         * @brief Checks if two axis-aligned bounding boxes overlap
+         * @param left1 Left edge of box 1
+         * @param right1 Right edge of box 1
+         * @param top1 Top edge of box 1
+         * @param bottom1 Bottom edge of box 1
+         * @param left2 Left edge of box 2
+         * @param right2 Right edge of box 2
+         * @param top2 Top edge of box 2
+         * @param bottom2 Bottom edge of box 2
+         * @return True if boxes overlap
          */
         bool check_aabb_overlap(float left1, float right1, float top1, float bottom1,
                                 float left2, float right2, float top2, float bottom2);
-
-        /** 
-         * @brief Checks if a position is blocked by any obstacles.
-         * @param testX X position to test.
-         * @param testY Y position to test.
-         * @param playerWidth Width of the player. 
-         * @param playerHeight Height of the player.
-         * @param obstacles List of obstacle entities to check against.
-         * @return True if the position is blocked, false otherwise.
+        
+        /**
+         * @brief Checks if a position is blocked by obstacles
+         * @param testX X position to test
+         * @param testY Y position to test
+         * @param playerWidth Player width
+         * @param playerHeight Player height
+         * @param obstacles List of obstacle entities
+         * @return True if position is blocked
          */
         bool is_position_blocked(float testX, float testY, float playerWidth, float playerHeight,
                                 const std::vector<ecs::entity_t> &obstacles);
+        
+        /**
+         * @brief Checks if position is blocked by platforms
+         * @param clientId Player identifier
+         * @param testX X position to test
+         * @param testY Y position to test
+         * @param playerWidth Player width
+         * @param playerHeight Player height
+         * @param platforms List of platform entities
+         * @param movingDown Whether player is moving downward
+         * @param isDownPressed Whether down input is pressed
+         * @return True if position is blocked
+         */
+        bool is_position_blocked_platform(uint32_t clientId, float testX, float testY, float playerWidth, float playerHeight,
+                                         const std::vector<ecs::entity_t> &platforms, bool movingDown, bool isDownPressed = false);
+        
+        /**
+         * @brief Gets registry index for a client ID
+         * @param clientId Player identifier
+         * @return Registry index
+         */
+        std::size_t registry_index_for_client(uint32_t clientId);
+        
+        /**
+         * @brief Finalizes player death (no more lives)
+         * @param clientId Player identifier
+         * @param registryIndex Player's registry index
+         * @return True if player is permanently dead
+         */
+        bool finalize_player_death(uint32_t clientId, std::size_t registryIndex);
+        
+        /**
+         * @brief Resets all player motion values to zero
+         * @param clientId Player identifier
+         */
+        void reset_player_motion(uint32_t clientId);
+        
+        /**
+         * @brief Handles jump input request
+         * @param clientId Player identifier
+         * @param onGround Whether player is on ground
+         * @param velocity Vertical velocity to modify (in/out)
+         * @param state Input state
+         * @param jumpCount Jump counter to update (in/out)
+         */
+        void handle_jump_request(uint32_t clientId, bool onGround, float &velocity,
+                                 PlayerInputState &state, int &jumpCount);
+        
+        /**
+         * @brief Integrates vertical motion and gravity
+         * @param clientId Player identifier
+         * @param dt Delta time
+         * @param pos Position to update (in/out)
+         * @param playerWidth Player width
+         * @param playerHeight Player height
+         * @param velocity Vertical velocity (in/out)
+         * @param state Input state
+         */
+        void integrate_vertical_motion(uint32_t clientId, float dt, std::pair<float, float> &pos,
+                                       float playerWidth, float playerHeight, float &velocity,
+                                       PlayerInputState &state);
+        
+        /**
+         * @brief Helper to safely get component pointer
+         * @tparam Component Component type
+         * @param registry ECS registry
+         * @param entity Entity to query
+         * @return Pointer to component or nullptr if not found
+         */
+        template <typename Component>
+        static Component *component_ptr(ecs::registry &registry, ecs::entity_t entity) {
+            auto &arr = registry.get_components<Component>();
+            auto idx = static_cast<std::size_t>(entity);
+            if (idx >= arr.size() || !arr[idx].has_value())
+                return nullptr;
+            return &arr[idx].value();
+        }
 
-        /** 
-        * @brief Broadcasts a player's skin selection to all clients.
-        * @param clientId The ID of the player.
-        * @param filename The filename of the selected skin.                       
-        */                       
-        void broadcast_player_skin(uint32_t clientId, const std::string &filename);
+        /**
+         * @struct PendingPacket
+         * @brief Queued network packet awaiting processing
+         */
+        struct PendingPacket {
+            std::vector<uint8_t> data;       ///< Raw packet data
+            asio::ip::udp::endpoint endpoint; ///< Sender address
+        };
 
-        /** 
-        * @brief Sends the cached player skin to a specific client.
-        * @param clientId The ID of the player.
-        */
-        void send_player_skins_to(uint32_t clientId);
+        std::mutex packetMutex; ///< Mutex for packet queue thread safety
+        std::queue<PendingPacket> pendingPackets; ///< Queue of incoming packets
+        std::mutex initialClientsMutex; ///< Mutex for initial clients map
+        std::map<uint32_t, bool> initialClients; ///< Map of initial client IDs to ready status
 
-        /** 
-        * @brief Broadcasts a player's weapon selection to all clients.
-        * @param clientId The ID of the player.
-        * @param weaponId The identifier of the selected weapon.                       
-        */
-        void broadcast_player_weapon(uint32_t clientId, const std::string &weaponId);
+        /**
+         * @brief Broadcasts game state updates to all clients
+         */
+        void broadcast_states_to_clients();
+        
+        /**
+         * @brief Broadcasts player death notification
+         * @param clientId Dead player's ID
+         */
+        void broadcast_player_death(uint32_t clientId);
+        
+        /**
+         * @brief Broadcasts health updates for all players
+         */
+        void broadcast_player_health();
+        
+        /**
+         * @brief Broadcasts global team score
+         */
+        void broadcast_global_score();
+        
+        /**
+         * @brief Broadcasts individual player scores
+         */
+        void broadcast_individual_scores();
+        
+        /**
+         * @brief Broadcasts game winner announcement
+         * @param winnerId Winning player's ID
+         */
+        void broadcast_game_winner(uint32_t winnerId);
 
-        /** 
-        * @brief Sends the cached player weapon to a specific client.
-        * @param clientId The ID of the player.
-        */
-        void send_player_weapons_to(uint32_t clientId);
+        /**
+         * @brief Broadcasts obstacle spawn event
+         * @param obstacleId Obstacle entity ID
+         * @param x X position
+         * @param y Y position
+         * @param z Z position/layer
+         * @param w Width
+         * @param h Height
+         * @param d Depth
+         */
+        void broadcast_obstacle_spawn(uint32_t obstacleId, float x, float y, float z, float w, float h, float d);
+        
+        /**
+         * @brief Broadcasts obstacle despawn event
+         * @param obstacleId Obstacle entity ID to remove
+         */
+        void broadcast_obstacle_despawn(uint32_t obstacleId);
 
-        /** 
-        * @brief Collects the IDs of all clients in the current room.
-        * @param includeDead Whether to include dead players in the list.
-        * @return A vector of client IDs in the room.
-        */
-        std::vector<uint32_t> collectRoomClients(bool includeDead = true) const;
+        /**
+         * @brief Sleeps to maintain consistent tick rate
+         * @param start Tick start time
+         * @param tick_ms Target tick duration in milliseconds
+         */
+        void sleep_to_maintain_tick(const std::chrono::high_resolution_clock::time_point &start, int tick_ms);
 };
