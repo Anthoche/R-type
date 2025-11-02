@@ -137,9 +137,9 @@
       {"x": 5200.0, "y": 500.0, "image_path": "../Game/Assets/sprites/space_rock.png", "speed": 0.55, "w":220.0, "h":70.0}
     ],
     "random_elements": [
-      {"x": 2500.0, "y": 350.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0},
-      {"x": 3500.0, "y": 750.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0},
-      {"x": 4000.0, "y": 450.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0}
+      {"x": 500.0, "y": 350.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0},
+      {"x": 1500.0, "y": 750.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0},
+      {"x": 2000.0, "y": 450.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0}
     ]
   }
 }

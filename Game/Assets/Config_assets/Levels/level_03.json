@@ -398,8 +398,7 @@
           {"x": 34100.0, "y": 600.0, "image_path": "../Game/Assets/sprites/factory_obstacle.png", "speed": 2.4, "w": 97.0, "h": 49.0}
     ],
     "random_elements": [
-      {"x": 1000.0, "y": 650.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 2.4, "w": 18.0, "h": 18.0},
-      {"x": 1500.0, "y": 650.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 2.4, "w": 18.0, "h": 18.0},
+      {"x": 2500.0, "y": 350.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 0.55, "w": 18.0, "h": 18.0},
       {"x": 3200.0, "y": 500.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 2.4, "w": 18.0, "h": 18.0},
       {"x": 5600.0, "y": 350.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 2.4, "w": 18.0, "h": 18.0},
       {"x": 8200.0, "y": 720.0, "image_path": "../Game/Assets/sprites/heart.png", "type": "health", "speed": 2.4, "w": 18.0, "h": 18.0},
