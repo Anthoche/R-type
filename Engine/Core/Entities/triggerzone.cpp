@@ -20,7 +20,6 @@ namespace game::entities {
         reg.emplace_component<component::type>(zone, component::entity_type::TRIGGERZONE);
         reg.emplace_component<component::collision_box>(zone, width, height, depth);
 
-        // Optionally store an identifier for this zone
         component::clickable trigger;
         trigger.id = id;
         reg.emplace_component<component::clickable>(zone, std::move(trigger));

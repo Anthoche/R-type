@@ -30,7 +30,6 @@ namespace {
             if (std::filesystem::exists(inputPath))
                 return generic;
         } catch (const std::exception &) {
-            // ignore errors from invalid paths and continue normalization
         }
 
         const std::string marker = "assets/";

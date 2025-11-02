@@ -214,7 +214,6 @@ Color Raylib::fade(Color color, float alpha) {
 }
 
 std::string Raylib::textFormat(std::string format, ...) {
-	//TODO: Do something
 	return format;
 }
 

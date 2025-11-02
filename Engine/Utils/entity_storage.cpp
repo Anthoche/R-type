@@ -36,7 +36,6 @@ namespace game::storage {
         }
         const auto &level = level_data.at("level");
 
-        // Backgrounds
         if (is_array(level, "backgrounds")) {
             for (const auto &bg_data : level.at("backgrounds")) {
                 try { game::parsing::parse_background(reg, bg_data); }
@@ -44,7 +43,6 @@ namespace game::storage {
             }
         }
 
-        // Enemies
         if (is_array(level, "enemies")) {
             for (const auto &enemy_data : level.at("enemies")) {
                 try { game::parsing::parse_enemy(reg, enemy_data); }
@@ -52,7 +50,6 @@ namespace game::storage {
             }
         }
 
-        // Obstacles
         if (is_array(level, "obstacles")) {
             for (const auto &obstacle_data : level.at("obstacles")) {
                 try { game::parsing::parse_obstacle(reg, obstacle_data); }
@@ -60,7 +57,6 @@ namespace game::storage {
             }
         }
 
-        // Random elements
         if (is_array(level, "random_elements")) {
             for (const auto &element_data : level.at("random_elements")) {
                 try { game::parsing::parse_random_element(reg, element_data); }
@@ -68,7 +64,6 @@ namespace game::storage {
             }
         }
 
-        // Sounds
         if (is_array(level, "sounds")) {
             for (const auto &sound_data : level.at("sounds")) {
                 try { game::parsing::parse_sound(reg, sound_data); }
@@ -76,7 +71,6 @@ namespace game::storage {
             }
         }
 
-        // Texts
         if (is_array(level, "texts")) {
             for (const auto &text_data : level.at("texts")) {
                 try { game::parsing::parse_text(reg, text_data); }
@@ -84,7 +78,6 @@ namespace game::storage {
             }
         }
 
-        // Items
         if (is_array(level, "items")) {
             for (const auto &item_data : level.at("items")) {
                 try { game::parsing::parse_item(reg, item_data); }
@@ -92,7 +85,6 @@ namespace game::storage {
             }
         }
 
-        // Powerups
         if (is_array(level, "powerups")) {
             for (const auto &powerup_data : level.at("powerups")) {
                 try { game::parsing::parse_powerup(reg, powerup_data); }
@@ -100,7 +92,6 @@ namespace game::storage {
             }
         }
 
-        // Traps
         if (is_array(level, "traps")) {
             for (const auto &trap_data : level.at("traps")) {
                 try { game::parsing::parse_trap(reg, trap_data); }
@@ -108,7 +99,6 @@ namespace game::storage {
             }
         }
 
-        // Gates
         if (is_array(level, "gates")) {
             for (const auto &gate_data : level.at("gates")) {
                 try { game::parsing::parse_gate(reg, gate_data); }
@@ -116,7 +106,6 @@ namespace game::storage {
             }
         }
 
-        // Weapons
         if (is_array(level, "weapons")) {
             for (const auto &weapon_data : level.at("weapons")) {
                 try { game::parsing::parse_weapon(reg, weapon_data); }
@@ -124,7 +113,6 @@ namespace game::storage {
             }
         }
 
-        // Platforms
         if (is_array(level, "platforms")) {
             for (const auto &platform_data : level.at("platforms")) {
                 try { game::parsing::parse_platform(reg, platform_data); }
@@ -132,7 +120,6 @@ namespace game::storage {
             }
         }
 
-        // Decorations
         if (is_array(level, "decorations")) {
             for (const auto &decor_data : level.at("decorations")) {
                 try { game::parsing::parse_decoration(reg, decor_data); }
@@ -140,7 +127,6 @@ namespace game::storage {
             }
         }
 
-        // Spawners
         if (is_array(level, "spawners")) {
             for (const auto &spawner_data : level.at("spawners")) {
                 try { game::parsing::parse_spawner(reg, spawner_data); }
@@ -148,7 +134,6 @@ namespace game::storage {
             }
         }
 
-        // Checkpoints
         if (is_array(level, "checkpoints")) {
             for (const auto &checkpoint_data : level.at("checkpoints")) {
                 try { game::parsing::parse_checkpoint(reg, checkpoint_data); }
@@ -156,7 +141,6 @@ namespace game::storage {
             }
         }
 
-        // Triggerzones
         if (is_array(level, "triggerzones")) {
             for (const auto &zone_data : level.at("triggerzones")) {
                 try { game::parsing::parse_triggerzone(reg, zone_data); }

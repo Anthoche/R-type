@@ -11,56 +11,46 @@
 #include <iostream>
 
 namespace game::serializer {
-	// =========================
-	// SERIALIZATION
-	// =========================
 	nlohmann::json serialize_entity(ecs::registry &reg, ecs::entity_t entity) {
 		nlohmann::json j;
 		j["entity_id"] = static_cast<std::size_t>(entity);
 
-		// Type
 		if (auto type = reg.get_components<component::type>()[static_cast<std::size_t>(entity)]) {
 			j["type"] = static_cast<int>(type->value);
 		} else {
-			return nlohmann::json(); // skip entities with no type
+			return nlohmann::json();
 		}
 
-		// Position
 		if (auto pos = reg.get_components<component::position>()[static_cast<std::size_t>(entity)]) {
 			j["x"] = pos->x;
 			j["y"] = pos->y;
 			j["z"] = pos->z;
 		}
 
-		// Previous position
 		if (auto prev = reg.get_components<component::previous_position>()[static_cast<std::size_t>(entity)]) {
 			j["prev_x"] = prev->x;
 			j["prev_y"] = prev->y;
 			j["prev_z"] = prev->z;
 		}
 
-		// Velocity
 		if (auto vel = reg.get_components<component::velocity>()[static_cast<std::size_t>(entity)]) {
 			j["vx"] = vel->vx;
 			j["vy"] = vel->vy;
 			j["vz"] = vel->vz;
 		}
 
-		// Rotation
 		if (auto rot = reg.get_components<component::rotation>()[static_cast<std::size_t>(entity)]) {
 			j["pitch"] = rot->pitch;
 			j["yaw"] = rot->yaw;
 			j["roll"] = rot->roll;
 		}
 
-		// Scale
 		if (auto scale = reg.get_components<component::scale>()[static_cast<std::size_t>(entity)]) {
 			j["scale_x"] = scale->x;
 			j["scale_y"] = scale->y;
 			j["scale_z"] = scale->z;
 		}
 
-		// Drawable
 		if (auto draw = reg.get_components<component::drawable>()[static_cast<std::size_t>(entity)]) {
 			j["width"] = draw->width;
 			j["height"] = draw->height;
@@ -68,14 +58,12 @@ namespace game::serializer {
 			j["color"] = {draw->color.r, draw->color.g, draw->color.b, draw->color.a};
 		}
 
-		// Sprite
 		if (auto sprite = reg.get_components<component::sprite>()[static_cast<std::size_t>(entity)]) {
 			j["image_path"] = sprite->image_path;
 			j["sprite_scale"] = sprite->scale;
 			j["sprite_rotation"] = sprite->rotation;
 		}
 
-		// 3D model
 		if (auto model = reg.get_components<component::model3D>()[static_cast<std::size_t>(entity)]) {
 			j["model_path"] = model->model_path;
 			j["model_scale"] = model->scale;
@@ -86,7 +74,6 @@ namespace game::serializer {
 			};
 		}
 
-		// Audio
 		if (auto audio = reg.get_components<component::audio>()[static_cast<std::size_t>(entity)]) {
 			j["sound_path"] = audio->sound_path;
 			j["volume"] = audio->volume;
@@ -94,7 +81,6 @@ namespace game::serializer {
 			j["autoplay"] = audio->autoplay;
 		}
 
-		// Text
 		if (auto txt = reg.get_components<component::text>()[static_cast<std::size_t>(entity)]) {
 			j["content"] = txt->content;
 			j["font_size"] = txt->font_size;
@@ -102,49 +88,41 @@ namespace game::serializer {
 			j["text_color"] = {txt->color.r, txt->color.g, txt->color.b, txt->color.a};
 		}
 
-		// Font
 		if (auto font = reg.get_components<component::font>()[static_cast<std::size_t>(entity)]) {
 			j["font_path"] = font->font_path;
 		}
 
-		// Clickable
 		if (auto click = reg.get_components<component::clickable>()[static_cast<std::size_t>(entity)]) {
 			j["click_id"] = click->id;
 			j["click_enabled"] = click->enabled;
 		}
 
-		// Hoverable
 		if (auto hover = reg.get_components<component::hoverable>()[static_cast<std::size_t>(entity)]) {
 			j["hover_id"] = hover->id;
 			j["hovered"] = hover->isHovered;
 		}
 
-		// Controllable
 		if (auto ctrl = reg.get_components<component::controllable>()[static_cast<std::size_t>(entity)]) {
 			j["speed"] = ctrl->speed;
 			j["can_jump"] = ctrl->can_jump;
 			j["can_fly"] = ctrl->can_fly;
 		}
 
-		// Health
 		if (auto health = reg.get_components<component::health>()[static_cast<std::size_t>(entity)]) {
 			j["health_current"] = health->current;
 			j["health_max"] = health->max;
 		}
 
-		// Damage
 		if (auto dmg = reg.get_components<component::damage>()[static_cast<std::size_t>(entity)]) {
 			j["damage"] = dmg->amount;
 		}
 
-		// Collision box
 		if (auto cbox = reg.get_components<component::collision_box>()[static_cast<std::size_t>(entity)]) {
 			j["collision_width"] = cbox->width;
 			j["collision_height"] = cbox->height;
 			j["collision_depth"] = cbox->depth;
 		}
 
-		// Hitbox link
 		if (auto link = reg.get_components<component::hitbox_link>()[static_cast<std::size_t>(entity)]) {
 			j["owner_id"] = static_cast<std::size_t>(link->owner);
 			j["offsetX"] = link->offsetX;
@@ -152,7 +130,6 @@ namespace game::serializer {
 			j["offsetZ"] = link->offsetZ;
 		}
 
-		// Client ID
 		if (auto cid = reg.get_components<component::client_id>()[static_cast<std::size_t>(entity)]) {
 			j["client_id"] = cid->id;
 		}

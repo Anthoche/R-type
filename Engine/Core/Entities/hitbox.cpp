@@ -12,7 +12,6 @@ namespace game::entities {
 ecs::entity_t create_hitbox_for(ecs::registry &reg, ecs::entity_t owner) {
     auto hitbox = reg.spawn_entity();
 
-    // Initialize position
     component::position pos{0.f, 0.f, 0.f};
     auto &positionsAll = reg.get_components<component::position>();
     if (owner.value() < positionsAll.size() && positionsAll[owner.value()]) {
@@ -20,7 +19,6 @@ ecs::entity_t create_hitbox_for(ecs::registry &reg, ecs::entity_t owner) {
     }
     reg.add_component<component::position>(hitbox, std::move(pos));
 
-    // Initialize collision box
     component::collision_box box{32.f, 32.f, 32.f};
     auto &drawables = reg.get_components<component::drawable>();
     if (owner.value() < drawables.size() && drawables[owner.value()]) {
@@ -30,7 +28,6 @@ ecs::entity_t create_hitbox_for(ecs::registry &reg, ecs::entity_t owner) {
     }
     reg.add_component<component::collision_box>(hitbox, std::move(box));
 
-    // Link hitbox to owner
     reg.emplace_component<component::hitbox_link>(hitbox, owner, 0.f, 0.f, 0.f);
 
     return hitbox;

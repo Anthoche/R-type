@@ -15,18 +15,15 @@ namespace game::entities
         
         auto player = reg.spawn_entity();
 
-        // ====== Position / Movement ======
         reg.emplace_component<component::position>(player, x, y, z);
         reg.emplace_component<component::previous_position>(player, x, y, z);
         reg.emplace_component<component::velocity>(player, 0.f, 0.f, 0.f);
         reg.emplace_component<component::controllable>(player, speed, true, false); // speed, can_jump, can_fly
 
-        // ====== Stats ======
         reg.emplace_component<component::health>(player, health, health);
         reg.emplace_component<component::type>(player, component::entity_type::PLAYER);
         reg.emplace_component<component::client_id>(player, clientId);
 
-        // ====== Visuals - USE PARSED DIMENSIONS ======
         component::drawable draw;
         draw.width = width;
         draw.height = height;
@@ -47,7 +44,6 @@ namespace game::entities
             reg.add_component<component::model3D>(player, std::move(model));
         }
 
-        // ====== Hitbox ======
         create_hitbox_for(reg, player);
 
         return player;
@@ -72,13 +68,10 @@ namespace game::entities
             {
                 for (std::size_t i = 0; i < pos.size() && i < type.size(); ++i) {
                     if (pos[i] && type[i] && type[i]->value == component::entity_type::PLAYER) {
-                        // X bounds
                         if (pos[i]->x < 0.f) pos[i]->x = 0.f;
                         if (pos[i]->x > screen_width - 50.f) pos[i]->x = screen_width - 50.f;
-                        // Y bounds
                         if (pos[i]->y < 0.f) pos[i]->y = 0.f;
                         if (pos[i]->y > screen_height - 30.f) pos[i]->y = screen_height - 30.f;
-                        // Z bounds
                         if (pos[i]->z < 0.f) pos[i]->z = 0.f;
                         if (pos[i]->z > screen_depth - 50.f) pos[i]->z = screen_depth - 50.f;
                     }

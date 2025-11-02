@@ -15,25 +15,20 @@ namespace game::entities {
         float x, float y, float z, float width, float height, Color color, Color textColor, int fontSize) {
         auto button = reg.spawn_entity();
 
-        // ====== Position ======
         reg.emplace_component<component::position>(button, x, y, z);
 
-        // ====== Interaction ======
         reg.emplace_component<component::clickable>(button, id);
         reg.emplace_component<component::hoverable>(button, id);
 
-        // ====== Type ======
         reg.emplace_component<component::type>(button, component::entity_type::BUTTON);
 
-        // ====== Drawable ======
         component::drawable draw;
         draw.width = width;
         draw.height = height;
-        draw.depth = 5.f; // slight depth for UI 3D effect
+        draw.depth = 5.f;
         draw.color = color;
         reg.add_component<component::drawable>(button, std::move(draw));
 
-        // ====== Text ======
         component::text text;
         text.spacing = -1.f;
         text.font_size = fontSize;
