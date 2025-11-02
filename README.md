@@ -41,31 +41,44 @@ The project is divided into several modules:
 
 * **GoogleTest** – Unit testing framework
 
-## 📁 Project Structure
-
+## 📂 Project Structure
 ```
-r-type/
-├── engine/               # Generic engine (independent from R-Type)
-│   |── assets/           # Sprites, sounds
-│   ├── core/             # Core (ECS, Event Bus, Time Management)
-|   |     └─entities/     # Prefabs (Player, Enemy, Bullet...)
-│   ├── rendering/        # Rendering (Raylib wrapper)
-│   ├── physics/          # Collisions, hitboxes
-│   └── scenes/           # Levels, menus
+R-type/
+├── Engine/                # Generic engine reused by both client and server
+│   ├── Core/              # ECS registry and entity implementations
+│   │   └── Entities/      # Prefab entities (player, enemies, projectiles, etc.)
+│   ├── Physics/           # Collision detection and hitbox helpers
+│   ├── Rendering/         # Raylib rendering layer and scene utilities
+│   └── Utils/             # Parsers, serializers, shared helpers
 │
-├── server/               # Authoritative server
-│   ├── game_logic/       # Game rules (spawn, score...)
-│   └── network_handler/  # Client management
+├── Game/                  # Game-specific content built on top of the engine
+│   ├── Assets/            # Sprites, sounds and level data
+│   ├── Game_logic/        # Gameplay rules (spawns, scoring, progression)
+│   └── Scene/             # Scene definitions for levels and menus
 │
-├── client/               # Graphical client
-│   ├── Hander/            # Input handling
-│   └── network_client/   # Communication with the server
+├── Client/                # Graphical R-Type client
+│   ├── Handler/           # Networking and input handling
+│   ├── client.cpp/.hpp    # Client application logic
+│   └── main.cpp           # Client entry point
 │
-├── shared/               # Shared code (protocol, common structures)
+├── Server/                # Authoritative game server
+│   ├── Include/           # Server-side headers
+│   ├── Room/              # Room and session management
+│   ├── connexion.cpp      # Connection bootstrap
+│   └── main.cpp           # Server entry point
 │
-└── Unit_test/                # Unit tests (catch2, doctest)
-
+├── Shared/                # Shared protocol, logging and socket utilities
+│   └── Sockets/           # Cross-platform socket wrappers
+│
+├── Unit_test/             # Unit test suites (CMake targets)
+│   └── Engine/            # Engine-specific test cases
+│
+├── CMakeLists.txt         # Root build configuration
+├── launch_clients         # Helper script to start multiple clients
+├── vcpkg.json             # Dependencies managed by vcpkg
+└── build/                 # Local build output (generated)
 ```
+
 
 ## 🔧 Development
 ### Available Scripts
