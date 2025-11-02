@@ -1,10 +1,9 @@
-/**
- * @file MenuScene.hpp
- * @brief Main menu scene implementation for the game
- * 
- * EPITECH PROJECT, 2025
- * rtype
- */
+/*
+** EPITECH PROJECT, 2025
+** rtype
+** File description:
+** MenuScene
+*/
 
 #ifndef MENUSCENE_HPP
     #define MENUSCENE_HPP
@@ -16,119 +15,97 @@ namespace scene {
 
 /**
  * @class MenuScene
- * @brief Main menu scene handling navigation and game entry
+ * @brief Represents the main menu scene of the game.
  *
- * Manages the main menu interface including:
- * - UI initialization and rendering
- * - Button interactions and navigation
- * - Language selection
- * - User input processing
- * - Resource management and cleanup
+ * The menu scene handles:
+ * - Initialization of menu UI and resources.
+ * - Rendering menu elements.
+ * - Handling user input/events (e.g., navigating the menu).
+ * - Cleaning up when the scene is closed.
  */
 class MenuScene: public AScene {
     public:
         /**
-         * @brief Constructs the menu scene
-         * @param game Reference to the main game instance
+         * @brief Construct a MenuScene with a reference to the game.
+         * @param game The game instance.
          */
         MenuScene(Game &game);
 
         /**
-         * @brief Default destructor
+         * @brief Default destructor.
          */
         ~MenuScene() override = default;
 
         // --- Overridden lifecycle methods ---
 
         /**
-         * @brief Initializes menu resources, UI elements, and buttons
-         * 
-         * Sets up fonts, calculates button positions, and prepares
-         * all visual elements for rendering.
+         * @brief Initialize the menu scene (UI, buttons, resources).
          */
         void init() override;
 
         /**
-         * @brief Renders all menu UI elements to the screen
-         * 
-         * Draws the title, buttons, and any decorative elements.
+         * @brief Render the menu scene (draw UI elements).
          */
         void render() override;
 
         /**
-         * @brief Processes user input and menu interactions
-         * 
-         * Handles mouse clicks, hover states, and keyboard navigation.
+         * @brief Handle input and events in the menu.
          */
         void handleEvents() override;
 
         /**
-         * @brief Cleans up menu resources when the scene closes
-         * 
-         * Releases fonts, textures, and other allocated resources.
+         * @brief Called when the menu scene is closed (cleanup).
          */
         void onClose() override;
 
         /**
-         * @brief Updates menu button text based on selected language
-         * @param isFrench True for French language, false for English
-         * 
-         * Changes all UI text to match the selected language preference.
+         * @brief Update the menu buttons' text based on the selected language.
+         * @param isFrench True if French, false if English.
          */
         void updateLanguage(bool isFrench);
 
     private:
-        Game &_game; ///< Reference to the main game instance
+        Game &_game; ///< Reference to the game instance.
 
-        Font _font{}; ///< Font used for menu text rendering
+        Font _font{}; ///< Font used for rendering text.
 
-        // Title configuration
-        int const _titleSize = 90;        ///< Font size for the menu title
-        float _titleCenterY;              ///< Vertical center position for title
+        // Title
+        int const _titleSize = 90; ///< Font size for the title.
+        float _titleCenterY; ///< Y position to center the title vertically.
 
-        // Button styling and layout
-        Color const _accentColor{46, 204, 113, 255}; ///< Accent color for UI elements (green)
-        Vector2 const _buttonSize{280.f, 70.f};      ///< Standard button dimensions
-        int const _buttonTextSize = 35;              ///< Font size for button text
-        int const _buttonSpacing = 35;               ///< Vertical spacing between buttons
-        float _buttonCenterY{};                      ///< Vertical center position for buttons
-        Vector2 _buttonPosition{};                   ///< Current button rendering position
-        int _selectedButtonIndex = -1;               ///< Index of currently selected button (-1 if none)
+        // Buttons
+        Color const _accentColor{26, 170, 177, 255}; ///< Accent color for buttons.
+        Vector2 const _buttonSize{280.f, 70.f}; ///< Size of buttons.
+        int const _buttonTextSize = 35; ///< Font size for button text.
+        int const _buttonSpacing = 35; ///< Vertical spacing between buttons.
+        float _buttonCenterY{}; ///< Y position to center buttons vertically.
+        Vector2 _buttonPosition{}; ///< Position of the current button.
+        int _selectedButtonIndex = -1; ///< Index of the currently selected button.
 
         /**
-         * @brief Resets all button states to default
-         * 
-         * Clears hover and click states for all buttons, typically
-         * called at the start of event processing.
+         * @brief Reset the hover and click states of all menu buttons.
          */
         void resetButtonStates();
-        
+
         /**
-         * @brief Handles button click actions
-         * @param id Unique identifier of the clicked button
-         * 
-         * Executes the appropriate action based on which button was clicked
-         * (e.g., start game, open settings, quit).
+         * @brief Handle the click event for a specific button.
+         * @param id The ID of the clicked button as a string.
          */
         void handleButtonClick(std::string const &id);
-        
+
         /**
-         * @brief Renders a button with visual feedback
-         * @param position Top-left position of the button
-         * @param size Width and height of the button
-         * @param content Text to display on the button
-         * @param fontSize Size of the button text
-         * @param spacing Additional spacing around text
-         * @param color Background color of the button
-         * @param textColor Color of the button text
-         * @param isHovered Whether the mouse is hovering over the button
-         * @param isClicked Whether the button is currently pressed
-         * 
-         * Draws a button with appropriate styling based on its interaction state.
+         * @brief Draw a button on the screen.
+         * @param position Position of the button.
+         * @param size Size of the button.
+         * @param content Text displayed on the button.
+         * @param fontSize Size of the text font.
+         * @param spacing Spacing for button elements.
+         * @param color Background color of the button.
+         * @param textColor Color of the text.
+         * @param isHovered True if the mouse is hovering over the button.
+         * @param isClicked True if the button is being clicked.
          */
-        void drawButton(Vector2 position, Vector2 size, std::string const &content, 
-                       int fontSize, float spacing, Color color, Color textColor, 
-                       bool isHovered, bool isClicked);
+        void drawButton(Vector2 position, Vector2 size, std::string const &content, int fontSize, float spacing, Color color, Color textColor, bool isHovered, bool isClicked);
 };
 
 } // namespace scene

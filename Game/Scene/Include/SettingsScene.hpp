@@ -1,10 +1,10 @@
-/**
- * @file SettingsScene.hpp
- * @brief Game settings and configuration scene
- * 
- * EPITECH PROJECT, 2025
- * rtype
- */
+/*
+** EPITECH PROJECT, 2025
+** rtype
+** File description:
+** SettingsScene
+*/
+
 
 #pragma once
 
@@ -15,294 +15,222 @@ namespace scene {
 
 /**
  * @class SettingsScene
- * @brief Scene for managing game settings and preferences
+ * @brief Represents the settings menu of the game.
  *
- * Provides a user interface for configuring:
- * - Game difficulty (Easy, Medium, Hard)
- * - Number of lives (1-7)
- * - Endless mode toggle
- * - Sound on/off
- * - Language selection (English/French/Italian)
- * 
- * Handles initialization, rendering of UI elements, user input processing,
- * real-time language translation, and proper resource cleanup.
+ * The settings scene allows the player to:
+ * - Change game difficulty (Easy, Medium, Hard).
+ * - Choose number of lives (3, 5, 7).
+ * - Toggle sound (On/Off).
+ * - Change game language (English/French).
+ * - Navigate back to the main menu.
+ *
+ * It handles initialization, rendering of UI, user input,
+ * language translation, and proper cleanup of loaded resources.
  */
 class SettingsScene : public AScene {
     public:
         /**
-         * @brief Constructs the settings scene
-         * @param game Reference to the main game instance
-         */
+        * @brief Construct a SettingsScene with a reference to the Game instance.
+        * @param game The game instance.
+        */
         SettingsScene(Game &game);
 
         /**
-         * @brief Default destructor
-         */
+        * @brief Default destructor.
+        */
         ~SettingsScene() override = default;
 
         // --- Overridden lifecycle methods ---
 
         /**
-         * @brief Initializes the settings scene
-         * 
-         * Loads fonts, creates UI buttons and text elements,
-         * and sets up initial configuration values.
-         */
+        * @brief Initialize the settings scene (load fonts, create buttons and texts).
+        */
         void init() override;
 
         /**
-         * @brief Renders all settings UI elements
-         * 
-         * Draws the title, option buttons, current values,
-         * and navigation elements to the screen.
-         */
+        * @brief Render the settings scene (draw buttons, texts, title, etc.).
+        */
         void render() override;
 
         /**
-         * @brief Processes user input and interactions
-         * 
-         * Handles mouse clicks, hover states, and keyboard input
-         * for navigating and modifying settings.
-         */
+        * @brief Handle user input and interactions (clicks, hovers, etc.).
+        */
         void handleEvents() override;
 
         /**
-         * @brief Cleans up resources when the scene closes
-         * 
-         * Unloads fonts and releases allocated resources.
-         */
+        * @brief Called when the scene is closed (cleanup and unload resources).
+        */
         void onClose() override;
 
     private:
-        Game &_game; ///< Reference to the main game instance
+        Game &_game; ///< Reference to the main game instance.
 
-        Font _font{};                        ///< Font used for all text rendering
-        std::string _sceneTitle = "R-Type";  ///< Title displayed at the top of the scene
+        Font _font{};
+        std::string _sceneTitle = "R-Type";
 
         // --- UI configuration ---
-        int const _titleSize = 90;                        ///< Font size for the scene title
-        Color const _accentColor{46, 204, 113, 255};     ///< Accent color for UI elements (green)
-        Vector2 const _buttonSize{300.f, 50.f};          ///< Standard dimensions for buttons
-        int const _buttonTextSize = 23;                   ///< Font size for button text
-        int const _buttonSpacing = 20;                    ///< Vertical spacing between buttons
-        Vector2 _buttonPosition{230.f, 150.f};           ///< Starting position for button layout
+        int const _titleSize = 90; 
+        Color const _accentColor{26, 170, 177, 255};
+        Vector2 const _buttonSize{300.f, 50.f};
+        int const _buttonTextSize = 23; 
+        int const _buttonSpacing = 20;
+        Vector2 _buttonPosition{230.f, 150.f};
 
         // --- Language management ---
-        Game::Language _currentLanguage = Game::Language::ENGLISH; ///< Currently selected language
+        Game::Language _currentLanguage = Game::Language::ENGLISH;
 
-        // --- Button labels and values ---
+        // --- Buttons and values ---
         std::vector<std::string> _buttons{
             "1. Endless", "2. Lives", "3. Sound", "4. Language"
-        }; ///< Text labels for option buttons
-        
+        };
         std::vector<std::string> _values{
             "Off", "3", "On", "English"
-        }; ///< Current values displayed for each option
+        };
 
         // --- Option data ---
-        bool _endlessMode = false; ///< Whether endless mode is enabled
+        bool _endlessMode = false;
 
-        std::vector<std::string> _lives{"1", "2", "3", "4", "5", "6", "7"}; ///< Available life count options
-        std::size_t _currentLivesIndex{2}; ///< Index of currently selected life count (default: 3)
+        std::vector<std::string> _lives{"1", "2", "3", "4", "5", "6", "7"};
+        std::size_t _currentLivesIndex{2};
 
-        bool _soundOn = true; ///< Whether sound is enabled
+        bool _soundOn = true;
 
         // --- Setup functions ---
         /**
-         * @brief Prepares all scene elements for rendering
-         * 
-         * Orchestrates the creation of title, buttons, and other UI components.
-         */
+        * @brief Prepare all scene elements (title, buttons, etc.).
+        */
         void setupScene();
 
         /**
-         * @brief Registers ECS components required by this scene
-         * 
-         * Ensures all necessary component types are available in the registry.
-         */
+        * @brief Register ECS components used in this scene.
+        */
         void registerComponents();
 
         /**
-         * @brief Creates the scene title entity
-         * 
-         * Instantiates and positions the main title text at the top of the screen.
-         */
+        * @brief Create the title entity.
+        */
         void createTitle();
 
         /**
-         * @brief Creates all main option buttons
-         * 
-         * Generates buttons for endless mode, lives, sound, and language settings.
-         */
+        * @brief Create the main option buttons.
+        */
         void createButtons();
 
         /**
-         * @brief Creates the back navigation button
-         * 
-         * Adds a "< Back" button to return to the previous scene.
-         */
+        * @brief Create the "< Back" button.
+        */
         void createBackButton();
 
         // --- Button creation handlers ---
-        using ButtonCreator = void (SettingsScene::*)(Vector2 pos, std::size_t i); ///< Function pointer type for button creation methods
+        using ButtonCreator = void (SettingsScene::*)(Vector2 pos, std::size_t i);
 
         /**
-         * @brief Creates the lives selection button
-         * @param pos Position where the button should be placed
-         * @param i Button index in the layout
-         */
+        * @brief Create the lives button.
+        */
         void createLivesButton(Vector2 pos, std::size_t i);
 
         /**
-         * @brief Creates the endless mode toggle button
-         * @param pos Position where the button should be placed
-         * @param i Button index in the layout
+         * @brief Create the endless mode button.
          */
         void createEndlessButton(Vector2 pos, std::size_t i);
 
         /**
-         * @brief Creates the sound toggle button
-         * @param pos Position where the button should be placed
-         * @param i Button index in the layout
-         */
+        * @brief Create the sound toggle button.
+        */
         void createSoundButton(Vector2 pos, std::size_t i);
 
         /**
-         * @brief Creates the language selection button
-         * @param pos Position where the button should be placed
-         * @param i Button index in the layout
-         */
+        * @brief Create the language toggle button.
+        */
         void createLanguageButton(Vector2 pos, std::size_t i);
 
         /**
-         * @brief Creates a default text entity for button labels
-         * @param pos Position where the text should be placed
-         * @param i Text index in the layout
-         */
+        * @brief Create a default text entity (used for button labels).
+        */
         void createDefaultText(Vector2 pos, std::size_t i);
 
         // --- Logic and event handling ---
         /**
-         * @brief Resets all button interaction states to default
-         * 
-         * Clears hover and click states, typically called at the
-         * start of event processing each frame.
-         */
+        * @brief Reset button hover and click states.
+        */
         void resetButtonStates();
 
         /**
-         * @brief Handles click events for buttons
-         * @param id Unique identifier of the clicked button
-         * 
-         * Executes the appropriate action based on which button was clicked.
-         */
+        * @brief Handle a click event for a button by its ID.
+        * @param id The ID of the clicked button.
+        */
         void handleButtonClick(std::string const &id);
 
         /**
-         * @brief Toggles sound on or off
-         * 
-         * Updates the sound setting and refreshes the displayed value.
-         */
+        * @brief Toggle sound on/off.
+        */
         void toggleSound();
 
         /**
-         * @brief Cycles through available life count options
-         * 
-         * Moves to the next value in the lives list (wraps around at end).
-         */
+        * @brief Cycle through available lives options.
+        */
         void cycleLives();
 
         /**
-         * @brief Toggles endless mode on or off
-         * 
-         * Updates the endless mode setting and refreshes the displayed value.
+         * @brief Toggle endless mode on/off.
          */
         void toggleEndless();
 
         /**
-         * @brief Cycles through available language options
-         * 
-         * Switches between English, French, and Italian, updating all UI text.
-         */
+        * @brief Toggle between English and French languages.
+        */
         void toggleLanguage();
 
         // --- Localization ---
         /**
-         * @brief Applies French translations to all text elements
-         * 
-         * Updates button labels and values to their French equivalents.
-         */
+        * @brief Apply French translations to all texts.
+        */
         void translateToFrench();
 
         /**
-         * @brief Applies Italian translations to all text elements
-         * 
-         * Updates button labels and values to their Italian equivalents.
-         */
+        * @brief Apply Italian translations to all texts.
+        */
         void translateToItalian();
         
         /**
-         * @brief Applies English translations to all text elements
-         * 
-         * Updates button labels and values to their English equivalents.
-         */
+        * @brief Apply English translations to all texts.
+        */
         void translateToEnglish();
 
         /**
-         * @brief Updates all displayed text based on current language
-         * 
-         * Refreshes button labels and UI text after language change.
-         */
+        * @brief Update all displayed texts (button labels, etc.).
+        */
         void updateAllTexts();
 
         /**
-         * @brief Updates all button value displays
-         * 
-         * Refreshes the current value shown for each setting option.
-         */
+        * @brief Update displayed values on all buttons.
+        */
         void updateAllButtonValues();
 
         /**
-         * @brief Updates the text content of a specific button
-         * @param buttonId Unique identifier of the button entity
-         * @param newText New text content to display
-         */
+        * @brief Update the text of a specific button.
+        * @param buttonId The button entity ID.
+        * @param newText The new text to display.
+        */
         void updateButtonText(const std::string &buttonId, const std::string &newText);
 
         // --- Drawing helpers ---
         /**
-         * @brief Renders a button with visual feedback
-         * @param position Top-left position of the button
-         * @param size Width and height of the button
-         * @param content Text to display on the button
-         * @param fontSize Size of the button text
-         * @param spacing Additional spacing around text
-         * @param color Background color of the button
-         * @param textColor Color of the button text
-         * @param isHovered Whether the mouse is hovering over the button
-         * @param isClicked Whether the button is currently pressed
-         */
+        * @brief Draw a button with specified properties.
+        */
         void drawButton(Vector2 position, Vector2 size, std::string const &content,
                         int fontSize, float spacing, Color color, Color textColor,
                         bool isHovered, bool isClicked);
 
         // --- UI positioning helpers ---
         /**
-         * @brief Calculates vertical center position for an element
-         * @param screenHeight Total screen height
-         * @param elementHeight Height of the element to center
-         * @return Y coordinate for centered positioning
-         */
+        * @brief Get vertical center position for an element.
+        */
         int getCenterY(int screenHeight, int elementHeight) const;
 
         /**
-         * @brief Calculates vertical center position for a button group
-         * @param screenHeight Total screen height
-         * @param numberOfButtons Number of buttons in the group
-         * @param buttonHeight Height of each button
-         * @param buttonSpacing Vertical spacing between buttons
-         * @return Y coordinate for the first button to center the group
-         */
+        * @brief Get vertical center position for a group of buttons.
+        */
         int getButtonsCenterY(int screenHeight, int numberOfButtons,
                             int buttonHeight, int buttonSpacing) const;
     };
