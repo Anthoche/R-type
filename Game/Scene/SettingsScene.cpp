@@ -10,6 +10,9 @@
 #include "background.hpp"
 #include "button.hpp"
 #include "text.hpp"
+#include "RenderUtils.hpp"
+#include "UITheme.hpp"
+#include <algorithm>
 
 namespace scene {
 	SettingsScene::SettingsScene(Game &game)
@@ -44,7 +47,7 @@ namespace scene {
 		Vector2 titleSize = _raylib.measureTextEx(_font, _sceneTitle.c_str(), _titleSize, -0.5f);
 		Vector2 titlePos = {(_width - titleSize.x) / 2.0f, 50.0f};
 
-		game::entities::create_text(_registry, titlePos, _sceneTitle, RAYWHITE, -0.5f, _titleSize, _font);
+	game::entities::create_text(_registry, titlePos, _sceneTitle, ui::theme::AccentText, -0.5f, _titleSize, _font);
 	}
 
 	void SettingsScene::createButtons() {
@@ -60,7 +63,7 @@ namespace scene {
 				_registry,
 				{_buttonPosition.x, y},
 				_buttons[i],
-				_accentColor,
+				ui::theme::AccentText,
 				-1.0f,
 				_buttonTextSize,
 				_font
@@ -80,19 +83,19 @@ namespace scene {
 		float padding = 40.f;
 		float buttonWidth = std::max(100.f, textWidth + padding);
 
-		game::entities::create_button(_registry, "button_sound", _values[i],
-			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
-		);
+	game::entities::create_button(_registry, "button_sound", _values[i],
+		pos.x, pos.y, 0.f, buttonWidth, 40.f, ui::theme::Neutral, ui::theme::NeutralText, _buttonTextSize - 4
+	);
 	}
 
 	void SettingsScene::createLanguageButton(Vector2 pos, std::size_t i) {
-		game::entities::create_button(_registry, "button_language", _values[i],
-			pos.x, pos.y, 0.f, 150.f, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
-		);
+	game::entities::create_button(_registry, "button_language", _values[i],
+		pos.x, pos.y, 0.f, 150.f, 40.f, ui::theme::Secondary, ui::theme::SecondaryText, _buttonTextSize - 4
+	);
 	}
 
 	void SettingsScene::createDefaultText(Vector2 pos, std::size_t i) {
-		game::entities::create_text(_registry, pos, _values[i], RAYWHITE, -1.0f, _buttonTextSize - 4, _font);
+	game::entities::create_text(_registry, pos, _values[i], ui::theme::NeutralText, -1.0f, _buttonTextSize - 4, _font);
 	}
 
 	void SettingsScene::createBackButton() {
@@ -110,6 +113,8 @@ namespace scene {
 		for (std::size_t i = 0; i < clickable.size(); ++i) {
 			if (clickable[i] && clickable[i]->id == "button_back") {
 				texts[i]->content = label;
+				texts[i]->color = ui::theme::SecondaryText;
+				drawables[i]->color = ui::theme::Secondary;
 
 				float textWidth = _raylib.measureTextEx(_font, label.c_str(), texts[i]->font_size, texts[i]->spacing).x;
 				float padding = 40.f;
@@ -129,14 +134,14 @@ namespace scene {
 			Vector2 backSize = {buttonWidth, 50.f};
 
 			game::entities::create_button(_registry, "button_back", label, backPos.x, backPos.y, 0.f,
-				buttonWidth, backSize.y, DARKGRAY, RAYWHITE, 23);
+				buttonWidth, backSize.y, ui::theme::Secondary, ui::theme::SecondaryText, 23);
 		}
 	}
 
 
 	void SettingsScene::render() {
 		_raylib.beginDrawing();
-		_raylib.clearBackground(BLACK);
+		drawSceneBackground(_raylib, ui::theme::BackgroundTop, ui::theme::BackgroundBottom);
 
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &positions = _registry.get_components<component::position>();
@@ -335,15 +340,20 @@ namespace scene {
 
 		Rectangle rect = {position.x, position.y, size.x, size.y};
 
+		Color fillColor = color;
+		Color labelColor = textColor;
 		if (isHovered) {
-			Color temp = textColor;
-			textColor = color;
-			color = temp;
+			fillColor.r = std::min(255, fillColor.r + 20);
+			fillColor.g = std::min(255, fillColor.g + 20);
+			fillColor.b = std::min(255, fillColor.b + 20);
 		}
-		if (isClicked) color.a -= 50;
+		if (isClicked) {
+			fillColor.a = static_cast<unsigned char>(fillColor.a > 60 ? fillColor.a - 60 : fillColor.a);
+		}
 
-		_raylib.drawRectangleRounded(rect, 0.5, 10, color);
-		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, textColor);
+		_raylib.drawRectangleRounded(rect, 0.5f, 10, fillColor);
+		_raylib.drawRectangleRoundedLines(rect, 0.5f, 16, 2.f, ui::theme::ButtonOutline);
+		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, labelColor);
 	}
 
 	void SettingsScene::resetButtonStates() {

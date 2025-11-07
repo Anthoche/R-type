@@ -17,6 +17,8 @@ float getElementCenter(int screenAxis, int elementAxis);
 void drawButton(Raylib &raylib, Vector2 position, Vector2 size, std::string const &content, Font font, int fontSize, float spacing,
 				Color color, Color textColor, bool isHovered, bool isClicked, bool isEnabled, float roundness = 0.5f);
 
+void drawSceneBackground(Raylib &raylib, Color topColor, Color bottomColor);
+
 int getButtonsCenterY(int screenHeight, int numberOfButtons, int buttonHeight, int buttonSpacing);
 
 /**

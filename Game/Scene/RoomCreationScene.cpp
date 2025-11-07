@@ -9,6 +9,8 @@
 #include "button.hpp"
 #include "components.hpp"
 #include "text.hpp"
+#include "RenderUtils.hpp"
+#include "UITheme.hpp"
 
 #include <algorithm>
 
@@ -42,12 +44,12 @@ void RoomCreationScene::createLayout() {
 	std::string title = "Create Room";
 	Vector2 titleSize = _raylib.measureTextEx(_font, title.c_str(), 54, -0.5f);
 	Vector2 titlePos = {(_width - titleSize.x) / 2.f, 60.f};
-	game::entities::create_text(_registry, titlePos, title, RAYWHITE, -0.5f, 54, _font);
+	game::entities::create_text(_registry, titlePos, title, ui::theme::AccentText, -0.5f, 54, _font);
 
 	std::string helper = "Set the minimum and maximum players, then confirm.";
 	Vector2 helperSize = _raylib.measureTextEx(_font, helper.c_str(), 18, -0.5f);
 	Vector2 helperPos = {(_width - helperSize.x) / 2.f, titlePos.y + 70.f};
-	game::entities::create_text(_registry, helperPos, helper, GRAY, -0.5f, 18, _font);
+	game::entities::create_text(_registry, helperPos, helper, ui::theme::SecondaryText, -0.5f, 18, _font);
 
 	createValueRow("Min players", 220.f, "button_min_decrease", "button_min_increase", _minValueButtonId, _minPlayers);
 	createValueRow("Max players", 300.f, "button_max_decrease", "button_max_increase", _maxValueButtonId, _maxPlayers);
@@ -64,7 +66,7 @@ void RoomCreationScene::createLayout() {
 		createWidth,
 		55.f,
 		_accentColor,
-		RAYWHITE,
+		ui::theme::AccentText,
 		26
 	);
 
@@ -77,15 +79,15 @@ void RoomCreationScene::createLayout() {
 		0.f,
 		150.f,
 		50.f,
-		DARKGRAY,
-		RAYWHITE,
+		ui::theme::Secondary,
+		ui::theme::SecondaryText,
 		23
 	);
 }
 
 void RoomCreationScene::createValueRow(const std::string &label, float y, const std::string &minusId,
 									   const std::string &plusId, const std::string &valueId, int value) {
-	game::entities::create_text(_registry, {120.f, y + 10.f}, label, RAYWHITE, -0.5f, 24, _font);
+	game::entities::create_text(_registry, {120.f, y + 10.f}, label, ui::theme::AccentText, -0.5f, 24, _font);
 
 	float buttonWidth = 55.f;
 	float buttonHeight = 50.f;
@@ -102,8 +104,8 @@ void RoomCreationScene::createValueRow(const std::string &label, float y, const 
 		0.f,
 		buttonWidth,
 		buttonHeight,
-		_accentColor,
-		BLACK,
+		ui::theme::Secondary,
+		ui::theme::SecondaryText,
 		32
 	);
 
@@ -116,8 +118,8 @@ void RoomCreationScene::createValueRow(const std::string &label, float y, const 
 		0.f,
 		valueWidth,
 		buttonHeight,
-		DARKGRAY,
-		RAYWHITE,
+		ui::theme::Neutral,
+		ui::theme::NeutralText,
 		28
 	);
 
@@ -134,15 +136,15 @@ void RoomCreationScene::createValueRow(const std::string &label, float y, const 
 		0.f,
 		buttonWidth,
 		buttonHeight,
-		_accentColor,
-		BLACK,
+		ui::theme::Secondary,
+		ui::theme::SecondaryText,
 		32
 	);
 }
 
 void RoomCreationScene::render() {
 	_raylib.beginDrawing();
-	_raylib.clearBackground(BLACK);
+	drawSceneBackground(_raylib, ui::theme::BackgroundTop, ui::theme::BackgroundBottom);
 
 	auto &drawables = _registry.get_components<component::drawable>();
 	auto &positions = _registry.get_components<component::position>();
@@ -158,24 +160,11 @@ void RoomCreationScene::render() {
 		Vector2 pos = {positions[i]->x, positions[i]->y};
 		if (types[i]->value == component::entity_type::BUTTON && drawables[i] && text[i]) {
 			Vector2 size = {drawables[i]->width, drawables[i]->height};
-			Color bg = drawables[i]->color;
-			Color fg = text[i]->color;
 			bool hovered = (hoverable.size() > i && hoverable[i]) ? hoverable[i]->isHovered : false;
 			bool clicked = (clickable.size() > i && clickable[i]) ? clickable[i]->isClicked : false;
-
-			Vector2 textSize = _raylib.measureTextEx(_font, text[i]->content, text[i]->font_size, text[i]->spacing);
-			Vector2 textPos = {pos.x + (size.x - textSize.x) / 2.f, pos.y + (size.y - textSize.y) / 2.f};
-
-			Color drawBg = bg;
-			Color drawFg = fg;
-			if (hovered && clickable.size() > i && clickable[i] && clickable[i]->enabled) {
-				std::swap(drawBg, drawFg);
-			}
-			if (clicked)
-				drawBg.a = std::max(0, drawBg.a - 50);
-
-			_raylib.drawRectangleRounded({pos.x, pos.y, size.x, size.y}, 0.5f, 10, drawBg);
-			_raylib.drawTextEx(_font, text[i]->content, textPos, text[i]->font_size, text[i]->spacing, drawFg);
+			bool enabled = (clickable.size() > i && clickable[i]) ? clickable[i]->enabled : true;
+			drawButton(_raylib, pos, size, text[i]->content, _font, text[i]->font_size, text[i]->spacing,
+				drawables[i]->color, text[i]->color, hovered, clicked, enabled);
 		} else if (types[i]->value == component::entity_type::TEXT && text[i]) {
 			_raylib.drawTextEx(text[i]->font, text[i]->content, pos, text[i]->font_size, text[i]->spacing, text[i]->color);
 		}
