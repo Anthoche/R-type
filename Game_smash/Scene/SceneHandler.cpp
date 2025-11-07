@@ -8,6 +8,7 @@
 #include "Include/SceneHandler.hpp"
 #include "Include/MenuScene.hpp"
 #include "Include/RoomSelectScene.hpp"
+#include "Include/RoomCreationScene.hpp"
 #include "Include/GameScene.hpp"
 #include "Include/ServerWaitScene.hpp"
 #include "Include/WaitingScene.hpp"
@@ -26,6 +27,7 @@ void SceneHandler::addScene(const std::string &name, const std::shared_ptr<IScen
 void SceneHandler::setupScenes() {
 	addScene("menu", std::make_shared<scene::MenuScene>(_game));
 	addScene("room_select", std::make_shared<scene::RoomSelectScene>(_game));
+	addScene("room_create", std::make_shared<scene::RoomCreationScene>(_game));
 	addScene("waiting", std::make_shared<scene::WaitingScene>(_game));
 	addScene("server_wait", std::make_shared<scene::ServerWaitScene>(_game));
 	addScene("game", std::make_shared<game::scene::GameScene>(_game));

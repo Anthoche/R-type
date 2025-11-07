@@ -42,6 +42,8 @@ namespace scene {
 									{_buttonSize.x - 10, _buttonSize.y}, _accentColor, RAYWHITE, _buttonTextSize);
 		game::entities::create_button(_registry, "button_refresh", "Refresh", BOTTOM_RIGHT, Vector2{0, 0},
 									{_buttonSize.x + 20, _buttonSize.y}, _accentColor, RAYWHITE, _buttonTextSize);
+		game::entities::create_button(_registry, "button_create_room", "Create room", BOTTOM_CENTER, Vector2{0, 0},
+									{_buttonSize.x + 40, _buttonSize.y}, _accentColor, RAYWHITE, _buttonTextSize);
 	}
 
 	void RoomSelectScene::render() {
@@ -272,7 +274,7 @@ namespace scene {
 		if (id == "button_refresh") {
 			refreshRooms();
 		} else if (id == "button_create_room") {
-			//TODO: do something
+			_game.getSceneHandler().open("room_create");
 		} else if (id == "button_back") {
 			_game.getSceneHandler().open("menu");
 		}

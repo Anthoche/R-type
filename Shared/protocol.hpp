@@ -267,6 +267,8 @@ struct ClientLeaveRoomMessage {
 struct ClientRoomCreateMessage {
     MessageType type;  ///< Always MessageType::ClientRoomCreate.
     uint32_t clientId; ///< Client ID requesting room creation.
+    uint16_t minPlayers; ///< Desired minimum player count.
+    uint16_t maxPlayers; ///< Desired maximum player count.
 };
 
 /**

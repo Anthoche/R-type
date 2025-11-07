@@ -18,9 +18,6 @@ namespace scene {
  * @brief Scene for managing game settings and preferences
  *
  * Provides a user interface for configuring:
- * - Game difficulty (Easy, Medium, Hard)
- * - Number of lives (1-7)
- * - Endless mode toggle
  * - Sound on/off
  * - Language selection (English/French/Italian)
  * 
@@ -92,18 +89,12 @@ class SettingsScene : public AScene {
 
         // --- Button labels and values ---
         std::vector<std::string> _buttons{
-            "1. Endless", "2. Lives", "3. Sound", "4. Language"
+            "1. Sound", "2. Language"
         }; ///< Text labels for option buttons
         
         std::vector<std::string> _values{
-            "Off", "3", "On", "English"
+            "On", "English"
         }; ///< Current values displayed for each option
-
-        // --- Option data ---
-        bool _endlessMode = false; ///< Whether endless mode is enabled
-
-        std::vector<std::string> _lives{"1", "2", "3", "4", "5", "6", "7"}; ///< Available life count options
-        std::size_t _currentLivesIndex{2}; ///< Index of currently selected life count (default: 3)
 
         bool _soundOn = true; ///< Whether sound is enabled
 
@@ -132,7 +123,7 @@ class SettingsScene : public AScene {
         /**
          * @brief Creates all main option buttons
          * 
-         * Generates buttons for endless mode, lives, sound, and language settings.
+         * Generates buttons for sound and language settings.
          */
         void createButtons();
 
@@ -145,20 +136,6 @@ class SettingsScene : public AScene {
 
         // --- Button creation handlers ---
         using ButtonCreator = void (SettingsScene::*)(Vector2 pos, std::size_t i); ///< Function pointer type for button creation methods
-
-        /**
-         * @brief Creates the lives selection button
-         * @param pos Position where the button should be placed
-         * @param i Button index in the layout
-         */
-        void createLivesButton(Vector2 pos, std::size_t i);
-
-        /**
-         * @brief Creates the endless mode toggle button
-         * @param pos Position where the button should be placed
-         * @param i Button index in the layout
-         */
-        void createEndlessButton(Vector2 pos, std::size_t i);
 
         /**
          * @brief Creates the sound toggle button
@@ -204,20 +181,6 @@ class SettingsScene : public AScene {
          * Updates the sound setting and refreshes the displayed value.
          */
         void toggleSound();
-
-        /**
-         * @brief Cycles through available life count options
-         * 
-         * Moves to the next value in the lives list (wraps around at end).
-         */
-        void cycleLives();
-
-        /**
-         * @brief Toggles endless mode on or off
-         * 
-         * Updates the endless mode setting and refreshes the displayed value.
-         */
-        void toggleEndless();
 
         /**
          * @brief Cycles through available language options

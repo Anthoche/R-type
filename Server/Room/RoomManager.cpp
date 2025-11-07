@@ -41,11 +41,12 @@ std::map<int, std::shared_ptr<Room>> &RoomManager::getRooms() {
 	return _rooms;
 }
 
-void RoomManager::addRoom(Room const &room) {
-	if (_rooms.size() >= _maxRooms)
-		return;
-	_rooms.insert_or_assign(_currentId, std::make_shared<Room>(room));
-	_currentId++;
+std::optional<int> RoomManager::addRoom(Room const &room) {
+	if (_rooms.size() >= static_cast<std::size_t>(_maxRooms))
+		return std::nullopt;
+	int newId = _currentId++;
+	_rooms.insert_or_assign(newId, std::make_shared<Room>(room));
+	return newId;
 }
 
 void RoomManager::addClientInRoom(uint32_t clientId, int roomId) {

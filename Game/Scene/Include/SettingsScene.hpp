@@ -18,10 +18,8 @@ namespace scene {
  * @brief Represents the settings menu of the game.
  *
  * The settings scene allows the player to:
- * - Change game difficulty (Easy, Medium, Hard).
- * - Choose number of lives (3, 5, 7).
  * - Toggle sound (On/Off).
- * - Change game language (English/French).
+ * - Change game language (English/French/Italian).
  * - Navigate back to the main menu.
  *
  * It handles initialization, rendering of UI, user input,
@@ -81,17 +79,11 @@ class SettingsScene : public AScene {
 
         // --- Buttons and values ---
         std::vector<std::string> _buttons{
-            "1. Endless", "2. Lives", "3. Sound", "4. Language"
+            "1. Sound", "2. Language"
         };
         std::vector<std::string> _values{
-            "Off", "3", "On", "English"
+            "On", "English"
         };
-
-        // --- Option data ---
-        bool _endlessMode = false;
-
-        std::vector<std::string> _lives{"1", "2", "3", "4", "5", "6", "7"};
-        std::size_t _currentLivesIndex{2};
 
         bool _soundOn = true;
 
@@ -123,16 +115,6 @@ class SettingsScene : public AScene {
 
         // --- Button creation handlers ---
         using ButtonCreator = void (SettingsScene::*)(Vector2 pos, std::size_t i);
-
-        /**
-        * @brief Create the lives button.
-        */
-        void createLivesButton(Vector2 pos, std::size_t i);
-
-        /**
-         * @brief Create the endless mode button.
-         */
-        void createEndlessButton(Vector2 pos, std::size_t i);
 
         /**
         * @brief Create the sound toggle button.
@@ -167,16 +149,6 @@ class SettingsScene : public AScene {
         void toggleSound();
 
         /**
-        * @brief Cycle through available lives options.
-        */
-        void cycleLives();
-
-        /**
-         * @brief Toggle endless mode on/off.
-         */
-        void toggleEndless();
-
-        /**
         * @brief Toggle between English and French languages.
         */
         void toggleLanguage();
@@ -186,15 +158,7 @@ class SettingsScene : public AScene {
         * @brief Apply French translations to all texts.
         */
         void translateToFrench();
-
-        /**
-        * @brief Apply Italian translations to all texts.
-        */
         void translateToItalian();
-        
-        /**
-        * @brief Apply English translations to all texts.
-        */
         void translateToEnglish();
 
         /**

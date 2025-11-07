@@ -122,15 +122,25 @@ class GameServer {
 		 */
 		void handleClientConfirmStart(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
 
-		/**
-		 * @brief Handles a ClientLeaveRoom message when a player leaves a room.
-		 *
-		 * Removes the client from their current room and notifies other players.
-		 *
-		 * @param data Raw message data.
-		 * @param from UDP endpoint of the leaving client.
-		 */
-		void handleClientLeaveRoom(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
+        /**
+         * @brief Handles a ClientLeaveRoom message when a player leaves a room.
+         *
+         * Removes the client from their current room and notifies other players.
+         *
+         * @param data Raw message data.
+         * @param from UDP endpoint of the leaving client.
+         */
+        void handleClientLeaveRoom(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
+
+        /**
+         * @brief Handles a ClientRoomCreate message to create a new room.
+         *
+         * Validates requested player limits and registers the room if possible.
+         *
+         * @param data Raw message data.
+         * @param from UDP endpoint of the requesting client.
+         */
+        void handleClientRoomCreate(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from);
 
 		/**
 		 * @brief Broadcasts a GameStart message to all players in a room.
