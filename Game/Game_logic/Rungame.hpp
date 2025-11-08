@@ -8,6 +8,7 @@
 #pragma once
 
 #include "../../Server/Include/IServerGame.hpp"
+#include "InfiniteMapGenerator.hpp"
 #include <asio/ip/udp.hpp>
 #include <unordered_map>
 #include <unordered_set>
@@ -89,6 +90,12 @@ class ServerGame : public IServerGame {
 
         /** @brief Indicates if the game is in endless mode. */
         bool _isEndless = false;
+
+        /** @brief Procedural chunk generator for endless mode. */
+        game::generation::InfiniteMapGenerator _infiniteGenerator{};
+
+        /** @brief Index of the next procedural chunk to build. */
+        std::size_t _nextProceduralChunk = 0;
 
         /** @brief Indicates if the game has been completed. */
         bool gameCompleted = false;
@@ -669,4 +676,15 @@ class ServerGame : public IServerGame {
         * @return A vector of client IDs in the room.
         */
         std::vector<uint32_t> collectRoomClients(bool includeDead = true) const;
+
+        /**
+         * @brief Loads a freshly generated endless chunk into the registry.
+         * @param resetPlayerPositions True to respawn players at the level start.
+         */
+        void load_procedural_chunk(bool resetPlayerPositions);
+
+        /**
+         * @brief Reloads the default first level (used when exiting endless mode).
+         */
+        void reload_first_level();
 };

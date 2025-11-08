@@ -269,6 +269,7 @@ struct ClientRoomCreateMessage {
     uint32_t clientId; ///< Client ID requesting room creation.
     uint16_t minPlayers; ///< Desired minimum player count.
     uint16_t maxPlayers; ///< Desired maximum player count.
+    char roomName[9]; ///< Null-terminated room name (max 8 chars).
 };
 
 /**

@@ -74,12 +74,17 @@ void GameClient::sendRoomsFetch() {
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
-void GameClient::sendRoomCreate(uint16_t minPlayers, uint16_t maxPlayers) {
+void GameClient::sendRoomCreate(uint16_t minPlayers, uint16_t maxPlayers, const std::string &roomName) {
     ClientRoomCreateMessage msg{};
     msg.type = MessageType::ClientRoomCreate;
     msg.clientId = clientId;
     msg.minPlayers = htons(minPlayers);
     msg.maxPlayers = htons(maxPlayers);
+    std::memset(msg.roomName, 0, sizeof(msg.roomName));
+    std::string trimmed = roomName;
+    if (trimmed.size() > sizeof(msg.roomName) - 1)
+        trimmed.resize(sizeof(msg.roomName) - 1);
+    std::strncpy(msg.roomName, trimmed.c_str(), sizeof(msg.roomName) - 1);
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 

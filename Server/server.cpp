@@ -14,6 +14,7 @@
 #include <string>
 #include <optional>
 #include <format>
+#include <cctype>
 #include "Logger.hpp"
 #include "WeaponDefinition.hpp"
 
@@ -257,6 +258,16 @@ void GameServer::handleClientRoomCreate(const std::vector<uint8_t> &data, const 
 	const auto *msg = reinterpret_cast<const ClientRoomCreateMessage *>(data.data());
 	int requestedMin = static_cast<int>(ntohs(msg->minPlayers));
 	int requestedMax = static_cast<int>(ntohs(msg->maxPlayers));
+	std::string requestedRoomName;
+	if (msg->roomName[0] != '\0') {
+		std::size_t len = 0;
+		while (len < sizeof(msg->roomName) && msg->roomName[len] != '\0')
+			++len;
+		requestedRoomName.assign(msg->roomName, len);
+		auto isSpace = [](unsigned char c) { return std::isspace(c) != 0; };
+		requestedRoomName.erase(requestedRoomName.begin(), std::find_if_not(requestedRoomName.begin(), requestedRoomName.end(), isSpace));
+		requestedRoomName.erase(std::find_if_not(requestedRoomName.rbegin(), requestedRoomName.rend(), isSpace).base(), requestedRoomName.end());
+	}
 
 	requestedMin = std::clamp(requestedMin, 1, maxPlayers);
 	requestedMax = std::clamp(requestedMax, requestedMin, maxPlayers);
@@ -269,7 +280,7 @@ void GameServer::handleClientRoomCreate(const std::vector<uint8_t> &data, const 
 	std::string creatorName = connexion.getClientName(msg->clientId);
 	if (creatorName.empty())
 		creatorName = "Custom";
-	std::string roomName = std::format("{}'s Room", creatorName);
+	std::string roomName = requestedRoomName.empty() ? std::format("{}'s Room", creatorName) : requestedRoomName;
 
 	Room newRoom(connexion, requestedMax, requestedMin, roomName, msg->clientId);
 	auto roomId = roomManager.addRoom(newRoom);

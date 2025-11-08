@@ -336,15 +336,15 @@ void ServerGame::index_existing_entities() {
 
 void ServerGame::load_next_level() {
     LOG_INFO("[Server] Loading next level...");
+    if (_isEndless) {
+        load_procedural_chunk(true);
+        return;
+    }
     currentLevel++;
     if (currentLevel > MAX_LEVELS) {
         LOG_INFO("[Server] Reached maximum level. Game completed!");
-        if (_isEndless) {
-            currentLevel = 1;
-        } else {
-            gameCompleted = true;
-            return;
-        }
+        gameCompleted = true;
+        return;
     }
     clear_level_entities();
     initialize_player_positions();
@@ -369,6 +369,39 @@ void ServerGame::load_next_level() {
     } catch (const std::exception &e) {
         LOG_ERROR("[Server] Failed to load level " << currentLevel << ": " << e.what());
         LOG_INFO("[Server] Game completed! No more levels.");
+    }
+}
+
+void ServerGame::load_procedural_chunk(bool resetPlayerPositions) {
+    clear_level_entities();
+    if (resetPlayerPositions)
+        initialize_player_positions();
+
+    nlohmann::json chunk = _infiniteGenerator.generateChunk(_nextProceduralChunk++);
+    game::storage::store_level_entities(registry_server, chunk);
+    index_existing_entities();
+
+    for (const auto &kv : connexion.getClients()) {
+        broadcast_full_registry_to(kv.second);
+    }
+    gameCompleted = false;
+    LOG_INFO("[Server] Generated endless chunk #" << _nextProceduralChunk);
+}
+
+void ServerGame::reload_first_level() {
+    clear_level_entities();
+    initialize_player_positions();
+    try {
+        load_level(ASSETS_PATH "/Config_assets/Levels/level_01.json");
+        index_existing_entities();
+        for (const auto &kv : connexion.getClients()) {
+            broadcast_full_registry_to(kv.second);
+        }
+        currentLevel = 1;
+        _nextProceduralChunk = 0;
+        gameCompleted = false;
+    } catch (const std::exception &e) {
+        LOG_ERROR("[Server] Failed to reload level_01: " << e.what());
     }
 }
 
@@ -646,9 +679,21 @@ void ServerGame::handle_client_message(const std::vector<uint8_t>& data, const a
                 uint32_t clientId = ntohl(msg->clientId);
                 bool isEndless = msg->isEndless != 0;
                 if (playerPositions.empty() || currentLevel == 1) {
+                    bool changed = (_isEndless != isEndless);
+                    if (changed) {
+                        if (isEndless) {
+                            _nextProceduralChunk = 0;
+                            auto seed = static_cast<std::uint32_t>(
+                                std::chrono::steady_clock::now().time_since_epoch().count());
+                            _infiniteGenerator.reseed(seed);
+                            load_procedural_chunk(true);
+                        } else {
+                            reload_first_level();
+                        }
+                    }
                     _isEndless = isEndless;
-                    LOG_INFO("[Server] Endless mode set to: " << (isEndless ? "ON" : "OFF") 
-                             << " by client " << clientId);                    
+                    LOG_INFO("[Server] Endless mode set to: " << (isEndless ? "ON" : "OFF")
+                             << " by client " << clientId);
                     broadcast_endless_mode(_isEndless);
                 } else {
                     LOG_INFO("[Server] Endless mode cannot be changed mid-game");

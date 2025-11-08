@@ -43,8 +43,8 @@ namespace scene {
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
 		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
-		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
-			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, ui::theme::AccentText);
+			game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
+				_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, ui::theme::AccentText);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
