@@ -23,7 +23,7 @@ UI::UI(game::scene::GameScene &scene, ecs::registry &reg, Raylib &raylib) : _sce
 }
 
 void UI::init() {
-	_font = _raylib.loadFont(ASSETS_PATH"/fonts/PressStart2P.ttf");
+	_font = _raylib.loadFont(ASSETS_PATH"/fonts/Steelar-j9Vnj.otf");
 	Image heartImage = LoadImage(ASSETS_PATH"/sprites/heart.png");
 	Image heartEmptyImage = LoadImage(ASSETS_PATH"/sprites/heart_empty.png");
 	_fullHeart = LoadTextureFromImage(heartImage);

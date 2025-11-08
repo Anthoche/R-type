@@ -91,7 +91,7 @@ namespace scene {
 		_raylib.setTargetFPS(60);
 		_ignoreInitialClick = true;
 
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();

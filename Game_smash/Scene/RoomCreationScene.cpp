@@ -23,7 +23,7 @@ void RoomCreationScene::init() {
 	_raylib.enableCursor();
 	_raylib.setTargetFPS(60);
 
-	_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+	_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 	registerComponents();
 	createLayout();

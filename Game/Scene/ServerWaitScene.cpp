@@ -27,7 +27,7 @@ namespace scene {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -76,7 +76,7 @@ namespace scene {
 			playButtonPos.x, playButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, ui::theme::AccentText);
 
 		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
-			quitButtonPos.x, quitButtonPos.y, 0.f, buttonSize.x, buttonSize.y, ui::theme::Warning, ui::theme::AccentText);
+			quitButtonPos.x, quitButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, ui::theme::AccentText);
 	}
 
 

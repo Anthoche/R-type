@@ -74,7 +74,7 @@ class MenuScene: public AScene {
         float _titleCenterY; ///< Y position to center the title vertically.
 
         // Buttons
-        Color const _accentColor{88, 196, 182, 255}; ///< Accent color for buttons.
+        Color const _accentColor{10, 34, 64, 255}; ///< Accent color for buttons.
         Vector2 const _buttonSize{280.f, 70.f}; ///< Size of buttons.
         int const _buttonTextSize = 35; ///< Font size for button text.
         int const _buttonSpacing = 35; ///< Vertical spacing between buttons.

@@ -24,7 +24,7 @@ namespace scene {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 		_registry.register_component<component::dynamic_position>();
 		_registry.register_component<component::position>();

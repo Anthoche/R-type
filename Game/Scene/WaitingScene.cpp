@@ -127,7 +127,7 @@ namespace scene {
 		_raylib.setTargetFPS(60);
 		_ignoreInitialClick = true;
 
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -206,7 +206,7 @@ namespace scene {
 		game::entities::create_button(_registry, "button_quit", quitText,
 									 quitButtonPos.x, quitButtonPos.y, 0.f,
 									 quitButtonSize.x, quitButtonSize.y,
-									 ui::theme::Warning, ui::theme::AccentText, buttonFontSize);
+									 accentColor, ui::theme::AccentText, buttonFontSize);
 
 		float arrowButtonSize = 54.f;
 		float arrowSpacing = 36.f;

@@ -26,7 +26,7 @@ class RoomCreationScene : public AScene {
         Game &_game;
 
         Font _font{};
-        Color const _accentColor{46, 204, 113, 255};
+        Color const _accentColor{10, 34, 64, 255};
         Vector2 _margin{25.f, 25.f};
 
         int _minPlayers = 2;

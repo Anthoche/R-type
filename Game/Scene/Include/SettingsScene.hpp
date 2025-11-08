@@ -68,7 +68,7 @@ class SettingsScene : public AScene {
 
         // --- UI configuration ---
         int const _titleSize = 90; 
-        Color const _accentColor{88, 196, 182, 255};
+        Color const _accentColor{10, 34, 64, 255};
         Vector2 const _buttonSize{300.f, 50.f};
         int const _buttonTextSize = 23; 
         int const _buttonSpacing = 20;

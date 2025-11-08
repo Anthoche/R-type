@@ -78,7 +78,7 @@ class SettingsScene : public AScene {
 
         // --- UI configuration ---
         int const _titleSize = 90;                        ///< Font size for the scene title
-        Color const _accentColor{46, 204, 113, 255};     ///< Accent color for UI elements (green)
+        Color const _accentColor{10, 34, 64, 255};     ///< Accent color for UI elements (green)
         Vector2 const _buttonSize{300.f, 50.f};          ///< Standard dimensions for buttons
         int const _buttonTextSize = 23;                   ///< Font size for button text
         int const _buttonSpacing = 20;                    ///< Vertical spacing between buttons
