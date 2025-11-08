@@ -167,6 +167,18 @@ void Raylib::drawRectangleRounded(Rectangle rec, float roundness, int segments, 
 	DrawRectangleRounded(rec, roundness, segments, color);
 }
 
+void Raylib::drawRectangleRoundedLines(Rectangle rec, float roundness, int segments, float lineThick, Color color) {
+	DrawRectangleRoundedLinesEx(rec, roundness, segments, lineThick, color);
+}
+
+void Raylib::drawRectangleGradientV(Rectangle rec, Color topColor, Color bottomColor) {
+	DrawRectangleGradientV(static_cast<int>(rec.x), static_cast<int>(rec.y), static_cast<int>(rec.width), static_cast<int>(rec.height), topColor, bottomColor);
+}
+
+void Raylib::drawRectangleGradientEx(Rectangle rec, Color topLeft, Color topRight, Color bottomRight, Color bottomLeft) {
+	DrawRectangleGradientEx(rec, topLeft, topRight, bottomRight, bottomLeft);
+}
+
 void Raylib::drawLine(int startX, int startY, int endX, int endY, Color color) {
 	DrawLine(startX, startY, endX, endY, color);
 }

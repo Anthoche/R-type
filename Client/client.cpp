@@ -74,6 +74,15 @@ void GameClient::sendRoomsFetch() {
     socket.sendTo(&msg, sizeof(msg), serverEndpoint);
 }
 
+void GameClient::sendRoomCreate(uint16_t minPlayers, uint16_t maxPlayers) {
+    ClientRoomCreateMessage msg{};
+    msg.type = MessageType::ClientRoomCreate;
+    msg.clientId = clientId;
+    msg.minPlayers = htons(minPlayers);
+    msg.maxPlayers = htons(maxPlayers);
+    socket.sendTo(&msg, sizeof(msg), serverEndpoint);
+}
+
 bool GameClient::waitForRooms(std::chrono::milliseconds timeout,
                               std::map<int, game::serializer::RoomData> &outRooms) {
     std::unique_lock<std::mutex> lock(roomsMutex);

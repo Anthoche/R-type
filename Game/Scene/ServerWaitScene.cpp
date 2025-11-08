@@ -11,6 +11,7 @@
 #include "components.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
+#include "UITheme.hpp"
 
 namespace scene {
 	ServerWaitScene::ServerWaitScene(Game &game)
@@ -26,7 +27,7 @@ namespace scene {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
 
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -64,18 +65,18 @@ namespace scene {
 		playButtonPos.x -= 110;
 		quitButtonPos.x += 110;
 
-		Color accentColor = Color{26, 170, 177, 255};
+		Color accentColor = ui::theme::Accent;
 
 		game::entities::create_text(_registry, {titleCenterX, titleCenterY}, title,
-			RAYWHITE, -0.75f, titleFontSize, _font);
+			ui::theme::AccentText, -0.75f, titleFontSize, _font);
 		game::entities::create_text(_registry, {subtitleCenterX, subtitleCenterY}, subtitle,
-			RAYWHITE, -0.5f, subtitleFontSize, _font);
+			ui::theme::SecondaryText, -0.5f, subtitleFontSize, _font);
 
 		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
-			playButtonPos.x, playButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, RAYWHITE);
+			playButtonPos.x, playButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, ui::theme::AccentText);
 
 		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
-			quitButtonPos.x, quitButtonPos.y, 0.f, buttonSize.x, buttonSize.y, RED, RAYWHITE);
+			quitButtonPos.x, quitButtonPos.y, 0.f, buttonSize.x, buttonSize.y, accentColor, ui::theme::AccentText);
 	}
 
 
@@ -90,7 +91,7 @@ namespace scene {
 		}
 
 		_raylib.beginDrawing();
-		_raylib.clearBackground(BLACK);
+		drawSceneBackground(_raylib, ui::theme::BackgroundTop, ui::theme::BackgroundBottom);
 
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &positions = _registry.get_components<component::position>();
@@ -123,7 +124,7 @@ namespace scene {
 						isFrench ? "Connexion au serveur impossible" :
 						isItalian ? "Impossible connettersi al server" :
 						 "Unable to connect to server";
-						text[i]->color = RED;
+						text[i]->color = ui::theme::Warning;
 					} else {
 						text[i]->content = 
 						isFrench ? std::format("Nouvelle tentative dans {:.1f} seconde(s)", remainingTime) :

@@ -88,7 +88,7 @@ class RoomSelectScene: public AScene {
         Vector2 _baseRoomPosition{0, 90}; ///< Starting position for room display.
         Vector2 _roomJoinButtonSize{95, 40}; ///< Size of the join button.
         int _currentRoomPosY = 0; ///< Current Y position for the next room to render.
-        Color const _roomBackgroundColor{33, 33, 33, 255}; ///< Background color of rooms.
+        Color const _roomBackgroundColor{37, 52, 86, 235}; ///< Background color of rooms.
         std::map<uint32_t, RoomDisplay> _rooms; ///< Map of rooms by their ID.
 
         // Title
@@ -98,7 +98,7 @@ class RoomSelectScene: public AScene {
         int _selectedButtonIndex = -1; ///< Currently selected button index.
         int _selectedRoomIndex = -1; ///< Currently selected room index.
         bool _selectingRooms = false; ///< Indicates if user is selecting rooms or not
-        Color const _accentColor{26, 170, 177, 255}; ///< Accent color for buttons.
+        Color const _accentColor{10, 34, 64, 255}; ///< Accent color for buttons.
         Vector2 const _buttonSize{160.f, 50.f}; ///< Size of general buttons.
         int const _buttonTextSize = 23; ///< Font size for general buttons.
 

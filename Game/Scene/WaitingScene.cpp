@@ -10,6 +10,7 @@
 #include "components.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
+#include "UITheme.hpp"
 #include <raylib.h>
 #include <algorithm>
 #include <filesystem>
@@ -36,7 +37,7 @@ namespace scene {
 
 	void WaitingScene::render() {
 		_raylib.beginDrawing();
-		_raylib.clearBackground(Color{6, 16, 28, 255});
+		drawSceneBackground(_raylib, ui::theme::BackgroundTop, ui::theme::BackgroundBottom);
 
 		drawSkinPreview();
 		drawWeaponPreview();
@@ -126,7 +127,7 @@ namespace scene {
 		_raylib.setTargetFPS(60);
 		_ignoreInitialClick = true;
 
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -147,7 +148,7 @@ namespace scene {
 			"Waiting for players...";
 		int statusFontSize = 18;
 		game::entities::create_text(_registry, {40.f, 36.f}, statusText,
-									Color{170, 220, 255, 255}, -0.5f, statusFontSize, _font);
+									ui::theme::SecondaryText, -0.5f, statusFontSize, _font);
 
 		std::string heading =
 			isFrench ? "Hangar de personnalisation" :
@@ -157,7 +158,7 @@ namespace scene {
 		Vector2 headingSize = _raylib.measureTextEx(_font, heading.c_str(), static_cast<float>(headingFontSize), -0.5f);
 		Vector2 headingPos = {_previewCenter.x - headingSize.x / 2.f, 108.f};
 		game::entities::create_text(_registry, headingPos, heading,
-									RAYWHITE, -0.5f, headingFontSize, _font);
+									ui::theme::AccentText, -0.5f, headingFontSize, _font);
 
 		std::string instructions =
 			isFrench ? "Choisis ton vaisseau avant de rejoindre la partie." :
@@ -167,7 +168,7 @@ namespace scene {
 		Vector2 instructionsSize = _raylib.measureTextEx(_font, instructions.c_str(), static_cast<float>(instructionsFontSize), -0.5f);
 		Vector2 instructionsPos = {_previewCenter.x - instructionsSize.x / 2.f, headingPos.y + headingSize.y + 22.f};
 		game::entities::create_text(_registry, instructionsPos, instructions,
-									Color{180, 200, 220, 255}, -0.5f, instructionsFontSize, _font);
+									ui::theme::SecondaryText, -0.5f, instructionsFontSize, _font);
 
 		std::string joinText =
 			isFrench ? "Pret" :
@@ -196,16 +197,16 @@ namespace scene {
 		Vector2 joinButtonPos = {baseX - 10, baseY};
 		Vector2 quitButtonPos = {baseX, baseY + joinButtonSize.y + buttonSpacing};
 
-		Color accentColor = Color{26, 170, 177, 255};
+		Color accentColor = ui::theme::Accent;
 
 		game::entities::create_button(_registry, "button_ready", joinText,
 									 joinButtonPos.x, joinButtonPos.y, 0.f,
 									 joinButtonSize.x, joinButtonSize.y,
-									 accentColor, RAYWHITE, buttonFontSize);
+									 accentColor, ui::theme::AccentText, buttonFontSize);
 		game::entities::create_button(_registry, "button_quit", quitText,
 									 quitButtonPos.x, quitButtonPos.y, 0.f,
 									 quitButtonSize.x, quitButtonSize.y,
-									 RED, RAYWHITE, buttonFontSize);
+									 accentColor, ui::theme::AccentText, buttonFontSize);
 
 		float arrowButtonSize = 54.f;
 		float arrowSpacing = 36.f;
@@ -214,8 +215,8 @@ namespace scene {
 		Vector2 nextButtonPos = {_previewCenter.x + (_previewBounds.x / 2.f) + arrowSpacing,
 								 _previewCenter.y - arrowButtonSize / 2.f};
 
-		Color secondaryColor = Color{32, 104, 147, 255};
-		Color arrowTextColor = Color{220, 245, 255, 255};
+		Color secondaryColor = ui::theme::Secondary;
+		Color arrowTextColor = ui::theme::SecondaryText;
 
 		game::entities::create_button(_registry, "button_skin_prev", "<",
 									 prevButtonPos.x, prevButtonPos.y, 0.f,

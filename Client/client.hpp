@@ -151,6 +151,13 @@ class GameClient {
         void sendRoomsFetch();
 
         /**
+         * @brief Requests creation of a new room with custom player limits.
+         * @param minPlayers Minimum number of players required to start.
+         * @param maxPlayers Maximum number of players allowed in the room.
+         */
+        void sendRoomCreate(uint16_t minPlayers, uint16_t maxPlayers);
+
+        /**
          * @brief Notifies the server that this player is ready to start the game.
          */
         void sendConfirmStart();

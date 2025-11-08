@@ -13,6 +13,7 @@
 #include <string>
 #include <filesystem>
 #include <vector>
+#include "../../Engine/Physics/Include/Collision.hpp"
 
 namespace game::scene {
     GameScene::GameScene(Game &game)
@@ -927,7 +928,7 @@ namespace game::scene {
             float speed = controls[myPlayer.value()]->speed;
             float dt = 0.016f;
 
-            ecs::entity_t playerHitbox = collision::find_player_hitbox(*this);
+            ecs::entity_t playerHitbox = physics::collision::find_hitbox_of(_registry, myPlayer);
             if (playerHitbox.value() < hitboxes.size() && hitboxes[playerHitbox.value()]) {
                 auto &playerPos = *positions[myPlayer.value()];
                 auto &playerBox = *hitboxes[playerHitbox.value()];
@@ -936,10 +937,10 @@ namespace game::scene {
                 float testX = playerPos.x + ix * speed * dt;
                 float testY = playerPos.y + iy * speed * dt;
 
-                if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
+                if (physics::collision::is_blocked(_registry, _platforms, testX, playerPos.y, playerBox))
                     ix = 0.f;
                 bool allowDrop = downPressed && iy > 0.f;
-                if (!allowDrop && collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
+                if (!allowDrop && physics::collision::is_blocked(_registry, _platforms, playerPos.x, testY, playerBox))
                     iy = 0.f;
                 if (ix != 0.f || iy != 0.f) {
                     playerPos.x += ix * speed * dt;

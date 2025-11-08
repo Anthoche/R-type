@@ -87,8 +87,9 @@ class RoomManager {
 		 * Fails if the maximum number of rooms has been reached.
 		 *
 		 * @param room The room configuration to add.
+		 * @return The newly assigned room ID, or std::nullopt if capacity was reached.
 		 */
-		void addRoom(Room const &room);
+		std::optional<int> addRoom(Room const &room);
 
 		/**
 		 * @brief Adds a client to a specific room.

@@ -5,33 +5,33 @@
 ** Collision
 */
 
-#include "../../../Game/Scene/Include/GameScene.hpp"
-#include <iostream>
+#include "Include/Collision.hpp"
 #include <cmath>
 
-namespace game::scene::collision {
+namespace physics::collision {
 
-    ecs::entity_t find_player_hitbox(GameScene &scene) {
-        auto &links = scene.get_registry().get_components<component::hitbox_link>();
+    ecs::entity_t find_hitbox_of(ecs::registry &registry, ecs::entity_t owner) {
+        auto &links = registry.get_components<component::hitbox_link>();
         for (std::size_t i = 0; i < links.size(); ++i) {
-            if (links[i] && links[i]->owner == scene.get_player()) {
-                return scene.get_registry().entity_from_index(i);
+            if (links[i] && links[i]->owner == owner) {
+                return registry.entity_from_index(i);
             }
         }
         return ecs::entity_t{0};
     }
 
-    bool is_blocked(GameScene &scene, float testX, float testY,
-                    const component::position &playerPos,
+    bool is_blocked(ecs::registry &registry,
+                    const std::vector<ecs::entity_t> &obstacles,
+                    float testX, float testY,
                     const component::collision_box &playerBox) {
         float left   = testX - playerBox.width * 0.5f;
         float right  = testX + playerBox.width * 0.5f;
         float top    = testY - playerBox.height * 0.5f;
         float bottom = testY + playerBox.height * 0.5f;
-        auto &positions = scene.get_registry().get_components<component::position>();
-        auto &hitboxes  = scene.get_registry().get_components<component::collision_box>();
+        auto &positions = registry.get_components<component::position>();
+        auto &hitboxes  = registry.get_components<component::collision_box>();
 
-        for (auto &obstacle : scene.get_obstacles()) {
+        for (auto &obstacle : obstacles) {
             if (obstacle.value() >= positions.size() || !positions[obstacle.value()] || !hitboxes[obstacle.value()])
                 continue;
             auto &obsPos = *positions[obstacle.value()];
@@ -47,69 +47,61 @@ namespace game::scene::collision {
         return false;
     }
 
-    ecs::entity_t find_hitbox_of(GameScene &scene, ecs::entity_t owner) {
-        auto &links = scene.get_registry().get_components<component::hitbox_link>();
-        for (std::size_t i = 0; i < links.size(); ++i) {
-            if (links[i] && links[i]->owner == owner) {
-                return scene.get_registry().entity_from_index(i);
-            }
-        }
-        return ecs::entity_t{0};
-    }
-
     bool overlap_aabb(float leftA, float rightA, float topA, float bottomA,
                     float leftB, float rightB, float topB, float bottomB) {
         return rightA > leftB && leftA < rightB && bottomA > topB && topA < bottomB;
     }
 
-    void resolve_collision(GameScene &scene,
-                        ecs::entity_t playerEntity,
-                        component::position &playerPos,
-                        component::collision_box &playerBox,
-                        const component::position &obsPos,
-                        const component::collision_box &obsBox,
-                        float prevX, float prevY) {
-        auto &velocitiesAll  = scene.get_registry().get_components<component::velocity>();
-        auto &prevPositions  = scene.get_registry().get_components<component::previous_position>();
+    void resolve_collision(ecs::registry &registry,
+                           ecs::entity_t entity,
+                           component::position &entityPos,
+                           component::collision_box &entityBox,
+                           const component::position &obsPos,
+                           const component::collision_box &obsBox,
+                           float prevX, float prevY) {
+        auto &velocitiesAll  = registry.get_components<component::velocity>();
+        auto &prevPositions  = registry.get_components<component::previous_position>();
         float obsLeft   = obsPos.x - obsBox.width * 0.5f;
         float obsRight  = obsPos.x + obsBox.width * 0.5f;
         float obsTop    = obsPos.y - obsBox.height * 0.5f;
         float obsBottom = obsPos.y + obsBox.height * 0.5f;
-        float moveX = playerPos.x - prevX;
-        float moveY = playerPos.y - prevY;
+        float moveX = entityPos.x - prevX;
+        float moveY = entityPos.y - prevY;
         const float skin = 0.5f;
 
         if (std::fabs(moveX) > std::fabs(moveY)) {
             if (moveX > 0.f)
-                playerPos.x = obsLeft - playerBox.width * 0.5f - skin;
+                entityPos.x = obsLeft - entityBox.width * 0.5f - skin;
             else
-                playerPos.x = obsRight + playerBox.width * 0.5f + skin;
-            if (playerEntity.value() < velocitiesAll.size() && velocitiesAll[playerEntity.value()])
-                velocitiesAll[playerEntity.value()]->vx = 0.f;
+                entityPos.x = obsRight + entityBox.width * 0.5f + skin;
+            if (entity.value() < velocitiesAll.size() && velocitiesAll[entity.value()])
+                velocitiesAll[entity.value()]->vx = 0.f;
         } else {
             if (moveY > 0.f)
-                playerPos.y = obsTop - playerBox.height * 0.5f - skin;
+                entityPos.y = obsTop - entityBox.height * 0.5f - skin;
             else
-                playerPos.y = obsBottom + playerBox.height * 0.5f + skin;
-            if (playerEntity.value() < velocitiesAll.size() && velocitiesAll[playerEntity.value()])
-                velocitiesAll[playerEntity.value()]->vy = 0.f;
+                entityPos.y = obsBottom + entityBox.height * 0.5f + skin;
+            if (entity.value() < velocitiesAll.size() && velocitiesAll[entity.value()])
+                velocitiesAll[entity.value()]->vy = 0.f;
         }
-        if (playerEntity.value() < prevPositions.size() && prevPositions[playerEntity.value()]) {
-            prevPositions[playerEntity.value()]->x = playerPos.x;
-            prevPositions[playerEntity.value()]->y = playerPos.y;
+        if (entity.value() < prevPositions.size() && prevPositions[entity.value()]) {
+            prevPositions[entity.value()]->x = entityPos.x;
+            prevPositions[entity.value()]->y = entityPos.y;
         }
     }
 
-    void handle_entity_collisions(GameScene &scene, ecs::entity_t entity) {
-        auto &positions     = scene.get_registry().get_components<component::position>();
-        auto &hitboxes      = scene.get_registry().get_components<component::collision_box>();
-        auto &prevPositions = scene.get_registry().get_components<component::previous_position>();
-        auto &types         = scene.get_registry().get_components<component::type>();
-        auto &healths       = scene.get_registry().get_components<component::health>();
+    void handle_entity_collisions(ecs::registry &registry,
+                                  const std::vector<ecs::entity_t> &obstacles,
+                                  ecs::entity_t entity) {
+        auto &positions     = registry.get_components<component::position>();
+        auto &hitboxes      = registry.get_components<component::collision_box>();
+        auto &prevPositions = registry.get_components<component::previous_position>();
+        auto &types         = registry.get_components<component::type>();
+        auto &healths       = registry.get_components<component::health>();
 
         if (entity.value() >= positions.size() || !positions[entity.value()])
             return;
-        ecs::entity_t entityHitbox = find_hitbox_of(scene, entity);
+        ecs::entity_t entityHitbox = find_hitbox_of(registry, entity);
         if (!entityHitbox.value() || entityHitbox.value() >= hitboxes.size() || !hitboxes[entityHitbox.value()])
             return;
         auto &pos = *positions[entity.value()];
@@ -118,7 +110,7 @@ namespace game::scene::collision {
         float nextRight  = pos.x + box.width * 0.5f;
         float nextTop    = pos.y - box.height * 0.5f;
         float nextBottom = pos.y + box.height * 0.5f;
-        for (auto &obstacle : scene.get_obstacles()) {
+        for (auto &obstacle : obstacles) {
             if (obstacle.value() >= positions.size() || !positions[obstacle.value()] || !hitboxes[obstacle.value()])
                 continue;
             auto &obsPos = *positions[obstacle.value()];
@@ -135,14 +127,14 @@ namespace game::scene::collision {
                 float prevY = (entity.value() < prevPositions.size() && prevPositions[entity.value()])
                                 ? prevPositions[entity.value()]->y
                                 : pos.y;
-                resolve_collision(scene, entity, pos, box, obsPos, obsBox, prevX, prevY);
+                resolve_collision(registry, entity, pos, box, obsPos, obsBox, prevX, prevY);
             }
         }
         for (std::size_t i = 0; i < types.size(); ++i) {
             if (!types[i] || types[i]->value != component::entity_type::ENEMY)
                 continue;
-            ecs::entity_t enemy = scene.get_registry().entity_from_index(i);
-            ecs::entity_t enemyHitbox = find_hitbox_of(scene, enemy);
+            ecs::entity_t enemy = registry.entity_from_index(i);
+            ecs::entity_t enemyHitbox = find_hitbox_of(registry, enemy);
             if (!enemyHitbox.value() || enemyHitbox.value() >= hitboxes.size() || !hitboxes[enemyHitbox.value()])
                 continue;
             auto &enemyPos = *positions[enemy.value()];
@@ -159,4 +151,4 @@ namespace game::scene::collision {
             }
         }
     }
-} // namespace game::scene::collision
+} // namespace physics::collision

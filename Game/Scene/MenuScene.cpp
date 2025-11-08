@@ -10,6 +10,8 @@
 #include "components.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
+#include "UITheme.hpp"
+#include <algorithm>
 
 namespace scene {
 	MenuScene::MenuScene(Game &game) : AScene(960, 540, "R-Type - Menu"), _game(game) {
@@ -25,7 +27,7 @@ namespace scene {
 		_raylib.setTargetFPS(60);
 		_selectedButtonIndex = -1;
 
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 		_registry.register_component<component::position>();
 		_registry.register_component<component::drawable>();
@@ -36,23 +38,23 @@ namespace scene {
 
 		_buttonPosition = {600.f, _buttonCenterY};
 
-		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", RAYWHITE, -0.5f, _titleSize, _font);
+		game::entities::create_text(_registry, {20.0f, _titleCenterY}, "R-Type", ui::theme::AccentText, -0.5f, _titleSize, _font);
 
 		bool isFrench = (_game.getLanguage() == Game::Language::FRENCH);
 		bool isItalian = (_game.getLanguage() == Game::Language::ITALIAN);
 
 		game::entities::create_button(_registry, "button_play", isFrench ? "Jouer" : isItalian ? "Gioca" : "Play",
-			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, ui::theme::AccentText);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
 		game::entities::create_button(_registry, "button_settings", isFrench ? "Options" : isItalian ? "Opzioni" : "Settings",
-			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, ui::theme::AccentText);
 
 		_buttonPosition.y += _buttonSize.y + _buttonSpacing;
 
 		game::entities::create_button(_registry, "button_quit", isFrench ? "Quitter" : isItalian ? "Uscire" : "Quit",
-			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, _accentColor, RAYWHITE);
+			_buttonPosition.x, _buttonPosition.y, 0.f, _buttonSize.x, _buttonSize.y, ui::theme::Secondary, ui::theme::SecondaryText);
 
 		if (!_game.getGameClient().isConnected())
 			_game.getGameClient().sendHello();
@@ -61,7 +63,7 @@ namespace scene {
 
 	void MenuScene::render() {
 		_raylib.beginDrawing();
-		_raylib.clearBackground(BLACK);
+		drawSceneBackground(_raylib, ui::theme::BackgroundTop, ui::theme::BackgroundBottom);
 
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &positions = _registry.get_components<component::position>();
@@ -159,17 +161,20 @@ namespace scene {
 
 		Rectangle rect = {position.x, position.y, size.x, size.y};
 
+		Color fillColor = color;
+		Color labelColor = textColor;
 		if (isHovered) {
-			Color temp = textColor;
-			textColor = color;
-			color = temp;
+			fillColor.r = std::min(255, fillColor.r + 20);
+			fillColor.g = std::min(255, fillColor.g + 20);
+			fillColor.b = std::min(255, fillColor.b + 20);
 		}
 		if (isClicked) {
-			color.a -= 50;
+			fillColor.a = static_cast<unsigned char>(fillColor.a > 60 ? fillColor.a - 60 : fillColor.a);
 		}
 
-		_raylib.drawRectangleRounded(rect, 0.5, 10, color);
-		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, textColor);
+		_raylib.drawRectangleRounded(rect, 0.5f, 10, fillColor);
+		_raylib.drawRectangleRoundedLines(rect, 0.5f, 16, 2.f, ui::theme::ButtonOutline);
+		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, labelColor);
 	}
 
 	void MenuScene::onClose() {

@@ -6,6 +6,7 @@
 */
 
 #include "RenderUtils.hpp"
+#include <algorithm>
 
 float getElementCenter(int screenAxis, int elementAxis) {
 	return (screenAxis / 2) - (elementAxis / 2);
@@ -20,11 +21,18 @@ void drawButton(Raylib &raylib, Vector2 position, Vector2 size, std::string cons
 
 	Rectangle rect = {position.x, position.y, size.x, size.y};
 
+	auto lightenChannel = [](unsigned char channel, int delta) -> unsigned char {
+		int value = channel + delta;
+		if (value > 255)
+			value = 255;
+		return static_cast<unsigned char>(value);
+	};
+
 	if (isEnabled) {
 		if (isHovered) {
-			Color temp = textColor;
-			textColor = color;
-			color = temp;
+			color.r = lightenChannel(color.r, 25);
+			color.g = lightenChannel(color.g, 25);
+			color.b = lightenChannel(color.b, 25);
 		}
 		if (isClicked) {
 			color.a -= 50;
@@ -33,8 +41,22 @@ void drawButton(Raylib &raylib, Vector2 position, Vector2 size, std::string cons
 		color.a = 100;
 		textColor.a = 100;
 	}
+	Color outlineColor{
+		lightenChannel(color.r, 35),
+		lightenChannel(color.g, 35),
+		lightenChannel(color.b, 35),
+		static_cast<unsigned char>(std::min(255, color.a + 35))
+	};
+
 	raylib.drawRectangleRounded(rect, roundness, 10, color);
+	raylib.drawRectangleRoundedLines(rect, roundness, 16, 2.f, outlineColor);
 	raylib.drawTextEx(font, content, textPos, fontSize, spacing, textColor);
+}
+
+void drawSceneBackground(Raylib &raylib, Color topColor, Color bottomColor) {
+	raylib.clearBackground(topColor);
+	Rectangle fullscreen = {0.f, 0.f, static_cast<float>(raylib.getRenderWidth()), static_cast<float>(raylib.getRenderHeight())};
+	raylib.drawRectangleGradientV(fullscreen, topColor, bottomColor);
 }
 
 int getButtonsCenterY(int screenHeight, int numberOfButtons, int buttonHeight, int buttonSpacing) {

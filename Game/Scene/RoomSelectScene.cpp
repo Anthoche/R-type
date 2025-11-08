@@ -11,6 +11,7 @@
 #include "Logger.hpp"
 #include "text.hpp"
 #include "RenderUtils.hpp"
+#include "UITheme.hpp"
 #include <chrono>
 
 namespace scene {
@@ -25,7 +26,7 @@ namespace scene {
 		_raylib.setTargetFPS(60);
 		_selectedButtonIndex = -1;
 
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 
 		_registry.register_component<component::dynamic_position>();
 		_registry.register_component<component::position>();
@@ -37,11 +38,13 @@ namespace scene {
 
 		refreshRooms();
 
-		game::entities::create_text(_registry, TOP_LEFT, Vector2{0, 0}, "Rooms", RAYWHITE, -0.5f, _titleSize, _font);
+		game::entities::create_text(_registry, TOP_LEFT, Vector2{0, 0}, "Rooms", ui::theme::AccentText, -0.5f, _titleSize, _font);
 		game::entities::create_button(_registry, "button_back", "< Back", BOTTOM_LEFT, Vector2{0, 0},
-									{_buttonSize.x - 10, _buttonSize.y}, _accentColor, RAYWHITE, _buttonTextSize);
+										{_buttonSize.x - 10, _buttonSize.y}, _accentColor, ui::theme::AccentText, _buttonTextSize);
 		game::entities::create_button(_registry, "button_refresh", "Refresh", BOTTOM_RIGHT, Vector2{0, 0},
-									{_buttonSize.x + 20, _buttonSize.y}, _accentColor, RAYWHITE, _buttonTextSize);
+										{_buttonSize.x + 20, _buttonSize.y}, _accentColor, ui::theme::AccentText, _buttonTextSize);
+		game::entities::create_button(_registry, "button_create_room", "Create room", BOTTOM_CENTER, Vector2{0, 0},
+										{_buttonSize.x + 40, _buttonSize.y}, _accentColor, ui::theme::AccentText, _buttonTextSize);
 	}
 
 	void RoomSelectScene::render() {
@@ -55,7 +58,7 @@ namespace scene {
 		auto &hoverable = _registry.get_components<component::hoverable>();
 
 		_raylib.beginDrawing();
-		_raylib.clearBackground(BLACK);
+		drawSceneBackground(_raylib, ui::theme::BackgroundTop, ui::theme::BackgroundBottom);
 
 		for (std::size_t i = 0; i < dynamic_pos.size() && i < text.size(); ++i) {
 			if (!dynamic_pos[i] || !types[i] || !drawables[i]) continue;
@@ -75,7 +78,7 @@ namespace scene {
 				int fontSize = text[i]->font_size;
 				float spacing = text[i]->spacing;
 				Color textColor = text[i]->color;
-				drawButton(_raylib, pos, size, content, _font, fontSize, spacing, _accentColor, textColor, hoverable[i]->isHovered,
+				drawButton(_raylib, pos, size, content, _font, fontSize, spacing, _accentColor, ui::theme::AccentText, hoverable[i]->isHovered,
 							clickable[i]->isClicked, clickable[i]->enabled);
 			}
 		}
@@ -232,7 +235,7 @@ namespace scene {
 			room.second.button.rect.x = buttonPos.x;
 			room.second.button.rect.y = buttonPos.y;
 			_raylib.drawRectangleRounded(room.second.background, 0.5, 10, _roomBackgroundColor);
-			drawButton(_raylib, buttonPos, _roomJoinButtonSize, "Join", _font, _roomButtonTextSize, 0.75f, _accentColor, RAYWHITE,
+			drawButton(_raylib, buttonPos, _roomJoinButtonSize, "Join", _font, _roomButtonTextSize, 0.75f, ui::theme::Secondary, ui::theme::SecondaryText,
 						room.second.button.isHovered, room.second.button.isClicked, true, 0.75f);
 			_raylib.drawTextEx(_font, room.second.name, namePos, _roomNameSize, 0.75f, RAYWHITE);
 			_raylib.drawTextEx(_font, room.second.playersCount, playersPos, _playerCountSize, 0.75, RAYWHITE);
@@ -272,7 +275,7 @@ namespace scene {
 		if (id == "button_refresh") {
 			refreshRooms();
 		} else if (id == "button_create_room") {
-			//TODO: do something
+			_game.getSceneHandler().open("room_create");
 		} else if (id == "button_back") {
 			_game.getSceneHandler().open("menu");
 		}

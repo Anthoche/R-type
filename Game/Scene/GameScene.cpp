@@ -13,6 +13,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include "../../Engine/Utils/Include/serializer.hpp"
+#include "../../Engine/Physics/Include/Collision.hpp"
 #include <vector>
 #include <filesystem>
 #include "WeaponDefinition.hpp"
@@ -945,7 +946,7 @@ void GameScene::update() {
             float speed = controls[myPlayer.value()]->speed;
             float dt = 0.016f;
 
-            ecs::entity_t playerHitbox = collision::find_player_hitbox(*this);
+            ecs::entity_t playerHitbox = physics::collision::find_hitbox_of(_registry, myPlayer);
             if (playerHitbox.value() < hitboxes.size() && hitboxes[playerHitbox.value()]) {
                 auto &playerPos = *positions[myPlayer.value()];
                 auto &playerBox = *hitboxes[playerHitbox.value()];
@@ -954,9 +955,9 @@ void GameScene::update() {
                 float testX = playerPos.x + ix * speed * dt;
                 float testY = playerPos.y + iy * speed * dt;
 
-                if (collision::is_blocked(*this, testX, playerPos.y, playerPos, playerBox))
+                if (physics::collision::is_blocked(_registry, _obstacles, testX, playerPos.y, playerBox))
                     ix = 0.f;
-                if (collision::is_blocked(*this, playerPos.x, testY, playerPos, playerBox))
+                if (physics::collision::is_blocked(_registry, _obstacles, playerPos.x, testY, playerBox))
                     iy = 0.f;
                 if (ix != 0.f || iy != 0.f) {
                     playerPos.x += ix * speed * dt;

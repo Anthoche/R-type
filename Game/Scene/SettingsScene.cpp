@@ -10,6 +10,9 @@
 #include "background.hpp"
 #include "button.hpp"
 #include "text.hpp"
+#include "RenderUtils.hpp"
+#include "UITheme.hpp"
+#include <algorithm>
 
 namespace scene {
 	SettingsScene::SettingsScene(Game &game)
@@ -28,7 +31,7 @@ namespace scene {
 	void SettingsScene::setupScene() {
 		_raylib.enableCursor();
 		_raylib.setTargetFPS(60);
-		_font = _raylib.loadFont(ASSETS_PATH "/fonts/PressStart2P.ttf");
+		_font = _raylib.loadFont(ASSETS_PATH "/fonts/Steelar-j9Vnj.otf");
 	}
 
 	void SettingsScene::registerComponents() {
@@ -44,15 +47,13 @@ namespace scene {
 		Vector2 titleSize = _raylib.measureTextEx(_font, _sceneTitle.c_str(), _titleSize, -0.5f);
 		Vector2 titlePos = {(_width - titleSize.x) / 2.0f, 50.0f};
 
-		game::entities::create_text(_registry, titlePos, _sceneTitle, RAYWHITE, -0.5f, _titleSize, _font);
+	game::entities::create_text(_registry, titlePos, _sceneTitle, ui::theme::AccentText, -0.5f, _titleSize, _font);
 	}
 
 	void SettingsScene::createButtons() {
 		float y = 190.f;
 
 		std::vector<ButtonCreator> creators = {
-			&SettingsScene::createEndlessButton,
-			&SettingsScene::createLivesButton,
 			&SettingsScene::createSoundButton,
 			&SettingsScene::createLanguageButton
 		};
@@ -62,7 +63,7 @@ namespace scene {
 				_registry,
 				{_buttonPosition.x, y},
 				_buttons[i],
-				_accentColor,
+				ui::theme::AccentText,
 				-1.0f,
 				_buttonTextSize,
 				_font
@@ -77,51 +78,24 @@ namespace scene {
 		}
 	}
 
-	void SettingsScene::createEndlessButton(Vector2 pos, std::size_t i) {
-		std::string endlessValue = _endlessMode ? 
-			(_currentLanguage == Game::Language::ENGLISH ? "On" :
-			_currentLanguage == Game::Language::FRENCH ? "Active" : "Attivo") :
-			(_currentLanguage == Game::Language::ENGLISH ? "Off" :
-			_currentLanguage == Game::Language::FRENCH ? "Desactive" : "Disattivo");
-		
-		float textWidth = _raylib.measureTextEx(_font, endlessValue.c_str(), _buttonTextSize - 4, -1.0f).x;
-		float padding = 40.f;
-		float buttonWidth = std::max(120.f, textWidth + padding);
-
-		game::entities::create_button(_registry, "button_endless", endlessValue,
-			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
-		);		
-		_values[0] = endlessValue;
-	}
-
-	void SettingsScene::createLivesButton(Vector2 pos, std::size_t i) {
-		float textWidth = _raylib.measureTextEx(_font, _values[i].c_str(), _buttonTextSize - 4, -1.0f).x;
-		float padding = 40.f;
-		float buttonWidth = std::max(100.f, textWidth + padding);
-
-		game::entities::create_button(_registry, "button_lives", _values[i],
-			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
-		);
-	}
-
 	void SettingsScene::createSoundButton(Vector2 pos, std::size_t i) {
 		float textWidth = _raylib.measureTextEx(_font, _values[i].c_str(), _buttonTextSize - 4, -1.0f).x;
 		float padding = 40.f;
 		float buttonWidth = std::max(100.f, textWidth + padding);
 
-		game::entities::create_button(_registry, "button_sound", _values[i],
-			pos.x, pos.y, 0.f, buttonWidth, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
-		);
+	game::entities::create_button(_registry, "button_sound", _values[i],
+		pos.x, pos.y, 0.f, buttonWidth, 40.f, ui::theme::Neutral, ui::theme::NeutralText, _buttonTextSize - 4
+	);
 	}
 
 	void SettingsScene::createLanguageButton(Vector2 pos, std::size_t i) {
-		game::entities::create_button(_registry, "button_language", _values[i],
-			pos.x, pos.y, 0.f, 150.f, 40.f, DARKGRAY, RAYWHITE, _buttonTextSize - 4
-		);
+	game::entities::create_button(_registry, "button_language", _values[i],
+		pos.x, pos.y, 0.f, 150.f, 40.f, ui::theme::Secondary, ui::theme::SecondaryText, _buttonTextSize - 4
+	);
 	}
 
 	void SettingsScene::createDefaultText(Vector2 pos, std::size_t i) {
-		game::entities::create_text(_registry, pos, _values[i], RAYWHITE, -1.0f, _buttonTextSize - 4, _font);
+	game::entities::create_text(_registry, pos, _values[i], ui::theme::NeutralText, -1.0f, _buttonTextSize - 4, _font);
 	}
 
 	void SettingsScene::createBackButton() {
@@ -139,6 +113,8 @@ namespace scene {
 		for (std::size_t i = 0; i < clickable.size(); ++i) {
 			if (clickable[i] && clickable[i]->id == "button_back") {
 				texts[i]->content = label;
+				texts[i]->color = ui::theme::SecondaryText;
+				drawables[i]->color = ui::theme::Secondary;
 
 				float textWidth = _raylib.measureTextEx(_font, label.c_str(), texts[i]->font_size, texts[i]->spacing).x;
 				float padding = 40.f;
@@ -158,34 +134,14 @@ namespace scene {
 			Vector2 backSize = {buttonWidth, 50.f};
 
 			game::entities::create_button(_registry, "button_back", label, backPos.x, backPos.y, 0.f,
-				buttonWidth, backSize.y, DARKGRAY, RAYWHITE, 23);
+				buttonWidth, backSize.y, ui::theme::Secondary, ui::theme::SecondaryText, 23);
 		}
 	}
 
 
 	void SettingsScene::render() {
-		bool serverEndlessMode = _game.isEndlessModeEnabled();
-		size_t serverHealthHP = _game.getHealth();
-		size_t serverHealthIndex = _game.getHealthIndex();
-		if (serverHealthIndex != _currentLivesIndex) {
-			_currentLivesIndex = serverHealthIndex;			
-			if (_currentLivesIndex < _lives.size()) {
-				_values[1] = _lives[_currentLivesIndex];
-				updateButtonText("button_lives", _values[1]);
-			}
-		}
-		if (serverEndlessMode != _endlessMode) {
-			_endlessMode = serverEndlessMode;
-			std::string newValue = _endlessMode ? 
-				(_currentLanguage == Game::Language::ENGLISH ? "On" :
-				_currentLanguage == Game::Language::FRENCH ? "Active" : "Attivo") :
-				(_currentLanguage == Game::Language::ENGLISH ? "Off" :
-				_currentLanguage == Game::Language::FRENCH ? "Desactive" : "Disattivo");
-			_values[0] = newValue;
-			updateButtonText("button_endless", newValue);
-		}
 		_raylib.beginDrawing();
-		_raylib.clearBackground(BLACK);
+		drawSceneBackground(_raylib, ui::theme::BackgroundTop, ui::theme::BackgroundBottom);
 
 		auto &drawables = _registry.get_components<component::drawable>();
 		auto &positions = _registry.get_components<component::position>();
@@ -262,47 +218,21 @@ namespace scene {
 			return;
 		}
 		if (id == "button_sound") toggleSound();
-		else if (id == "button_lives") cycleLives();
-		else if (id == "button_endless") toggleEndless();
 		else if (id == "button_language") toggleLanguage();
 	}
   
 	void SettingsScene::toggleSound() {
-		_values[2] =
-			(_values[2] == "On" || _values[2] == "Active" || _values[2] == "Attivo")
-				? (_currentLanguage == Game::Language::ENGLISH ? "Off" :
-				_currentLanguage == Game::Language::FRENCH  ? "Desactive" :
-																"Disattivo")
-				: (_currentLanguage == Game::Language::ENGLISH ? "On" :
-				_currentLanguage == Game::Language::FRENCH  ? "Active" :
-																"Attivo");
 		_soundOn = !_soundOn;
 		_game.setSoundEnabled(_soundOn);
-		updateButtonText("button_sound", _values[2]);
-	}
 
-	void SettingsScene::toggleEndless() {
-		_endlessMode = !_endlessMode;
-		
-		std::string newValue = _endlessMode ? 
-			(_currentLanguage == Game::Language::ENGLISH ? "On" :
-			_currentLanguage == Game::Language::FRENCH ? "Active" : "Attivo") :
-			(_currentLanguage == Game::Language::ENGLISH ? "Off" :
-			_currentLanguage == Game::Language::FRENCH ? "Desactive" : "Disattivo");
-		
-		_values[0] = newValue;
-		_game.setEndlessMode(_endlessMode);
-		_game.getGameClient().sendEndlessMode(_endlessMode);
-		updateButtonText("button_endless", newValue);
-	}
+		if (_currentLanguage == Game::Language::ENGLISH)
+			_values[0] = _soundOn ? "On" : "Off";
+		else if (_currentLanguage == Game::Language::FRENCH)
+			_values[0] = _soundOn ? "Active" : "Desactive";
+		else
+			_values[0] = _soundOn ? "Attivo" : "Disattivo";
 
-	void SettingsScene::cycleLives() {
-		_currentLivesIndex = (_currentLivesIndex + 1) % _lives.size();
-		_values[1] = _lives[_currentLivesIndex];
-		int livesValue = std::stoi(_lives[_currentLivesIndex]);
-		livesValue = livesValue * 25;
-		_game.getGameClient().sendHealth(livesValue);
-		updateButtonText("button_lives", _values[1]);
+		updateButtonText("button_sound", _values[0]);
 	}
 
 	void SettingsScene::toggleLanguage() {
@@ -324,33 +254,21 @@ namespace scene {
 	}
 	
 	void SettingsScene::translateToItalian() {
-		_buttons = {"1. Infinito", "2. Vite", "3. Suono", "4. Lingua"};
-		_lives = {"1", "2", "3", "4", "5", "6", "7"};
-		
-		_values[0] = _endlessMode ? "Attivo" : "Disattivo";
-		_values[1] = _lives[_currentLivesIndex];
-		_values[2] = (_values[2] == "On" || _values[2] == "Active" ? "Attivo" : "Disattivo");
-		_values[3] = "Italiano";
+		_buttons = {"1. Suono", "2. Lingua"};
+		_values[0] = _soundOn ? "Attivo" : "Disattivo";
+		_values[1] = "Italiano";
 	}
 
 	void SettingsScene::translateToFrench() {
-		_buttons = {"1. Infini", "2. Vies", "3. Son", "4. Langue"};
-		_lives = {"1", "2", "3", "4", "5", "6", "7"};
-		
-		_values[0] = _endlessMode ? "Active" : "Desactive";
-		_values[1] = _lives[_currentLivesIndex];
-		_values[2] = (_values[2] == "On" ? "Active" : "Desactive");
-		_values[3] = "Francais";
+		_buttons = {"1. Son", "2. Langue"};
+		_values[0] = _soundOn ? "Active" : "Desactive";
+		_values[1] = "Francais";
 	}
 
 	void SettingsScene::translateToEnglish() {
-		_buttons = {"1. Endless", "2. Lives", "3. Sound", "4. Language"};
-		_lives = {"1", "2", "3", "4", "5", "6", "7"};
-		
-		_values[0] = _endlessMode ? "On" : "Off";
-		_values[1] = _lives[_currentLivesIndex];
-		_values[2] = (_values[2] == "Active" || _values[2] == "Attivo" ? "On" : "Off");
-		_values[3] = "English";
+		_buttons = {"1. Sound", "2. Language"};
+		_values[0] = _soundOn ? "On" : "Off";
+		_values[1] = "English";
 	}
 
 	void SettingsScene::updateAllButtonValues() {
@@ -358,7 +276,7 @@ namespace scene {
 		auto &texts = _registry.get_components<component::text>();
 		auto &drawables = _registry.get_components<component::drawable>();
 
-		std::vector<std::string> buttonIds = {"button_endless", "button_lives", "button_sound", "button_language"};
+		std::vector<std::string> buttonIds = {"button_sound", "button_language"};
 
 		for (size_t i = 0; i < buttonIds.size(); ++i) {
 			for (size_t j = 0; j < clickable.size(); ++j) {
@@ -422,15 +340,20 @@ namespace scene {
 
 		Rectangle rect = {position.x, position.y, size.x, size.y};
 
+		Color fillColor = color;
+		Color labelColor = textColor;
 		if (isHovered) {
-			Color temp = textColor;
-			textColor = color;
-			color = temp;
+			fillColor.r = std::min(255, fillColor.r + 20);
+			fillColor.g = std::min(255, fillColor.g + 20);
+			fillColor.b = std::min(255, fillColor.b + 20);
 		}
-		if (isClicked) color.a -= 50;
+		if (isClicked) {
+			fillColor.a = static_cast<unsigned char>(fillColor.a > 60 ? fillColor.a - 60 : fillColor.a);
+		}
 
-		_raylib.drawRectangleRounded(rect, 0.5, 10, color);
-		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, textColor);
+		_raylib.drawRectangleRounded(rect, 0.5f, 10, fillColor);
+		_raylib.drawRectangleRoundedLines(rect, 0.5f, 16, 2.f, ui::theme::ButtonOutline);
+		_raylib.drawTextEx(_font, content, textPos, fontSize, spacing, labelColor);
 	}
 
 	void SettingsScene::resetButtonStates() {

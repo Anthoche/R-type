@@ -17,12 +17,7 @@
 #include "Logger.hpp"
 #include "WeaponDefinition.hpp"
 
-GameServer::GameServer(uint16_t port) : connexion(ioContext, port), roomManager(4) {
-	roomManager.addRoom(Room(connexion, 4, 4, "Room 1"));
-	roomManager.addRoom(Room(connexion, 4, 4, "Room 2"));
-	roomManager.addRoom(Room(connexion, 6, 4, "Room 3"));
-	roomManager.addRoom(Room(connexion, 2, 2, "Room 4"));
-}
+GameServer::GameServer(uint16_t port) : connexion(ioContext, port), roomManager(4) {}
 
 static void sigintHandler(int s) {
 	LOG_INFO("Detected SIGINT signal, shutting down server...");
@@ -255,6 +250,36 @@ void GameServer::handleClientLeaveRoom(const std::vector<uint8_t> &data, const a
 	room->removeClient(msg->clientId);
 }
 
+void GameServer::handleClientRoomCreate(const std::vector<uint8_t> &data, const asio::ip::udp::endpoint &from) {
+	(void) from;
+	if (data.size() < sizeof(ClientRoomCreateMessage)) return;
+
+	const auto *msg = reinterpret_cast<const ClientRoomCreateMessage *>(data.data());
+	int requestedMin = static_cast<int>(ntohs(msg->minPlayers));
+	int requestedMax = static_cast<int>(ntohs(msg->maxPlayers));
+
+	requestedMin = std::clamp(requestedMin, 1, maxPlayers);
+	requestedMax = std::clamp(requestedMax, requestedMin, maxPlayers);
+
+	if (roomManager.getRooms().size() >= static_cast<std::size_t>(roomManager.getMaxRooms())) {
+		LOG_WARN("Client attempted to create a room but capacity is full.");
+		return;
+	}
+
+	std::string creatorName = connexion.getClientName(msg->clientId);
+	if (creatorName.empty())
+		creatorName = "Custom";
+	std::string roomName = std::format("{}'s Room", creatorName);
+
+	Room newRoom(connexion, requestedMax, requestedMin, roomName, msg->clientId);
+	auto roomId = roomManager.addRoom(newRoom);
+	if (!roomId.has_value()) {
+		LOG_WARN("Failed to register new room (capacity reached).");
+		return;
+	}
+	LOG_INFO(std::format("Client {} created room {} (min {}, max {})", msg->clientId, roomId.value(), requestedMin, requestedMax));
+}
+
 void GameServer::processIncomingPacket(const Connexion::ReceivedPacket &packet) {
 	if (packet.data.size() < sizeof(MessageType))
 		return;
@@ -280,6 +305,9 @@ void GameServer::processIncomingPacket(const Connexion::ReceivedPacket &packet) 
 			break;
 		case MessageType::ClientLeaveRoom:
 			handleClientLeaveRoom(packet.data, packet.endpoint);
+			break;
+		case MessageType::ClientRoomCreate:
+			handleClientRoomCreate(packet.data, packet.endpoint);
 			break;
 		default:
 			routePacketToGame(packet, type);

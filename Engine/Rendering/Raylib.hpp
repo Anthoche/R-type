@@ -281,6 +281,9 @@ class Raylib {
 		 * @param color The rectangle fill color
 		 */
 		void drawRectangleRounded(Rectangle rec, float roundness, int segments, Color color);
+		void drawRectangleRoundedLines(Rectangle rec, float roundness, int segments, float lineThick, Color color);
+		void drawRectangleGradientV(Rectangle rec, Color topColor, Color bottomColor);
+		void drawRectangleGradientEx(Rectangle rec, Color topLeft, Color topRight, Color bottomRight, Color bottomLeft);
 
         /**
          * @brief Draw a line between two points.
