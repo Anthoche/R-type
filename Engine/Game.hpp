@@ -93,6 +93,15 @@ class Game {
       };
       
       /**
+       * @brief Describes the result of the last finished match.
+       */
+      enum class MatchOutcome {
+          None,    ///< No result yet or match still running.
+          Victory, ///< Team cleared the campaign.
+          Defeat   ///< All players have been defeated.
+      };
+
+      /**
        * @brief Sets the current game language.
        *
        * Changes the active language for all UI elements and text displays.
@@ -183,6 +192,16 @@ class Game {
        * @return true if endless mode is active, false otherwise.
        */
       bool isEndlessModeEnabled() const { return _endlessMode; }
+
+      /**
+       * @brief Stores the outcome of the most recently finished match.
+       */
+      void setLastMatchOutcome(MatchOutcome outcome) { _lastOutcome = outcome; }
+
+      /**
+       * @brief Returns the recorded outcome of the last finished match.
+       */
+      MatchOutcome getLastMatchOutcome() const { return _lastOutcome; }
       
       /**
        * @brief Sets the player's current health value.
@@ -222,4 +241,5 @@ class Game {
       std::string _selectedSkinPath; ///< File path to the selected player skin sprite.
       std::string _selectedWeaponPath; ///< File path to the selected weapon sprite.
       std::string _selectedWeaponId; ///< Identifier for the currently selected weapon type.
+      MatchOutcome _lastOutcome = MatchOutcome::None; ///< Result of the last finished run.
 };

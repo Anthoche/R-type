@@ -84,7 +84,9 @@ namespace game::scene {
                 }
             }
         }
+        updateStatsSceneTransition();
         _raylib.endDrawing();
+        handleStatsSceneLaunch();
     }
 
     void GameScene::render_entities() {

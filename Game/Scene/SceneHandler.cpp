@@ -13,6 +13,7 @@
 #include "Include/ServerWaitScene.hpp"
 #include "Include/WaitingScene.hpp"
 #include "Include/SettingsScene.hpp"
+#include "Include/StatsScene.hpp"
 
 
 SceneHandler::SceneHandler(Game &game) : _game(game) {
@@ -32,6 +33,7 @@ void SceneHandler::setupScenes() {
 	addScene("server_wait", std::make_shared<scene::ServerWaitScene>(_game));
 	addScene("game", std::make_shared<game::scene::GameScene>(_game));
 	addScene("settings", std::make_shared<scene::SettingsScene>(_game));
+	addScene("stats", std::make_shared<scene::StatsScene>(_game));
 }
 
 void SceneHandler::openMenu() {

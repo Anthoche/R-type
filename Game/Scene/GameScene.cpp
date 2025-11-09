@@ -61,6 +61,12 @@ namespace game::scene {
         _registry.clear();
         _isOpen = true;
         _startTime = _raylib.getTime();
+        _statsSceneScheduled = false;
+        _openStatsRequested = false;
+        _endGameState = EndGameState::None;
+        _statsSceneStart = 0.0;
+        _game.setLastMatchOutcome(Game::MatchOutcome::None);
+        _game.setGameStatus(GameStatus::RUNNING);
         _raylib.disableCursor();
         _raylib.setTargetFPS(60);
         toggleFullScreen();
@@ -1023,6 +1029,69 @@ void GameScene::update() {
             });
     }
 
+    bool GameScene::areAllPlayersDead() {
+        std::lock_guard<std::mutex> g(_game.getGameClient().stateMutex);
+        return _game.getGameClient().players.empty();
+    }
+
+    void GameScene::scheduleStatsScene(EndGameState state) {
+        if (_statsSceneScheduled)
+            return;
+
+        _statsSceneScheduled = true;
+        _endGameState = state;
+        _statsSceneStart = _raylib.getTime();
+
+        switch (state) {
+            case EndGameState::Victory:
+                _game.setLastMatchOutcome(Game::MatchOutcome::Victory);
+                break;
+            case EndGameState::Defeat:
+                _game.setLastMatchOutcome(Game::MatchOutcome::Defeat);
+                break;
+            default:
+                _game.setLastMatchOutcome(Game::MatchOutcome::None);
+                break;
+        }
+        _game.setGameStatus(GameStatus::FINISHED);
+    }
+
+    void GameScene::updateStatsSceneTransition() {
+        if (_statsSceneScheduled) {
+            if (_endGameState == EndGameState::Defeat && !areAllPlayersDead()) {
+                _statsSceneScheduled = false;
+                _endGameState = EndGameState::None;
+                _game.setLastMatchOutcome(Game::MatchOutcome::None);
+                _game.setGameStatus(GameStatus::RUNNING);
+                return;
+            }
+
+            double elapsed = _raylib.getTime() - _statsSceneStart;
+            if (elapsed >= _statsSceneDelay) {
+                _statsSceneScheduled = false;
+                _openStatsRequested = true;
+            }
+            return;
+        }
+
+        if (_lastBoss && _isWin) {
+            scheduleStatsScene(EndGameState::Victory);
+            return;
+        }
+
+        if (!_isWin && !_levelReloadPending && areAllPlayersDead()) {
+            scheduleStatsScene(EndGameState::Defeat);
+        }
+    }
+
+    void GameScene::handleStatsSceneLaunch() {
+        if (!_openStatsRequested)
+            return;
+
+        _openStatsRequested = false;
+        _game.getSceneHandler().open("stats");
+    }
+
     void GameScene::toggleFullScreen() {
         int const currentMonitor = _raylib.getCurrentMonitor();
 
@@ -1049,5 +1118,8 @@ void GameScene::update() {
         _ui.unload();
         unload_entity_textures();
         unload_projectile_textures();
+        _statsSceneScheduled = false;
+        _openStatsRequested = false;
+        _endGameState = EndGameState::None;
     }
 } // namespace game::scene

@@ -106,6 +106,12 @@ namespace game::scene {
         Game &getGame() { return _game; }
 
     private:
+        enum class EndGameState {
+            None,
+            Victory,
+            Defeat
+        };
+
         struct InputState {
             bool up{false};    ///< Is up key pressed
             bool down{false};  ///< Is down key pressed
@@ -347,6 +353,26 @@ namespace game::scene {
         Color get_color_for_id(uint32_t id);
 
         /**
+         * @brief Return true if no player entities remain alive on the server snapshot.
+         */
+        bool areAllPlayersDead();
+
+        /**
+         * @brief Schedule the transition towards the stats scene.
+         */
+        void scheduleStatsScene(EndGameState state);
+
+        /**
+         * @brief Update the state machine that decides when to show the stats scene.
+         */
+        void updateStatsSceneTransition();
+
+        /**
+         * @brief Open the stats scene once the delay has elapsed.
+         */
+        void handleStatsSceneLaunch();
+
+        /**
          * @brief Dispatch input events to the InputState struct.
          */
         void dispatch_input_events(bool upPressed, bool downPressed, bool leftPressed, bool rightPressed);
@@ -394,6 +420,11 @@ namespace game::scene {
         double _startTime; ///< Start time of the scene.
         UI _ui; ///< UI instance for game overlay
         ChatSystem _chat; ///< Chat overlay manager
+        bool _statsSceneScheduled{false};
+        double _statsSceneStart{0.0};
+        const double _statsSceneDelay{8.0};
+        EndGameState _endGameState{EndGameState::None};
+        bool _openStatsRequested{false};
 };
 
 } // namespace game::scene
